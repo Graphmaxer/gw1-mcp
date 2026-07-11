@@ -16,7 +16,7 @@ export function createApp(): Hono {
   app.get("/", (c) =>
     c.json({
       name: "gw1-mcp",
-      description: "Kormir — a Guild Wars 1 build compiler for LLMs",
+      description: "A Guild Wars 1 build compiler for LLMs",
       endpoint: "/mcp",
       transport: "streamable-http",
       repository: "https://github.com/Graphmaxer/gw1-mcp",

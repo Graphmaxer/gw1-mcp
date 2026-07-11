@@ -194,7 +194,7 @@ export function createServer(): McpServer {
           .array(z.number().int())
           .optional()
           .describe(
-            "Optional: unlocked skill ids from a Kormir account export (/kormir in GWToolbox). Skills outside this list are flagged as warnings.",
+            "Optional: unlocked skill ids from a GWToolbox account export (/exportaccount). Skills outside this list are flagged as warnings.",
           ),
       },
     },
@@ -228,7 +228,7 @@ export function createServer(): McpServer {
           .array(z.number().int())
           .optional()
           .describe(
-            "Optional: unlocked skill ids from a Kormir account export (/kormir in GWToolbox). Skills outside this list are flagged as warnings.",
+            "Optional: unlocked skill ids from a GWToolbox account export (/exportaccount). Skills outside this list are flagged as warnings.",
           ),
       },
     },

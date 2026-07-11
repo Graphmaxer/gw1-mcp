@@ -1,4 +1,4 @@
-#include "Kormir.h"
+#include "AccountExport.h"
 
 #include <GWCA/Constants/Constants.h>
 #include <GWCA/Context/AccountContext.h>
@@ -19,7 +19,6 @@
 namespace {
 
 GW::HookEntry ChatCmd_HookEntry;
-GW::HookEntry ChatCmdAlias_HookEntry;
 
 // Indexed by GW::Constants::HeroID (Constants.h). Names are the canonical
 // English hero names as used by gw1-mcp / the wiki.
@@ -114,7 +113,7 @@ void ExportAccount(GW::HookStatus*, const wchar_t*, int, const LPWSTR*)
 
     if (!world || !account || !character || !player) {
         GW::Chat::WriteChat(GW::Chat::Channel::CHANNEL_WARNING,
-                            L"[Kormir] Not in game yet - load a character first.", nullptr, true);
+                            L"[AccountExport] Not in game yet - load a character first.", nullptr, true);
         return;
     }
 
@@ -176,7 +175,7 @@ void ExportAccount(GW::HookStatus*, const wchar_t*, int, const LPWSTR*)
 
     wchar_t message[128];
     swprintf(message, _countof(message),
-             L"[Kormir] Account export copied to clipboard (%u heroes). Paste it to your assistant.",
+             L"[AccountExport] Account export copied to clipboard (%u heroes). Paste it to your assistant.",
              hero_count);
     GW::Chat::WriteChat(GW::Chat::Channel::CHANNEL_GLOBAL, message, nullptr, true);
 }
@@ -185,22 +184,20 @@ void ExportAccount(GW::HookStatus*, const wchar_t*, int, const LPWSTR*)
 
 DLLAPI ToolboxPlugin* ToolboxPluginInstance()
 {
-    static Kormir instance;
+    static AccountExport instance;
     return &instance;
 }
 
-void Kormir::Initialize(ImGuiContext* ctx, const ImGuiAllocFns allocator_fns, const HMODULE toolbox_dll)
+void AccountExport::Initialize(ImGuiContext* ctx, const ImGuiAllocFns allocator_fns, const HMODULE toolbox_dll)
 {
     ToolboxPlugin::Initialize(ctx, allocator_fns, toolbox_dll);
-    GW::Chat::CreateCommand(&ChatCmd_HookEntry, L"kormir", ExportAccount);
-    GW::Chat::CreateCommand(&ChatCmdAlias_HookEntry, L"exportaccount", ExportAccount);
+    GW::Chat::CreateCommand(&ChatCmd_HookEntry, L"exportaccount", ExportAccount);
     GW::Chat::WriteChat(GW::Chat::Channel::CHANNEL_GLOBAL,
-                        L"[Kormir] Loaded. Type /kormir to export your account state.", nullptr, true);
+                        L"[AccountExport] Loaded. Type /exportaccount to export your account state.", nullptr, true);
 }
 
-void Kormir::SignalTerminate()
+void AccountExport::SignalTerminate()
 {
     ToolboxPlugin::SignalTerminate();
     GW::Chat::DeleteCommand(&ChatCmd_HookEntry);
-    GW::Chat::DeleteCommand(&ChatCmdAlias_HookEntry);
 }

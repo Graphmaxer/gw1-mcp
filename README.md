@@ -1,4 +1,4 @@
-# gw1-mcp — Kormir, a Guild Wars 1 build compiler for LLMs
+# gw1-mcp — a Guild Wars 1 build compiler for LLMs
 
 An MCP (Model Context Protocol) server that gives any compatible LLM client
 (Claude, ChatGPT, Cursor…) reliable, deterministic knowledge of **Guild Wars 1**
@@ -62,8 +62,8 @@ pnpm --filter @gw1-mcp/gw-data import /tmp/gw1-database
 
 ## GWToolbox integration
 
-`gwtoolbox-plugin/` contains **Kormir**, a read-only GWToolbox plugin adding
-`/kormir`: it copies your account state (heroes, unlocked skills) as JSON to
+`gwtoolbox-plugin/` contains a read-only GWToolbox plugin adding
+`/exportaccount`: it copies your account state (heroes, unlocked skills) as JSON to
 the clipboard. Paste it in your conversation and pass `unlockedAccountSkills`
 to `validate_build` / `encode_template` as `unlockedSkillIds` — proposed
 skills you don't own are flagged. Windows build instructions in

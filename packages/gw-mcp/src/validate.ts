@@ -115,7 +115,7 @@ export function validateBuild(
       });
     }
 
-    // Availability against a Kormir account export (/kormir in GWToolbox).
+    // Availability against a GWToolbox account export (/exportaccount).
     if (
       options.unlockedSkillIds !== undefined &&
       !options.unlockedSkillIds.includes(skill.id)

@@ -108,7 +108,7 @@ describe("gw1-mcp server", () => {
   });
 });
 
-describe("Kormir account export integration", () => {
+describe("GWToolbox account export integration", () => {
   it("warns on skills outside the unlocked list", async () => {
     const client = await connectedClient();
     const result = payload(

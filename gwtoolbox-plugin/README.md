@@ -1,10 +1,10 @@
-# Kormir — GWToolbox export plugin
+# GWToolbox account export plugin
 
 A minimal, read-only [GWToolboxpp](https://github.com/gwdevhub/GWToolboxpp)
 plugin that adds one chat command:
 
 ```
-/kormir        (alias: /exportaccount)
+/exportaccount
 ```
 
 It copies a JSON snapshot of your account state to the clipboard:
@@ -49,17 +49,17 @@ git clone https://github.com/gwdevhub/GWToolboxpp.git
 cd GWToolboxpp
 
 # Drop this plugin in
-Copy-Item -Recurse path\to\gw1-mcp\gwtoolbox-plugin\Kormir plugins\Kormir
+Copy-Item -Recurse path\to\gw1-mcp\gwtoolbox-plugin\AccountExport plugins\AccountExport
 
 # Declare it (one line at the end of cmake/gwtoolboxdll_plugins.cmake):
-Add-Content cmake\gwtoolboxdll_plugins.cmake "add_tb_plugin(Kormir)"
+Add-Content cmake\gwtoolboxdll_plugins.cmake "add_tb_plugin(AccountExport)"
 
 # Configure + build
 cmake -B build -G "Visual Studio 17 2022" -A Win32
-cmake --build build --config RelWithDebInfo --target Kormir
+cmake --build build --config RelWithDebInfo --target AccountExport
 ```
 
-The DLL lands in `build\bin\RelWithDebInfo\Kormir.dll`. Copy it to your
+The DLL lands in `build\bin\RelWithDebInfo\AccountExport.dll`. Copy it to your
 GWToolbox plugins folder (`%LOCALAPPDATA%\GWToolboxpp\<computername>\plugins`),
 then load it from Toolbox settings → Plugins.
 

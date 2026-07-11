@@ -1,5 +1,6 @@
 /**
- * Drift detection for data/heroes.json against the canonical upstream:
+ * Generator for data/heroes.json — the mechanical part (ids and names) is
+ * DERIVED from the canonical upstream at run time, never copied by hand:
  * the GWCA `HeroID` enum, vendored inside GWToolboxpp. That vendored copy
  * is not a fallback — it is the LIVING source: the standalone gwdevhub/GWCA
  * repository 404s (deleted or made private) as of July 2026, and GWToolbox's
@@ -7,15 +8,16 @@
  * heroes within days (Devona and GhostOfAlthea appeared with the April 2026
  * patches). Do not "fix" ENUM_URL to point at a standalone GWCA repo.
  *
- *   pnpm --filter @gw1-mcp/gw-data check:heroes
+ *   pnpm --filter @gw1-mcp/gw-data import:heroes
  *
- * Exit 1 when the upstream enum contains a playable hero that heroes.json
- * lacks (professions/campaign/unlock notes still need a human — the enum
- * only carries ids and names). Name mismatches and local-only heroes are
- * warnings. The weekly update-data workflow runs this after the skill
- * import, so a new hero shows up as a failed run instead of silent staleness.
+ * The only human knowledge lives in data/heroes-meta.json (professionId,
+ * campaignId, unlock note — none of which exists in any machine-readable
+ * source; the enum does not carry them and the wiki is fragile wikitext).
+ * When the enum gains a hero the overlay lacks, this script exits 1 listing
+ * the identifiers to curate — the weekly workflow turns that into a red run
+ * instead of silent staleness. Orphan overlay keys are warnings.
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -38,12 +40,24 @@ const NAME_OVERRIDES: Record<string, string> = {
   Ogden: "Ogden Stonehealer",
 };
 
+export interface HeroMeta {
+  professionId: number;
+  campaignId: number;
+  unlock: string;
+}
+
+export interface HeroRecord extends HeroMeta {
+  id: number;
+  name: string;
+}
+
 export function identifierToName(identifier: string): string {
   const override = NAME_OVERRIDES[identifier];
   if (override) return override;
   return identifier.replace(/(?<=[a-z])(?=[A-Z])/g, " ");
 }
 
+/** id -> enum identifier for every playable hero, in enum order. */
 export function parseHeroEnum(header: string): Map<number, string> {
   const match = header.match(/enum HeroID : uint32_t \{([\s\S]*?)\};/);
   if (!match?.[1]) throw new Error("HeroID enum not found in upstream header — format changed?");
@@ -59,18 +73,46 @@ export function parseHeroEnum(header: string): Map<number, string> {
         `Unexpected enum entry ${JSON.stringify(identifier)} — explicit values? Update the parser.`,
       );
     }
-    heroes.set(id, identifierToName(identifier));
+    heroes.set(id, identifier);
   });
   return heroes;
 }
 
+/** Merge the upstream enum with the curated overlay into full hero records. */
+export function generateHeroes(header: string, overlay: Record<string, HeroMeta>): HeroRecord[] {
+  const upstream = parseHeroEnum(header);
+  const missing = [...upstream.values()].filter((identifier) => !(identifier in overlay));
+  if (missing.length > 0) {
+    throw new Error(
+      `data/heroes-meta.json lacks ${missing.length} hero(es) from the GWCA enum: ${missing.join(", ")} — curate professionId/campaignId/unlock (from GWW) to unblock`,
+    );
+  }
+  const known = new Set(upstream.values());
+  for (const key of Object.keys(overlay)) {
+    if (!known.has(key))
+      console.warn(`WARN overlay key "${key}" no longer exists in the GWCA enum`);
+  }
+  return [...upstream]
+    .sort(([a], [b]) => a - b)
+    .map(([id, identifier]) => {
+      const meta = overlay[identifier] as HeroMeta;
+      return {
+        id,
+        name: identifierToName(identifier),
+        professionId: meta.professionId,
+        campaignId: meta.campaignId,
+        unlock: meta.unlock,
+      };
+    });
+}
+
 async function main(): Promise<void> {
   const here = dirname(fileURLToPath(import.meta.url));
-  const local = JSON.parse(readFileSync(join(here, "..", "data", "heroes.json"), "utf8")) as Array<{
-    id: number;
-    name: string;
-  }>;
-  const localById = new Map(local.map((hero) => [hero.id, hero.name]));
+  const dataDir = join(here, "..", "data");
+  const overlay = JSON.parse(readFileSync(join(dataDir, "heroes-meta.json"), "utf8")) as Record<
+    string,
+    HeroMeta
+  >;
 
   const response = await fetch(ENUM_URL);
   if (!response.ok) {
@@ -78,32 +120,10 @@ async function main(): Promise<void> {
       `Fetching GWCA constants failed: ${response.status} — if GWToolboxpp moved the vendored Dependencies/GWCA folder, locate the new path in their tree`,
     );
   }
-  const upstream = parseHeroEnum(await response.text());
-
-  const missing = [...upstream].filter(([id]) => !localById.has(id));
-  const localOnly = [...localById].filter(([id]) => !upstream.has(id));
-  const renamed = [...upstream].filter(
-    ([id, name]) => localById.has(id) && localById.get(id) !== name,
-  );
-
-  for (const [id, name] of renamed) {
-    console.warn(
-      `WARN name mismatch for id ${id}: upstream "${name}" vs local "${localById.get(id)}"`,
-    );
-  }
-  for (const [id, name] of localOnly) {
-    console.warn(`WARN hero ${id} "${name}" exists locally but not in the GWCA enum`);
-  }
-  if (missing.length > 0) {
-    for (const [id, name] of missing) {
-      console.error(
-        `MISSING hero ${id} "${name}" — add it to data/heroes.json (professions/campaign/unlock from GWW)`,
-      );
-    }
-    process.exit(1);
-  }
+  const heroes = generateHeroes(await response.text(), overlay);
+  writeFileSync(join(dataDir, "heroes.json"), `${JSON.stringify(heroes, null, 1)}\n`);
   console.log(
-    `heroes.json is in sync with the GWCA HeroID enum (${upstream.size} playable heroes).`,
+    `data/heroes.json generated: ${heroes.length} heroes from the GWCA enum + curated overlay.`,
   );
 }
 
@@ -111,7 +131,7 @@ const isDirectRun =
   process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href;
 if (isDirectRun) {
   main().catch((error: unknown) => {
-    console.error(error);
+    console.error(error instanceof Error ? error.message : error);
     process.exit(1);
   });
 }

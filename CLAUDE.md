@@ -172,14 +172,16 @@ for action. Nothing else in the repo is knowingly imperfect.
    (docs/upstream-gw-templates-bug.md, report ready to file). Our sentinel
    test pins the buggy behavior: when upstream fixes it, the sentinel FAILS
    on purpose — update the sentinel and delete this line.
-5. heroes.json content (professions/campaign/unlock notes) is hand-curated,
-   but DRIFT IS NOW DETECTED automatically: scripts/check-heroes.ts compares
-   ids/names against the GWCA HeroID enum (vendored in GWToolboxpp — the
-   standalone gwdevhub/GWCA repo 404s since ~2026, the vendored copy IS the
-   living source, and it gains new Reforged heroes within days) and the
-   weekly data workflow fails when
-   upstream has a hero we lack. Trigger: that failing run; then curate the
-   new hero's metadata from GWW.
+5. heroes.json is GENERATED (scripts/import-heroes.ts): ids/names are
+   derived at import time from the GWCA HeroID enum (vendored in GWToolboxpp
+   — the standalone gwdevhub/GWCA repo 404s since ~2026, the vendored copy
+   IS the living source, and it gains new Reforged heroes within days).
+   Never edit heroes.json by hand. The only curated file is
+   data/heroes-meta.json (professionId/campaignId/unlock — knowledge that
+   exists in no machine-readable source). The weekly workflow regenerates;
+   a new upstream hero makes the run fail listing the identifiers to add to
+   the overlay, then the regenerated hero rides the weekly PR. Trigger:
+   that failing run; curate the metadata from GWW.
 6. The public worker has no auth or rate limiting — acceptable for a
    personal connector, revisit before sharing the URL.
 7. Early-adopter stack: TypeScript 7.0.x and vitest 4 are young majors;

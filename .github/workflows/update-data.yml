@@ -21,8 +21,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Import latest upstream data (published GitHub Pages release files)
         run: pnpm --filter @gw1-mcp/gw-data import https://build-wars.github.io/gw-skilldata
-      - name: Check heroes against the GWCA HeroID enum
-        run: pnpm --filter @gw1-mcp/gw-data check:heroes
+      - name: Regenerate heroes.json from the GWCA HeroID enum + curated overlay
+        run: pnpm --filter @gw1-mcp/gw-data import:heroes
       - name: Check for meaningful changes (ignore import date)
         id: diff
         run: |

@@ -1,0 +1,157 @@
+{
+ "Norgu": {
+  "professionId": 5,
+  "campaignId": 3,
+  "unlock": "Nightfall \u2014 optional recruitment quest (Istan/mainland)"
+ },
+ "Goren": {
+  "professionId": 1,
+  "campaignId": 3,
+  "unlock": "Nightfall \u2014 optional recruitment quest (Kourna)"
+ },
+ "Tahlkora": {
+  "professionId": 3,
+  "campaignId": 3,
+  "unlock": "Nightfall \u2014 story, early Istan"
+ },
+ "MasterOfWhispers": {
+  "professionId": 4,
+  "campaignId": 3,
+  "unlock": "Nightfall \u2014 story branch in Kourna (mutually exclusive with Margrid until later)"
+ },
+ "AcolyteJin": {
+  "professionId": 2,
+  "campaignId": 3,
+  "unlock": "Nightfall \u2014 story, Kourna"
+ },
+ "Koss": {
+  "professionId": 1,
+  "campaignId": 3,
+  "unlock": "Nightfall \u2014 story, early Istan"
+ },
+ "Dunkoro": {
+  "professionId": 3,
+  "campaignId": 3,
+  "unlock": "Nightfall \u2014 story, Istan"
+ },
+ "AcolyteSousuke": {
+  "professionId": 6,
+  "campaignId": 3,
+  "unlock": "Nightfall \u2014 story, Kourna"
+ },
+ "Melonni": {
+  "professionId": 10,
+  "campaignId": 3,
+  "unlock": "Nightfall \u2014 story, early Istan"
+ },
+ "ZhedShadowhoof": {
+  "professionId": 6,
+  "campaignId": 3,
+  "unlock": "Nightfall \u2014 story, Kourna"
+ },
+ "GeneralMorgahn": {
+  "professionId": 9,
+  "campaignId": 3,
+  "unlock": "Nightfall \u2014 story, Vabbi"
+ },
+ "MargridTheSly": {
+  "professionId": 2,
+  "campaignId": 3,
+  "unlock": "Nightfall \u2014 story branch in Kourna (mutually exclusive with Master of Whispers until later)"
+ },
+ "Zenmai": {
+  "professionId": 7,
+  "campaignId": 2,
+  "unlock": "Factions \u2014 quest in Kaineng Center (any campaign character)"
+ },
+ "Olias": {
+  "professionId": 4,
+  "campaignId": 1,
+  "unlock": "Prophecies-linked \u2014 quest from Lion's Arch area (any campaign character)"
+ },
+ "Razah": {
+  "professionId": 8,
+  "campaignId": 3,
+  "unlock": "Nightfall \u2014 post-story, Domain of Anguish quest chain"
+ },
+ "MOX": {
+  "professionId": 10,
+  "campaignId": 4,
+  "unlock": "Free quest \u2014 requires Nightfall or Eye of the North"
+ },
+ "KeiranThackeray": {
+  "professionId": 9,
+  "campaignId": 4,
+  "unlock": "Guild Wars Beyond \u2014 Hearts of the North epilogue"
+ },
+ "Jora": {
+  "professionId": 1,
+  "campaignId": 4,
+  "unlock": "Eye of the North \u2014 story, Norn questline"
+ },
+ "PyreFierceshot": {
+  "professionId": 2,
+  "campaignId": 4,
+  "unlock": "Eye of the North \u2014 story, Charr questline"
+ },
+ "Anton": {
+  "professionId": 7,
+  "campaignId": 4,
+  "unlock": "Eye of the North \u2014 Ebon Vanguard quest"
+ },
+ "Livia": {
+  "professionId": 4,
+  "campaignId": 4,
+  "unlock": "Eye of the North \u2014 Shining Blade quest"
+ },
+ "Hayda": {
+  "professionId": 9,
+  "campaignId": 4,
+  "unlock": "Eye of the North \u2014 Ebon Vanguard quest"
+ },
+ "Kahmu": {
+  "professionId": 10,
+  "campaignId": 4,
+  "unlock": "Eye of the North \u2014 Norn quest"
+ },
+ "Gwen": {
+  "professionId": 5,
+  "campaignId": 4,
+  "unlock": "Eye of the North \u2014 story"
+ },
+ "Xandra": {
+  "professionId": 8,
+  "campaignId": 4,
+  "unlock": "Eye of the North \u2014 quest (requires Factions on account for full use)"
+ },
+ "Vekk": {
+  "professionId": 6,
+  "campaignId": 4,
+  "unlock": "Eye of the North \u2014 story, Asura questline"
+ },
+ "Ogden": {
+  "professionId": 3,
+  "campaignId": 4,
+  "unlock": "Eye of the North \u2014 story, Deldrimor questline"
+ },
+ "Miku": {
+  "professionId": 7,
+  "campaignId": 2,
+  "unlock": "Guild Wars Beyond \u2014 Winds of Change (Factions)"
+ },
+ "ZeiRi": {
+  "professionId": 8,
+  "campaignId": 2,
+  "unlock": "Guild Wars Beyond \u2014 Winds of Change (Factions)"
+ },
+ "Devona": {
+  "professionId": 1,
+  "campaignId": 1,
+  "unlock": "Guild Wars Reforged \u2014 unlocked as a hero through the Reforged Mode dungeon or in Lion's Arch (April 2026 addition)"
+ },
+ "GhostOfAlthea": {
+  "professionId": 5,
+  "campaignId": 1,
+  "unlock": "Guild Wars Reforged \u2014 unlocked as a hero through the Reforged Mode dungeon (2026 addition)"
+ }
+}

@@ -198,11 +198,15 @@ per pipeline (skills <- @buildwars/gw-skilldata import, heroes <- GWCA enum
 Everything below is a KNOWN compromise, kept deliberately, with its trigger
 for action. Nothing else in the repo is knowingly imperfect.
 
-1. Deployment runs through Cloudflare Workers Builds (git integration on
-   the GitHub repo), NOT GitHub Actions — the old deploy.yml was removed as
-   redundant. Required dash settings: Root directory `packages/gw-worker`,
-   Build command `pnpm -r test` (never deploy red). Deploys on every push
-   to main.
+1. Deployment is LIVE and verified (2026-07-11): Cloudflare Workers Builds
+   deploys every push to main to https://gw1-mcp.graphmaxer.workers.dev
+   (first production tool calls served the same day). Residual debt: the
+   build settings live in the Cloudflare dash, NOT in the repo — Root
+   directory `packages/gw-worker`, Build command `pnpm -r test` (never
+   deploy red). If the worker ever redeploys wrong from a fresh setup,
+   re-apply those two settings first. GitHub CI and Workers Builds both run
+   the test suite per push — deliberate redundancy (PR signal vs deploy
+   gate).
 2. The C++ plugin compiled clean on the first CI run (/W4 /WX, zero
    warnings — 2026-07-11) but has never been loaded in-game. Trigger:
    Maxime runs /exportaccount with the artifact DLL.
@@ -223,9 +227,14 @@ for action. Nothing else in the repo is knowingly imperfect.
    a new upstream hero makes the run fail listing the identifiers to add to
    the overlay, then the regenerated hero rides the weekly PR. Trigger:
    that failing run; curate the metadata from GWW.
-6. The public worker has no auth or rate limiting — acceptable for a
-   personal connector, revisit before sharing the URL.
-7. Early-adopter stack: TypeScript 7.0.x and vitest 4 are young majors;
+6. The worker URL is now public DE FACTO (public repo + guessable
+   workers.dev name) with no auth and no rate limiting. Accepted: worst
+   case is free-tier quota burn (100k req/day) — the server holds no
+   secrets and mutates nothing. Trigger: unusual traffic in the Cloudflare
+   analytics, or wanting to share the URL deliberately → add a Cloudflare
+   WAF rate-limiting rule or a bearer check in app.ts.
+7. Early-adopter stack: TypeScript 7.0.x and vitest 4 are young majors and
+   oxfmt is pre-1.0 (0.58.x, formatting may shift between minors);
    pin-and-wait is the policy if a toolchain regression appears.
 8. Single-maintainer bus factor — mitigated by this file being the actual
    source of truth (kept aligned by the doc-audit habit).

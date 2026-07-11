@@ -264,7 +264,7 @@ Tool design rules:
 ## Conventions
 
 - Conventional commits (`feat:`, `fix:`, `test:`, `chore:`…).
-- Every package builds and tests independently: `pnpm -r build && pnpm -r test` must pass from a clean clone.
+- Every package typechecks and tests independently: `pnpm -r typecheck && pnpm -r test` must pass from a clean clone (nothing is ever built to dist; exports point at .ts sources, and the worker bundles via wrangler).
 - Public functions get TSDoc; keep comments about *why*, not *what*.
 - CI: GitHub Actions running lint + build + tests on every PR.
 - Language: code, identifiers, docs and commits in **English** (public OSS repo); it's fine to discuss in French in issues/PRs.

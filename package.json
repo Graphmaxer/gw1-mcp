@@ -2,23 +2,20 @@
   "name": "gw1-mcp",
   "version": "0.1.0",
   "private": true,
-  "description": "Kormir — a Guild Wars 1 build compiler for LLMs (MCP server)",
+  "description": "Kormir \u2014 a Guild Wars 1 build compiler for LLMs (MCP server)",
   "license": "MIT",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "test:coverage": "pnpm -r exec vitest run --coverage --coverage.reporter=text"
   },
   "devDependencies": {
-    "@types/node": "^26.1.1",
     "@vitest/coverage-v8": "^4.1.10",
     "tsx": "^4.19.0",
     "typescript": "^7.0.2",
-    "vite": "^8.1.4",
     "vitest": "^4.1.10"
   }
 }

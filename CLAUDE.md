@@ -198,11 +198,14 @@ per pipeline (skills <- @buildwars/gw-skilldata import, heroes <- GWCA enum
 Everything below is a KNOWN compromise, kept deliberately, with its trigger
 for action. Nothing else in the repo is knowingly imperfect.
 
-1. Never-executed automation: the deploy workflow and the GWToolbox plugin
-   build workflow have never run (no Cloudflare secret / no Windows here).
-   First runs may need iteration; the plugin's /W4 /WX first compile almost
-   certainly will. Trigger: first real run.
-2. The C++ plugin itself has never been compiled or loaded in-game.
+1. Deployment runs through Cloudflare Workers Builds (git integration on
+   the GitHub repo), NOT GitHub Actions — the old deploy.yml was removed as
+   redundant. Required dash settings: Root directory `packages/gw-worker`,
+   Build command `pnpm -r test` (never deploy red). Deploys on every push
+   to main.
+2. The C++ plugin compiled clean on the first CI run (/W4 /WX, zero
+   warnings — 2026-07-11) but has never been loaded in-game. Trigger:
+   Maxime runs /exportaccount with the artifact DLL.
 3. Three open codec questions (trailing-padding convention, zero-attribute
    filler, 4-vs-5-bit attribute width) — arbitrable only by in-game codes;
    the encoder is correct for the game's decoder either way.

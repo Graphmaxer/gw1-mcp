@@ -152,7 +152,10 @@ gw-mcp ~93% with validate.ts and build-io.ts at 100% lines and server.ts
 ~87% (every tool exercised through InMemoryTransport incl. error paths;
 remainder is response-formatting branches), gw-worker app.ts 100%
 (index/node/stdio are entry-point shims). Every validator rule and
-resolution error code MUST have a test that triggers it. Tool failures use
+resolution error code MUST have a test that triggers it — and this rule is
+MECHANICALLY ENFORCED by test/conventions.test.ts in gw-mcp, which scans
+the src for `code: "..."` declarations and fails if any code never appears
+in the test corpus. Tool failures use
 the MCP isError flag via the jsonError helper — keep new tools consistent.
 
 ## Internal conventions (uniform on purpose)

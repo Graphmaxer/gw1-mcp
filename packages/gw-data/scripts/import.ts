@@ -1,197 +1,169 @@
 /**
- * Imports game data from build-wars/gw1-database (MIT) into packages/gw-data/data/*.json.
+ * Imports game data from @buildwars/gw-skilldata (MIT, npm) into
+ * packages/gw-data/data/*.json.
  *
- * Usage:
- *   git clone --depth 1 https://github.com/build-wars/gw1-database.git /tmp/gw1-database
- *   pnpm --filter @gw1-mcp/gw-data import /tmp/gw1-database
+ * The upstream package is actively maintained and tracks Guild Wars Reforged
+ * balance updates (including newly added skills). Updating the data is:
  *
- * The generated JSON is committed: the MCP server never fetches anything at runtime.
+ *   pnpm --filter @gw1-mcp/gw-data update @buildwars/gw-skilldata --latest
+ *   pnpm --filter @gw1-mcp/gw-data import
+ *
+ * The generated JSON is committed: the MCP server never fetches at runtime.
  */
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { execSync } from "node:child_process";
+import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
 
-const sourceRoot = process.argv[2];
-if (!sourceRoot) {
-  console.error("Usage: tsx scripts/import.ts <path-to-gw1-database-clone>");
-  process.exit(1);
+/**
+ * Data source resolution:
+ * - default: the installed @buildwars/gw-skilldata npm package (versioned, may
+ *   lag the repository by a release)
+ * - optional argv[2]: path to a git clone of build-wars/gw-skilldata — used by
+ *   the automated update workflow to always import the repository tip.
+ */
+const cloneRoot = process.argv[2];
+
+async function loadUpstream() {
+  if (cloneRoot) {
+    const constants = await import(pathToFileURL(join(cloneRoot, "es6", "constants.js")).href);
+    const skilldata = JSON.parse(readFileSync(join(cloneRoot, "data", "json-full", "skilldata.json"), "utf8"));
+    const desc = JSON.parse(readFileSync(join(cloneRoot, "data", "json-full", "skilldesc-en.json"), "utf8"));
+    const version = `git:${JSON.parse(readFileSync(join(cloneRoot, "package.json"), "utf8")).version}`;
+    return { ...constants, skilldata: skilldata.skilldata, skilldesc: desc.skilldesc, version };
+  }
+  const module_ = await import("@buildwars/gw-skilldata");
+  const require = createRequire(import.meta.url);
+  const pkg = JSON.parse(readFileSync(require.resolve("@buildwars/gw-skilldata/package.json"), "utf8"));
+  const english = new module_.SkillLangEnglish() as unknown as {
+    skilldata: Record<string, unknown>;
+    skilldesc: Record<string, unknown>;
+  };
+  return {
+    ATTRIBUTES: module_.ATTRIBUTES,
+    CAMPAIGNS: module_.CAMPAIGNS,
+    PROFESSIONS: module_.PROFESSIONS,
+    SKILLTYPES: module_.SKILLTYPES,
+    skilldata: english.skilldata,
+    skilldesc: english.skilldesc,
+    version: `npm:${pkg.version}`,
+  };
 }
-const sqlDir = join(sourceRoot, "resources", "sql");
+
+const upstream = await loadUpstream();
+const { ATTRIBUTES, CAMPAIGNS, PROFESSIONS, SKILLTYPES } = upstream;
+
 const outDir = join(dirname(fileURLToPath(import.meta.url)), "..", "data");
 mkdirSync(outDir, { recursive: true });
 
-type Value = string | number | null;
-
-/** Parse every `INSERT INTO … VALUES (…), (…);` tuple in a MySQL dump. */
-function parseInsertTuples(sql: string): Value[][] {
-  const tuples: Value[][] = [];
-  let i = 0;
-  while (i < sql.length) {
-    const insertAt = sql.indexOf("VALUES", i);
-    if (insertAt === -1) break;
-    i = insertAt + "VALUES".length;
-    // Read tuples until the terminating semicolon.
-    while (i < sql.length) {
-      while (i < sql.length && /\s|,/.test(sql[i]!)) i++;
-      if (sql[i] === ";") {
-        i++;
-        break;
-      }
-      if (sql[i] !== "(") break;
-      i++; // consume '('
-      const tuple: Value[] = [];
-      let current = "";
-      let inString = false;
-      for (; i < sql.length; i++) {
-        const c = sql[i]!;
-        if (inString) {
-          if (c === "'") {
-            if (sql[i + 1] === "'") {
-              current += "'";
-              i++; // '' -> escaped quote
-            } else {
-              inString = false;
-            }
-          } else {
-            current += c;
-          }
-        } else if (c === "'") {
-          inString = true;
-          current += "\u0000STR\u0000"; // mark as string
-        } else if (c === "," || c === ")") {
-          const raw = current.trim();
-          if (raw.startsWith("\u0000STR\u0000")) {
-            tuple.push(raw.replace("\u0000STR\u0000", ""));
-          } else if (raw.toUpperCase() === "NULL") {
-            tuple.push(null);
-          } else if (raw.length > 0) {
-            tuple.push(Number(raw));
-          }
-          current = "";
-          if (c === ")") {
-            i++;
-            break;
-          }
-        } else {
-          current += c;
-        }
-      }
-      tuples.push(tuple);
-    }
-  }
-  return tuples;
-}
-
-function load(file: string): Value[][] {
-  return parseInsertTuples(readFileSync(join(sqlDir, file), "utf8"));
-}
-
-const num = (v: Value | undefined): number => {
-  if (typeof v === "number" && Number.isFinite(v)) return v;
-  if (typeof v === "string" && v !== "") return Number(v);
-  throw new Error(`Expected number, got ${JSON.stringify(v)}`);
+// Upstream constant shapes (informal, mirrored from es6/constants.js).
+type LangName = { en: string; de: string };
+type UpstreamAttribute = { prof: number; pri: boolean; max: number; name: LangName };
+type UpstreamProfession = { name: LangName; abbr: LangName };
+type UpstreamCampaign = { name: LangName; continent: unknown };
+type UpstreamSkillType = { name: LangName };
+type UpstreamSkill = {
+  id: number;
+  campaign: number;
+  profession: number;
+  attribute: number;
+  type: number;
+  is_elite: boolean;
+  is_rp: boolean;
+  is_pvp: boolean;
+  pvp_split: boolean;
+  split_id: number;
+  upkeep: number;
+  energy: number;
+  activation: number;
+  recharge: number;
+  adrenaline: number;
+  sacrifice: number;
+  overcast: number;
+  name: string;
+  description: string;
+  concise: string;
 };
-const str = (v: Value | undefined): string => (typeof v === "string" ? v : String(v ?? ""));
 
-// --- campaigns ------------------------------------------------------------
-// The campaigns table is 1-indexed (1=Core … 5=EotN) but gw1_skilldata.campaign
-// is 0-indexed (0=Core … 4=EotN). We normalize everything to the skilldata
-// convention, which is also what skill records reference.
-const campaigns = load("gw1_campaigns.sql").map((t) => ({
-  id: num(t[0]) - 1,
-  name: str(t[3]),
-  nameDe: str(t[2]),
+// --- campaigns / professions / attributes / types ---------------------------
+const campaigns = (CAMPAIGNS as unknown as UpstreamCampaign[]).map((c, id) => ({
+  id,
+  name: c.name.en,
+  nameDe: c.name.de,
 }));
 
-// --- professions ----------------------------------------------------------
-// (id, name_de, name_en, abbr_de, abbr_en, desc_de, desc_en, armor, …)
-const professions = load("gw1_professions.sql").map((t) => ({
-  id: num(t[0]),
-  name: str(t[2]),
-  nameDe: str(t[1]),
-  abbr: str(t[4]),
+const professions = (PROFESSIONS as unknown as UpstreamProfession[]).map((p, id) => ({
+  id,
+  name: p.name.en,
+  nameDe: p.name.de,
+  abbr: p.abbr.en,
 }));
 
-// --- attributes -----------------------------------------------------------
-// (id, name_de, name_en, desc_de, desc_en, abbr, primary, max, profession)
-const attributes = load("gw1_attributes.sql").map((t) => ({
-  id: num(t[0]),
-  name: str(t[2]),
-  nameDe: str(t[1]),
-  abbr: str(t[5]),
-  isPrimary: num(t[6]) === 1,
-  professionId: num(t[8]),
-}));
-
-// --- skill types ----------------------------------------------------------
-const skillTypes = load("gw1_skilltypes.sql").map((t) => ({
-  id: num(t[0]),
-  name: str(t[2]),
-}));
-
-// --- skills ---------------------------------------------------------------
-// gw1_skilldata: (id, campaign, profession, attribute, elite, rp, player, split,
-//   pve_type, pve_upkeep, pve_energy, pve_activation, pve_recharge,
-//   pve_adrenaline, pve_sacrifice, pve_overcast, pvp_* x8)
-// gw1_skilldesc_en: (id, pve_name, pve_desc, pve_concise, pvp_name, pvp_desc, pvp_concise)
-const descriptions = new Map(
-  load("gw1_skilldesc_en.sql").map((t) => [
-    num(t[0]),
-    { name: str(t[1]), description: str(t[3]) || str(t[2]) },
-  ]),
+const attributes = Object.entries(ATTRIBUTES as unknown as Record<string, UpstreamAttribute>).map(
+  ([id, a]) => ({
+    id: Number(id),
+    name: a.name.en,
+    nameDe: a.name.de,
+    isPrimary: a.pri,
+    professionId: a.prof,
+    /** Maximum achievable rank incl. bonuses (21 for regular attributes, title cap otherwise). */
+    max: a.max,
+  }),
 );
 
-const skills = load("gw1_skilldata.sql")
-  .map((t) => {
-    const id = num(t[0]);
-    const desc = descriptions.get(id);
-    return {
-      id,
-      name: desc?.name ?? "",
-      description: desc?.description ?? "",
-      campaignId: num(t[1]),
-      professionId: num(t[2]),
-      attributeId: num(t[3]),
-      elite: num(t[4]) === 1,
-      playerUsable: num(t[6]) === 1,
-      pvpSplit: num(t[7]) === 1,
-      typeId: num(t[8]),
-      upkeep: num(t[9]),
-      energy: num(t[10]),
-      activation: num(t[11]),
-      recharge: num(t[12]),
-      adrenaline: num(t[13]),
-      sacrifice: num(t[14]),
-      overcast: num(t[15]),
-    };
-  })
-  .filter((s) => s.id !== 0 && s.name !== ""); // id 0 = "No Skill" (empty-slot sentinel, not a real skill)
+const skillTypes = Object.entries(SKILLTYPES as unknown as Record<string, UpstreamSkillType>).map(
+  ([id, t]) => ({ id: Number(id), name: t.name.en }),
+);
 
-// --- write ------------------------------------------------------------------
-const write = (name: string, data: unknown, count: number) => {
+// --- skills ------------------------------------------------------------------
+const skills = Object.keys(upstream.skilldata)
+  .map((id) => ({
+    ...(upstream.skilldata[id] as object),
+    ...(upstream.skilldesc[id] as object),
+  }) as UpstreamSkill)
+  .filter((s) => s.id !== 0) // id 0 = "No Skill" (empty-slot sentinel)
+  .map((s) => ({
+    id: s.id,
+    name: s.name,
+    description: s.concise || s.description,
+    campaignId: s.campaign,
+    professionId: s.profession,
+    attributeId: s.attribute,
+    elite: s.is_elite,
+    /** True for the separate "(PvP)" version of a split skill (not encodable in PvE templates). */
+    isPvpVersion: s.is_pvp,
+    /** True if the skill has a separate PvP version; splitId points to it. */
+    pvpSplit: s.pvp_split,
+    splitId: s.split_id || 0,
+    typeId: s.type,
+    upkeep: s.upkeep,
+    energy: s.energy,
+    activation: s.activation,
+    recharge: s.recharge,
+    adrenaline: s.adrenaline,
+    sacrifice: s.sacrifice,
+    overcast: s.overcast,
+  }))
+  .sort((a, b) => a.id - b.id);
+
+// --- provenance ---------------------------------------------------------------
+const meta = {
+  source: "https://github.com/build-wars/gw-skilldata (npm: @buildwars/gw-skilldata)",
+  sourceVersion: upstream.version,
+  importedAt: new Date().toISOString().slice(0, 10),
+  freshness:
+    "Upstream is actively maintained and tracks Guild Wars Reforged balance updates (stat changes and newly added skills). Data is only as fresh as the installed package version; run the update workflow or `pnpm update @buildwars/gw-skilldata` to refresh. Recent balance notes: https://wiki.guildwars.com/wiki/Game_updates",
+};
+
+// --- write --------------------------------------------------------------------
+const write = (name: string, data: unknown, count: number | string) => {
   writeFileSync(join(outDir, name), JSON.stringify(data, null, 1) + "\n");
-  console.log(`${name}: ${count} records`);
+  console.log(`${name}: ${count}`);
 };
 write("campaigns.json", campaigns, campaigns.length);
 write("professions.json", professions, professions.length);
 write("attributes.json", attributes, attributes.length);
 write("skill-types.json", skillTypes, skillTypes.length);
-write("skills.json", skills, skills.length);
-
-// --- provenance -------------------------------------------------------------
-let sourceCommit = "unknown";
-try {
-  if (existsSync(join(sourceRoot, ".git"))) {
-    sourceCommit = execSync(`git -C ${JSON.stringify(sourceRoot)} rev-parse HEAD`).toString().trim();
-  }
-} catch { /* best effort */ }
-const meta = {
-  source: "https://github.com/build-wars/gw1-database",
-  sourceCommit,
-  importedAt: new Date().toISOString().slice(0, 10),
-  caveat:
-    "Upstream data derives from pre-Reforged paw-ned2 feeds (2019). Skill IDs, names, professions, attributes and elite flags are stable across balance patches; energy/recharge/activation values and descriptions may differ from the live game since the Guild Wars Reforged balance updates (2025+). Check https://wiki.guildwars.com/wiki/Game_updates for recent balance notes.",
-};
-writeFileSync(join(outDir, "_meta.json"), JSON.stringify(meta, null, 1) + "\n");
-console.log("_meta.json: provenance written");
+write("skills.json", skills, `${skills.length} (${skills.filter((s) => s.isPvpVersion).length} PvP versions)`);
+write("_meta.json", meta, upstream.version);

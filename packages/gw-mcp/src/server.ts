@@ -111,11 +111,12 @@ export function createServer(): McpServer {
         campaignName: z.string().optional(),
         elite: z.boolean().optional(),
         nameContains: z.string().optional(),
+        includePvpVersions: z.boolean().default(false).describe("Include separate '(PvP)' skill versions"),
         limit: z.number().int().min(1).max(200).default(50),
       },
     },
-    async ({ professionName, attributeName, campaignName, elite, nameContains, limit }) => {
-      const filters: Parameters<typeof searchSkills>[0] = {};
+    async ({ professionName, attributeName, campaignName, elite, nameContains, includePvpVersions, limit }) => {
+      const filters: Parameters<typeof searchSkills>[0] = { includePvpVersions };
       if (professionName !== undefined) {
         if (/^none$/i.test(professionName)) filters.professionId = 0;
         else {

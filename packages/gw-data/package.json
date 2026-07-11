@@ -12,5 +12,8 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
+  },
+  "devDependencies": {
+    "@buildwars/gw-skilldata": "^1.1.0"
   }
 }

@@ -12,7 +12,7 @@ import {
 
 describe("data integrity", () => {
   it("has the full player skill set", () => {
-    expect(skills.length).toBeGreaterThan(1300);
+    expect(skills.length).toBeGreaterThan(1400); // includes separate (PvP) versions
   });
 
   it("resolves the template profession index", () => {
@@ -44,7 +44,7 @@ describe("lookups", () => {
 
   it("searches with combined filters", () => {
     const dervishElites = searchSkills({ professionId: 10, elite: true });
-    expect(dervishElites.length).toBe(15); // Dervish has exactly 15 elites
+    expect(dervishElites.length).toBe(16); // 15 classic + Vow of Revolution (added by Reforged, 2026)
     expect(dervishElites.every((s) => s.elite && s.professionId === 10)).toBe(true);
   });
 

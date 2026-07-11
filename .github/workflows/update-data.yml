@@ -1,7 +1,7 @@
 name: Update game data
 on:
   schedule:
-    - cron: "17 6 1 * *"   # monthly
+    - cron: "17 6 * * 1"   # weekly (Mondays) — upstream tracks Reforged balance patches
   workflow_dispatch:
 jobs:
   update:
@@ -19,10 +19,10 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Import latest upstream data
+      - name: Import latest upstream data (repository tip)
         run: |
-          git clone --depth 1 https://github.com/build-wars/gw1-database.git /tmp/gw1-database
-          pnpm --filter @gw1-mcp/gw-data import /tmp/gw1-database
+          git clone --depth 1 https://github.com/build-wars/gw-skilldata.git /tmp/gw-skilldata
+          pnpm --filter @gw1-mcp/gw-data import /tmp/gw-skilldata
       - name: Check for meaningful changes (ignore import date)
         id: diff
         run: |
@@ -42,6 +42,6 @@ jobs:
           title: "chore: update game data from upstream"
           commit-message: "chore: update game data from build-wars/gw1-database"
           body: |
-            Automated re-import from build-wars/gw1-database detected changes.
+            Automated re-import from build-wars/gw-skilldata (Reforged-tracking upstream) detected changes.
             Review the diff in `packages/gw-data/data/` — CI runs the full
             golden-fixture suite against the new data.

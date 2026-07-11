@@ -16,16 +16,18 @@ export interface Profession {
 export interface Attribute {
   /**
    * Template attribute index (0 = Fast Casting … 44 = Mysticism).
-   * Negative ids are PvE title tracks; -1 = No Attribute.
+   * Ids >= 100 are non-template attributes: 101 = No Attribute,
+   * 102-109 = PvE title tracks (Sunspear, Lightbringer, ...).
    */
   id: number;
   name: string;
   nameDe: string;
-  abbr: string;
   /** Primary attributes are only available on the primary profession. */
   isPrimary: boolean;
   /** 0 for common / title-track attributes. */
   professionId: number;
+  /** Maximum achievable rank including bonuses (21 for regular attributes). */
+  max: number;
 }
 
 export interface SkillType {
@@ -41,12 +43,14 @@ export interface Skill {
   campaignId: number;
   /** 0 = no profession (common / PvE-only skills). */
   professionId: number;
-  /** -1 = no attribute; negative = PvE title track. */
+  /** 101 = no attribute; 102-109 = PvE title tracks. */
   attributeId: number;
   elite: boolean;
-  playerUsable: boolean;
-  /** True if the skill has a separate PvP version. */
+  /** True for the separate "(PvP)" version of a split skill. */
+  isPvpVersion: boolean;
+  /** True if the skill has a separate PvP version; splitId points to it. */
   pvpSplit: boolean;
+  splitId: number;
   typeId: number;
   upkeep: number;
   energy: number;

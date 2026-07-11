@@ -70,6 +70,8 @@ export interface SkillSearchFilters {
   campaignId?: number;
   elite?: boolean;
   nameContains?: string;
+  /** Include the separate "(PvP)" skill versions (excluded by default). */
+  includePvpVersions?: boolean;
 }
 
 export function searchSkills(filters: SkillSearchFilters): Skill[] {
@@ -79,6 +81,7 @@ export function searchSkills(filters: SkillSearchFilters): Skill[] {
       : undefined;
   return skills.filter(
     (s) =>
+      (filters.includePvpVersions === true || !s.isPvpVersion) &&
       (filters.professionId === undefined ||
         s.professionId === filters.professionId) &&
       (filters.attributeId === undefined ||

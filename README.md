@@ -32,7 +32,7 @@ pnpm --filter @gw1-mcp/gw-mcp dev   # stdio server
 ## Packages
 
 - `packages/gw-template` — template code codec (zero dependencies, round-trip tested)
-- `packages/gw-data` — game data (1320 skills) imported from [build-wars/gw1-database](https://github.com/build-wars/gw1-database) (MIT)
+- `packages/gw-data` — game data (1485 skills, Reforged-current) imported from [build-wars/gw-skilldata](https://github.com/build-wars/gw-skilldata) (MIT)
 - `packages/gw-mcp` — the MCP server (transport-agnostic core + stdio entry)
 - `packages/gw-worker` — Streamable HTTP wrapper (Hono), runs on Cloudflare Workers and Node
 
@@ -59,8 +59,11 @@ secrets. Free plan is plenty.
 ## Regenerating game data
 
 ```bash
-git clone --depth 1 https://github.com/build-wars/gw1-database.git /tmp/gw1-database
-pnpm --filter @gw1-mcp/gw-data import /tmp/gw1-database
+pnpm --filter @gw1-mcp/gw-data update @buildwars/gw-skilldata --latest
+pnpm --filter @gw1-mcp/gw-data import
+# or, to import the upstream repository tip (what the weekly workflow does):
+git clone --depth 1 https://github.com/build-wars/gw-skilldata.git /tmp/gw-skilldata
+pnpm --filter @gw1-mcp/gw-data import /tmp/gw-skilldata
 ```
 
 ## GWToolbox integration
@@ -82,6 +85,6 @@ itself. See `CLAUDE.md` for the full architecture notes.
 
 *This project is not affiliated with ArenaNet or NCSoft. Guild Wars is a
 trademark of NCSoft Corporation. Game data courtesy of the
-[build-wars/gw1-database](https://github.com/build-wars/gw1-database) project
+[build-wars/gw-skilldata](https://github.com/build-wars/gw-skilldata) project
 (MIT) and the format documentation on the
 [Guild Wars Wiki](https://wiki.guildwars.com/wiki/Skill_template_format).*

@@ -126,8 +126,8 @@ export function validateBuild(
       });
     }
 
-    // PvE-only skills (title-track attributes / no profession) on hero bars.
-    if (options.forHero && skill.attributeId < -1) {
+    // PvE-only skills (title-track attributes) on hero bars.
+    if (options.forHero && skill.attributeId >= 102) {
       warnings.push({
         code: "PVE_ONLY_ON_HERO",
         message: `Slot ${slot + 1}: "${skill.name}" is a PvE-only skill; heroes cannot equip it`,
@@ -154,10 +154,10 @@ export function validateBuild(
     }
     seenAttributes.add(attributeId);
 
-    if (attributeId < 0) {
+    if (attributeId > 44) {
       errors.push({
         code: "ATTRIBUTE_NOT_TEMPLATABLE",
-        message: `"${attribute.name}" is a ${attributeId === -1 ? "non-attribute" : "PvE title track"}; title ranks come from account progress and cannot be allocated in a skill template`,
+        message: `"${attribute.name}" is a ${attributeId === 101 ? "non-attribute" : "PvE title track"}; title ranks come from account progress and cannot be allocated in a skill template`,
       });
       continue;
     }
@@ -169,7 +169,7 @@ export function validateBuild(
       });
     }
 
-    if (attributeId >= 0) {
+    if (attributeId <= 44) {
       // Regular profession attribute: must belong to primary or secondary.
       if (
         attribute.professionId !== template.primary &&
@@ -190,7 +190,7 @@ export function validateBuild(
 
   // Skills whose attribute has no allocation: legal, but worth flagging.
   for (const { slot, skill } of resolved) {
-    if (skill.attributeId >= 0 && !seenAttributes.has(skill.attributeId)) {
+    if (skill.attributeId <= 44 && !seenAttributes.has(skill.attributeId)) {
       const attribute = getAttribute(skill.attributeId);
       warnings.push({
         code: "UNALLOCATED_ATTRIBUTE",

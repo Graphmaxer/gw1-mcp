@@ -115,7 +115,11 @@ The GWToolbox export plugin (gwtoolbox-plugin/AccountExport, C++/Win32) is WRITT
 against the real GWCA headers but NOT YET COMPILED — it must be built on
 Windows inside a GWToolboxpp checkout (see gwtoolbox-plugin/README.md).
 validate_build/encode_template accept `unlockedSkillIds` from its export.
-NEXT: golden fixtures from real gameplay (blocking, needs Maxime's codes),
+Fixture set now includes two PvXwiki codes independently verified against the
+pages' declared professions/attributes/skills (character-exact round-trips,
+including '+' charset chars and EotN skill ids). Maxime's in-game codes remain
+wanted as the final confirmation layer.
+NEXT: golden fixtures from real gameplay (needs Maxime's codes),
 first real deployment (`wrangler login && pnpm --filter @gw1-mcp/gw-worker deploy`),
 first Windows build of the AccountExport plugin, then MCP resources (gw1://roles,
 hero constraints) and heroes_from_progression.

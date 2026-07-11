@@ -1,33 +1,133 @@
 {
-  "_comment": "Golden fixtures. 'roundtrip: true' asserts encode(decode(code)) === code (modern-format codes only). TODO(Maxime): ajouter 10-15 codes réels de tes builds Nightfall (joueur + héros), dont un slot vide, un build sans élite, un sans secondaire.",
-  "fixtures": [
-    {
-      "name": "Critical Scythe Assassin (wiki example, modern format)",
-      "code": "OwpiMypMBg1cxcBAMBdmtIKAA",
-      "roundtrip": true,
-      "expect": {
-        "primary": 7,
-        "secondary": 10,
-        "attributes": [
-          { "attributeId": 35, "rank": 12 },
-          { "attributeId": 41, "rank": 12 }
-        ],
-        "skills": [1536, 1485, 1484, 0, 1043, 1639, 2187, 2]
-      }
-    },
-    {
-      "name": "Legacy pre-2007 header (wiki example)",
-      "code": "ABJRkncAAAoVAAAAAAAA",
-      "roundtrip": false,
-      "expect": {
-        "primary": 1,
-        "secondary": 4,
-        "attributes": [
-          { "attributeId": 17, "rank": 12 },
-          { "attributeId": 19, "rank": 12 }
-        ],
-        "skills": [0, 0, 346, 0, 0, 0, 0, 0]
-      }
-    }
-  ]
+ "_comment": "Golden fixtures. 'roundtrip: true' asserts encode(decode(code)) === code (modern-format codes only). TODO(Maxime): ajouter 10-15 codes réels de tes builds Nightfall (joueur + héros), dont un slot vide, un build sans élite, un sans secondaire.",
+ "fixtures": [
+  {
+   "name": "Critical Scythe Assassin (wiki example, modern format)",
+   "code": "OwpiMypMBg1cxcBAMBdmtIKAA",
+   "roundtrip": true,
+   "expect": {
+    "primary": 7,
+    "secondary": 10,
+    "attributes": [
+     {
+      "attributeId": 35,
+      "rank": 12
+     },
+     {
+      "attributeId": 41,
+      "rank": 12
+     }
+    ],
+    "skills": [
+     1536,
+     1485,
+     1484,
+     0,
+     1043,
+     1639,
+     2187,
+     2
+    ]
+   }
+  },
+  {
+   "name": "Legacy pre-2007 header (wiki example)",
+   "code": "ABJRkncAAAoVAAAAAAAA",
+   "roundtrip": false,
+   "expect": {
+    "primary": 1,
+    "secondary": 4,
+    "attributes": [
+     {
+      "attributeId": 17,
+      "rank": 12
+     },
+     {
+      "attributeId": 19,
+      "rank": 12
+     }
+    ],
+    "skills": [
+     0,
+     0,
+     346,
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "name": "N/Rt Blood is Power Healer Hero (PvXwiki, independent encoder)",
+   "code": "OAhjQoGYIP3BAQVVaO5AADTAA",
+   "roundtrip": true,
+   "expect": {
+    "primary": 4,
+    "secondary": 8,
+    "attributes": [
+     {
+      "attributeId": 4,
+      "rank": 10
+     },
+     {
+      "attributeId": 6,
+      "rank": 8
+     },
+     {
+      "attributeId": 33,
+      "rank": 12
+     }
+    ],
+    "skills": [
+     119,
+     0,
+     1365,
+     1234,
+     915,
+     0,
+     1219,
+     0
+    ]
+   }
+  },
+  {
+   "name": "Mo/Me Healing Burst Hero (PvXwiki, exercises '+' chars and EotN skill ids)",
+   "code": "OwUUMw2+SIOexNCAAAcXn+AgMA",
+   "roundtrip": true,
+   "expect": {
+    "primary": 3,
+    "secondary": 5,
+    "attributes": [
+     {
+      "attributeId": 3,
+      "rank": 8
+     },
+     {
+      "attributeId": 13,
+      "rank": 11
+     },
+     {
+      "attributeId": 15,
+      "rank": 9
+     },
+     {
+      "attributeId": 16,
+      "rank": 8
+     }
+    ],
+    "skills": [
+     1118,
+     283,
+     0,
+     0,
+     1399,
+     2003,
+     0,
+     25
+    ]
+   }
+  }
+ ]
 }

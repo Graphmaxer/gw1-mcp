@@ -202,3 +202,98 @@ describe("paw-ned2 team decoding", () => {
     }
   });
 });
+
+describe("resources and error surfaces", () => {
+  it("lists and reads all three resources", async () => {
+    const client = await connectedClient();
+    const { resources } = await client.listResources();
+    expect(resources.map((r) => r.uri).sort()).toEqual([
+      "gw1://guide/build-workflow",
+      "gw1://heroes",
+      "gw1://meta",
+    ]);
+    for (const uri of ["gw1://meta", "gw1://heroes", "gw1://guide/build-workflow"]) {
+      const { contents } = await client.readResource({ uri });
+      const first = contents[0];
+      expect(first && "text" in first ? first.text : undefined).toBeTruthy();
+    }
+    const metaContents = (await client.readResource({ uri: "gw1://meta" })).contents[0];
+    const meta = JSON.parse(metaContents && "text" in metaContents ? metaContents.text : "{}");
+    expect(meta.source ?? meta.upstream ?? meta).toBeTruthy();
+  });
+
+  it("returns a structured error for malformed template codes", async () => {
+    const client = await connectedClient();
+    const res = await client.callTool({ name: "decode_template", arguments: { code: "not a code!!" } });
+    expect(res.isError).toBe(true);
+  });
+
+  it("get_hero handles unknown names and list_heroes filters by campaign", async () => {
+    const client = await connectedClient();
+    const ko = await client.callTool({ name: "get_hero", arguments: { name: "Gandalf" } });
+    expect(JSON.stringify(ko.content)).toMatch(/[Nn]o hero|not found|Unknown/);
+    const nf = await client.callTool({ name: "list_heroes", arguments: { campaignName: "Nightfall" } });
+    expect(JSON.stringify(nf.content)).toContain("Koss");
+  });
+
+  it("decode_pawned_team rejects garbage blobs with a structured error", async () => {
+    const client = await connectedClient();
+    const res = await client.callTool({ name: "decode_pawned_team", arguments: { blob: "pwnd-garbage" } });
+    expect(res.isError).toBe(true);
+  });
+});
+
+describe("remaining tool surfaces", () => {
+  it("encode_template resolves, validates and encodes a named build", async () => {
+    const client = await connectedClient();
+    const res = payload(await client.callTool({ name: "encode_template", arguments: {
+      primary: "Dervish",
+      attributes: [
+        { attribute: "Scythe Mastery", rank: 11 }, { attribute: "Mysticism", rank: 10 }, { attribute: "Earth Prayers", rank: 8 },
+      ],
+      skills: ["Avatar of Balthazar","Staggering Force","Twin Moon Sweep","Wearying Strike","Pious Fury","Aura of Holy Might (Kurzick)","Asuran Scan","Sunspear Rebirth Signet"],
+    } }));
+    expect(res.code).toBe("OgCjkurIrSuXaXPXBYihygvlYcA");
+  });
+
+  it("encode_template surfaces resolution errors with isError", async () => {
+    const client = await connectedClient();
+    const res = await client.callTool({ name: "encode_template", arguments: {
+      primary: "Bard", attributes: [],
+      skills: ["Avatar of Balthazar","Staggering Force","Twin Moon Sweep","Wearying Strike","Pious Fury","Aura of Holy Might (Kurzick)","Asuran Scan","Sunspear Rebirth Signet"],
+    } });
+    expect(JSON.stringify(res.content)).toContain("UNKNOWN_PROFESSION");
+  });
+
+  it("search_skills flags unknown profession and campaign filters", async () => {
+    const client = await connectedClient();
+    for (const args of [{ nameContains: "strike", professionName: "Bard" }, { nameContains: "strike", campaignName: "Atlantis" }]) {
+      const res = await client.callTool({ name: "search_skills", arguments: args });
+      expect(res.isError).toBe(true);
+    }
+  });
+
+  it("search_skills filters by valid profession, campaign and elite flag", async () => {
+    const client = await connectedClient();
+    const res = payload(await client.callTool({ name: "search_skills", arguments: { nameContains: "avatar", professionName: "Dervish", campaignName: "Nightfall", elite: true } }));
+    expect(JSON.stringify(res)).toContain("Avatar of Balthazar");
+  });
+
+  it("get_skill works by id and validate_build reports through the tool", async () => {
+    const client = await connectedClient();
+    const byId = payload(await client.callTool({ name: "get_skill", arguments: { id: 1518 } }));
+    expect(JSON.stringify(byId)).toContain("Avatar of Balthazar");
+    const report = payload(await client.callTool({ name: "validate_build", arguments: {
+      primary: "Dervish",
+      attributes: [{ attribute: "Scythe Mastery", rank: 11 }, { attribute: "Mysticism", rank: 10 }, { attribute: "Earth Prayers", rank: 8 }],
+      skills: ["Avatar of Balthazar","Staggering Force","Twin Moon Sweep","Wearying Strike","Pious Fury","Aura of Holy Might (Kurzick)","Asuran Scan","Sunspear Rebirth Signet"],
+    } }));
+    expect(report.valid).toBe(true);
+  });
+
+  it("list_heroes rejects unknown campaigns with isError", async () => {
+    const client = await connectedClient();
+    const res = await client.callTool({ name: "list_heroes", arguments: { campaignName: "Atlantis" } });
+    expect(res.isError).toBe(true);
+  });
+});

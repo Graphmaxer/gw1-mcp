@@ -118,16 +118,17 @@ extra zero group; compare code LENGTH char-for-char).
 
 ## Coverage expectations
 
-`pnpm test:coverage` (provider @vitest/coverage-v8, version-locked to
-vitest 2.x). Reference levels: gw-template ~92% (uncovered: internal-bug
-guards in bitstream/base64 that valid inputs cannot reach), gw-data src
-~93% (scripts/import.ts is intentionally untested — it is validated by
-upstream schemas at run time and by the golden tests downstream), gw-mcp
-validate/build-io fully rule-covered via table-driven tests, server.ts
-~75% (uncovered: resource handlers and per-tool response formatting,
-exercised end-to-end by the InMemoryTransport tests for the main flows),
-gw-worker app.ts 100% (index/node/stdio are entry-point shims). Every
-validator rule and resolution error code MUST have a test that triggers it.
+`pnpm test:coverage` (provider @vitest/coverage-v8, version-locked to the
+workspace vitest). Reference levels (vitest 4 measurement): gw-template
+~92% (uncovered: internal-bug guards in bitstream/base64 unreachable from
+valid inputs), gw-data src ~93% (scripts/import.ts intentionally untested
+— validated by upstream schemas at run time and golden tests downstream),
+gw-mcp ~93% with validate.ts and build-io.ts at 100% lines and server.ts
+~87% (every tool exercised through InMemoryTransport incl. error paths;
+remainder is response-formatting branches), gw-worker app.ts 100%
+(index/node/stdio are entry-point shims). Every validator rule and
+resolution error code MUST have a test that triggers it. Tool failures use
+the MCP isError flag via the jsonError helper — keep new tools consistent.
 
 ## Golden tests (non-negotiable)
 

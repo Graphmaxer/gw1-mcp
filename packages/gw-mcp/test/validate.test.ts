@@ -89,3 +89,16 @@ describe("structural validator rules", () => {
     expect(r.errors.map(e=>e.code)).toContain("DUPLICATE_SKILL");
   });
 });
+
+describe("profession header rules", () => {
+  it("raises UNKNOWN_PRIMARY and UNKNOWN_SECONDARY", () => {
+    const r = validateBuild({ primary: 77, secondary: 88, attributes: [], skills: [0,0,0,0,0,0,0,0] }, {});
+    const codes = r.errors.map(e=>e.code);
+    expect(codes).toContain("UNKNOWN_PRIMARY");
+    expect(codes).toContain("UNKNOWN_SECONDARY");
+  });
+  it("raises NO_PRIMARY on profession-less templates", () => {
+    const r = validateBuild({ primary: 0, secondary: 0, attributes: [], skills: [0,0,0,0,0,0,0,0] }, {});
+    expect(r.errors.map(e=>e.code)).toContain("NO_PRIMARY");
+  });
+});

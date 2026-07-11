@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@hono/node-server": "^2.0.8",
+    "@types/node": "^26.1.1",
     "wrangler": "^4.110.0"
   }
 }

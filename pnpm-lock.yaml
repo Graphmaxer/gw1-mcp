@@ -81,6 +81,9 @@ importers:
       '@hono/node-server':
         specifier: ^2.0.8
         version: 2.0.8(hono@4.12.29)
+      '@types/node':
+        specifier: ^26.1.1
+        version: 26.1.1
       wrangler:
         specifier: ^4.110.0
         version: 4.110.0

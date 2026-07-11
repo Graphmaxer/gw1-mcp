@@ -48,6 +48,11 @@ function json(data: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
 }
 
+/** Tool-level failure: same JSON body, plus the MCP isError flag so clients can react. */
+function jsonError(code: string, message: string) {
+  return { ...json({ error: { code, message } }), isError: true };
+}
+
 function fullSkill(id: number) {
   const skill = getSkillById(id);
   if (!skill) return null;
@@ -82,7 +87,7 @@ export function createServer(): McpServer {
         const skill = fullSkill(id);
         return skill
           ? json(skill)
-          : json({ error: { code: "NOT_FOUND", message: `No skill with id ${id}` } });
+          : jsonError("NOT_FOUND", `No skill with id ${id}`);
       }
       if (name !== undefined) {
         const skill = getSkillByName(name);
@@ -96,7 +101,7 @@ export function createServer(): McpServer {
               },
             });
       }
-      return json({ error: { code: "BAD_REQUEST", message: "Provide name or id" } });
+      return jsonError("BAD_REQUEST", "Provide name or id");
     },
   );
 
@@ -123,14 +128,14 @@ export function createServer(): McpServer {
         else {
           const profession = getProfessionByName(professionName);
           if (!profession)
-            return json({ error: { code: "UNKNOWN_PROFESSION", message: `Unknown profession ${JSON.stringify(professionName)}` } });
+            return jsonError("UNKNOWN_PROFESSION", `Unknown profession ${JSON.stringify(professionName)}`);
           filters.professionId = profession.id;
         }
       }
       if (attributeName !== undefined) {
         const attribute = getAttributeByName(attributeName);
         if (!attribute)
-          return json({ error: { code: "UNKNOWN_ATTRIBUTE", message: `Unknown attribute ${JSON.stringify(attributeName)}` } });
+          return jsonError("UNKNOWN_ATTRIBUTE", `Unknown attribute ${JSON.stringify(attributeName)}`);
         filters.attributeId = attribute.id;
       }
       if (campaignName !== undefined) {
@@ -138,7 +143,7 @@ export function createServer(): McpServer {
           (c) => c.name.toLowerCase() === campaignName.toLowerCase(),
         );
         if (!campaign)
-          return json({ error: { code: "UNKNOWN_CAMPAIGN", message: `Unknown campaign ${JSON.stringify(campaignName)}` } });
+          return jsonError("UNKNOWN_CAMPAIGN", `Unknown campaign ${JSON.stringify(campaignName)}`);
         filters.campaignId = campaign.id;
       }
       if (elite !== undefined) filters.elite = elite;
@@ -177,7 +182,7 @@ export function createServer(): McpServer {
         return json(describeTemplate(decodeTemplate(code)));
       } catch (error) {
         if (error instanceof TemplateError) {
-          return json({ error: { code: error.code, message: error.message } });
+          return jsonError(error.code, error.message);
         }
         throw error;
       }
@@ -275,7 +280,7 @@ export function createServer(): McpServer {
         });
       } catch (error) {
         if (error instanceof TemplateError) {
-          return json({ error: { code: error.code, message: error.message } });
+          return jsonError(error.code, error.message);
         }
         throw error;
       }
@@ -360,13 +365,13 @@ export function createServer(): McpServer {
       if (professionName !== undefined) {
         const profession = getProfessionByName(professionName);
         if (!profession)
-          return json({ error: { code: "UNKNOWN_PROFESSION", message: `Unknown profession ${JSON.stringify(professionName)}` } });
+          return jsonError("UNKNOWN_PROFESSION", `Unknown profession ${JSON.stringify(professionName)}`);
         results = results.filter((h) => h.professionId === profession.id);
       }
       if (campaignName !== undefined) {
         const campaign = campaigns.find((c) => c.name.toLowerCase() === campaignName.toLowerCase());
         if (!campaign)
-          return json({ error: { code: "UNKNOWN_CAMPAIGN", message: `Unknown campaign ${JSON.stringify(campaignName)}` } });
+          return jsonError("UNKNOWN_CAMPAIGN", `Unknown campaign ${JSON.stringify(campaignName)}`);
         results = results.filter((h) => h.campaignId === campaign.id);
       }
       return json({

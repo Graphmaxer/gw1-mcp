@@ -172,9 +172,12 @@ for action. Nothing else in the repo is knowingly imperfect.
    (docs/upstream-gw-templates-bug.md, report ready to file). Our sentinel
    test pins the buggy behavior: when upstream fixes it, the sentinel FAILS
    on purpose — update the sentinel and delete this line.
-5. heroes.json is hand-curated (unlock notes verified against GWW at edit
-   time); Reforged keeps adding heroes. Trigger: Reforged patch notes
-   mentioning hero unlocks.
+5. heroes.json content (professions/campaign/unlock notes) is hand-curated,
+   but DRIFT IS NOW DETECTED automatically: scripts/check-heroes.ts compares
+   ids/names against the GWCA HeroID enum (vendored in GWToolboxpp — gains
+   new Reforged heroes within days) and the weekly data workflow fails when
+   upstream has a hero we lack. Trigger: that failing run; then curate the
+   new hero's metadata from GWW.
 6. The public worker has no auth or rate limiting — acceptable for a
    personal connector, revisit before sharing the URL.
 7. Early-adopter stack: TypeScript 7.0.x and vitest 4 are young majors;

@@ -10,7 +10,8 @@
   "scripts": {
     "import": "tsx scripts/import.ts",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check:heroes": "tsx scripts/check-heroes.ts"
   },
   "devDependencies": {
     "@buildwars/gw-skilldata": "^1.1.0",

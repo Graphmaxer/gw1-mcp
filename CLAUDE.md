@@ -155,6 +155,33 @@ remainder is response-formatting branches), gw-worker app.ts 100%
 resolution error code MUST have a test that triggers it. Tool failures use
 the MCP isError flag via the jsonError helper — keep new tools consistent.
 
+## Known debts and risks (the honest register)
+
+Everything below is a KNOWN compromise, kept deliberately, with its trigger
+for action. Nothing else in the repo is knowingly imperfect.
+
+1. Never-executed automation: the deploy workflow and the GWToolbox plugin
+   build workflow have never run (no Cloudflare secret / no Windows here).
+   First runs may need iteration; the plugin's /W4 /WX first compile almost
+   certainly will. Trigger: first real run.
+2. The C++ plugin itself has never been compiled or loaded in-game.
+3. Three open codec questions (trailing-padding convention, zero-attribute
+   filler, 4-vs-5-bit attribute width) — arbitrable only by in-game codes;
+   the encoder is correct for the game's decoder either way.
+4. Runtime dependency @buildwars/gw-templates has a known truncation bug
+   (docs/upstream-gw-templates-bug.md, report ready to file). Our sentinel
+   test pins the buggy behavior: when upstream fixes it, the sentinel FAILS
+   on purpose — update the sentinel and delete this line.
+5. heroes.json is hand-curated (unlock notes verified against GWW at edit
+   time); Reforged keeps adding heroes. Trigger: Reforged patch notes
+   mentioning hero unlocks.
+6. The public worker has no auth or rate limiting — acceptable for a
+   personal connector, revisit before sharing the URL.
+7. Early-adopter stack: TypeScript 7.0.x and vitest 4 are young majors;
+   pin-and-wait is the policy if a toolchain regression appears.
+8. Single-maintainer bus factor — mitigated by this file being the actual
+   source of truth (kept aligned by the doc-audit habit).
+
 ## Golden tests (non-negotiable)
 
 `packages/gw-template/test/fixtures/templates.json` contains real template codes with their expected decoded form:

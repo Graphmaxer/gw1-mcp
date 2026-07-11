@@ -1,24 +1,5 @@
 [
  {
-  "id": 0,
-  "name": "No Skill",
-  "description": "",
-  "campaignId": 0,
-  "professionId": 0,
-  "attributeId": -1,
-  "elite": false,
-  "playerUsable": true,
-  "pvpSplit": false,
-  "typeId": 0,
-  "upkeep": 0,
-  "energy": 0,
-  "activation": 0,
-  "recharge": 0,
-  "adrenaline": 0,
-  "sacrifice": 0,
-  "overcast": 0
- },
- {
   "id": 1,
   "name": "Healing Signet",
   "description": "You gain 82...172 Health. <i>You have -40 armor while using this skill.</i>",

@@ -208,10 +208,17 @@ export function createServer(): McpServer {
       });
       if (!validation.valid) return json(validation);
 
-      return json({
-        code: encodeTemplate(resolution.template),
-        warnings: validation.warnings,
-      });
+      try {
+        return json({
+          code: encodeTemplate(resolution.template),
+          warnings: validation.warnings,
+        });
+      } catch (error) {
+        if (error instanceof TemplateError) {
+          return json({ error: { code: error.code, message: error.message } });
+        }
+        throw error;
+      }
     },
   );
 

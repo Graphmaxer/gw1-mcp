@@ -192,8 +192,6 @@ void AccountExport::Initialize(ImGuiContext* ctx, const ImGuiAllocFns allocator_
 {
     ToolboxPlugin::Initialize(ctx, allocator_fns, toolbox_dll);
     GW::Chat::CreateCommand(&ChatCmd_HookEntry, L"exportaccount", ExportAccount);
-    GW::Chat::WriteChat(GW::Chat::Channel::CHANNEL_GLOBAL,
-                        L"[AccountExport] Loaded. Type /exportaccount to export your account state.", nullptr, true);
 }
 
 void AccountExport::SignalTerminate()

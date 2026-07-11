@@ -165,7 +165,7 @@ const skills = load("gw1_skilldata.sql")
       overcast: num(t[15]),
     };
   })
-  .filter((s) => s.name !== "");
+  .filter((s) => s.id !== 0 && s.name !== ""); // id 0 = "No Skill" (empty-slot sentinel, not a real skill)
 
 // --- write ------------------------------------------------------------------
 const write = (name: string, data: unknown, count: number) => {

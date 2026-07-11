@@ -154,6 +154,14 @@ export function validateBuild(
     }
     seenAttributes.add(attributeId);
 
+    if (attributeId < 0) {
+      errors.push({
+        code: "ATTRIBUTE_NOT_TEMPLATABLE",
+        message: `"${attribute.name}" is a ${attributeId === -1 ? "non-attribute" : "PvE title track"}; title ranks come from account progress and cannot be allocated in a skill template`,
+      });
+      continue;
+    }
+
     if (rank < 0 || rank > 12) {
       errors.push({
         code: "RANK_OUT_OF_RANGE",

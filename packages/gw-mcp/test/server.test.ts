@@ -130,3 +130,23 @@ describe("GWToolbox account export integration", () => {
     expect(result.warnings.some((w: { message: string }) => w.message.includes("Mending Touch"))).toBe(true);
   });
 });
+
+describe("audit regressions", () => {
+  it("rejects title-track attributes with a structured error instead of crashing", async () => {
+    const client = await connectedClient();
+    const result = payload(
+      await client.callTool({
+        name: "encode_template",
+        arguments: {
+          primary: "Dervish",
+          secondary: "Monk",
+          attributes: [{ attribute: "Sunspear Title Track", rank: 8 }],
+          skills: ["Mystic Sweep", null, null, null, null, null, null, null],
+        },
+      }),
+    );
+    expect(result.errors.map((e: { code: string }) => e.code)).toContain(
+      "ATTRIBUTE_NOT_TEMPLATABLE",
+    );
+  });
+});

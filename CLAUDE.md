@@ -116,6 +116,19 @@ attribute ids < 16 (4-vs-5-bit attribute width), and ANY bar at all (exact
 trailing-padding convention: we pad to 6 bits; the Catbus source emits one
 extra zero group; compare code LENGTH char-for-char).
 
+## Coverage expectations
+
+`pnpm test:coverage` (provider @vitest/coverage-v8, version-locked to
+vitest 2.x). Reference levels: gw-template ~92% (uncovered: internal-bug
+guards in bitstream/base64 that valid inputs cannot reach), gw-data src
+~93% (scripts/import.ts is intentionally untested — it is validated by
+upstream schemas at run time and by the golden tests downstream), gw-mcp
+validate/build-io fully rule-covered via table-driven tests, server.ts
+~75% (uncovered: resource handlers and per-tool response formatting,
+exercised end-to-end by the InMemoryTransport tests for the main flows),
+gw-worker app.ts 100% (index/node/stdio are entry-point shims). Every
+validator rule and resolution error code MUST have a test that triggers it.
+
 ## Golden tests (non-negotiable)
 
 `packages/gw-template/test/fixtures/templates.json` contains real template codes with their expected decoded form:

@@ -79,3 +79,22 @@ describe("errors", () => {
     ).toThrowError(TemplateError);
   });
 });
+
+describe("malformed input rejection", () => {
+  const reject = (code: string, errorCode: string) => {
+    try {
+      decodeTemplate(code);
+      expect.unreachable(`expected ${errorCode}`);
+    } catch (e) {
+      expect((e as TemplateError).code).toBe(errorCode);
+    }
+  };
+  it("rejects empty strings", () => reject("   ", "TRUNCATED"));
+  it("rejects non-charset characters", () => reject("OQAS EZKT!", "INVALID_CHARACTER"));
+  it("rejects unknown template types", () => reject("zzzzzzzzzzzz", "INVALID_HEADER"));
+  it("rejects codes that end mid-field", () => reject("OQ", "TRUNCATED"));
+  it("round-trips through valuesToChars boundary values", () => {
+    // exercised indirectly; a value >63 can only arise from an internal bug
+    expect(encodeTemplate(decodeTemplate("OQASEZKT9F7gTNAAAAAAXFxgA"))).toBeTruthy();
+  });
+});

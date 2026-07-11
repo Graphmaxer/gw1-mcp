@@ -40,7 +40,20 @@ and will flag any proposed skill you don't actually own.
 Everything is read-only; the plugin never writes game memory, sends packets,
 or automates anything.
 
-## Building (Windows only)
+## Building
+
+### Option A — GitHub Actions (nothing to install)
+
+The repo ships `.github/workflows/build-gwtoolbox-plugin.yml`: it builds the
+DLL on a GitHub-hosted Windows runner against the GWToolboxpp master branch,
+mirroring their own CI (same vcpkg pin, their `vcpkg` CMake preset). Go to
+the **Actions** tab → *Build GWToolbox plugin* → **Run workflow**, wait
+(~20-30 min cold, faster once caches are warm), then download the
+`AccountExport` artifact from the run — it contains the DLL (and PDB).
+The workflow also re-runs automatically on any push touching
+`gwtoolbox-plugin/`, so compile errors from `/W4 /WX` show up in the run log.
+
+### Option B — locally on Windows
 
 Requires Visual Studio 2022 (C++ workload) and CMake, like GWToolbox itself.
 
@@ -55,11 +68,12 @@ Copy-Item -Recurse path\to\gw1-mcp\gwtoolbox-plugin\AccountExport plugins\Accoun
 Add-Content cmake\gwtoolboxdll_plugins.cmake "add_tb_plugin(AccountExport)"
 
 # Configure + build
-cmake -B build -G "Visual Studio 17 2022" -A Win32
+cmake . --preset=vcpkg   # Win32 arch and vcpkg toolchain are baked into the preset
 cmake --build build --config RelWithDebInfo --target AccountExport
 ```
 
-The DLL lands in `build\bin\RelWithDebInfo\AccountExport.dll`. Copy it to your
+The DLL lands in `bin\RelWithDebInfo\AccountExport.dll` (GWToolbox sets its
+runtime output dir at the source root, not under build/). Copy it to your
 GWToolbox plugins folder (`%LOCALAPPDATA%\GWToolboxpp\<computername>\plugins`),
 then load it from Toolbox settings → Plugins.
 
@@ -68,7 +82,10 @@ Notes:
 - GW1 is a 32-bit game: the `-A Win32` generator flag matters.
 - Plugins are built with `/W4 /WX` (warnings are errors) — keep it clean.
 - GWCA structures move with game updates; if a build breaks after a GW1 patch,
-  re-pull GWToolboxpp and rebuild.
+  re-pull GWToolboxpp and rebuild (with Option A, just re-run the workflow).
+- GWToolboxpp also ships `clang` and `wine` CMake presets — building from
+  Linux via wine/clang-cl looks supported upstream, but is untested here;
+  the Actions route is the documented path.
 
 ## Why not upstream?
 

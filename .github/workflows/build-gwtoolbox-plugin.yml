@@ -1,0 +1,101 @@
+name: Build GWToolbox plugin
+
+# Builds AccountExport.dll on a GitHub-hosted Windows runner (VS toolchain
+# preinstalled) — no local Visual Studio needed. Trigger it from the Actions
+# tab (Run workflow) and download the DLL from the run's artifacts.
+#
+# Mirrors the upstream GWToolboxpp CI (.github/workflows/cmake.yml): vcpkg
+# pinned to the same commit they use, configure via their `vcpkg` CMake
+# preset (Win32 arch and toolchain are baked into the preset), binaries land
+# in <source>/bin/RelWithDebInfo/.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "gwtoolbox-plugin/**"
+      - ".github/workflows/build-gwtoolbox-plugin.yml"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      # Keep in sync with GWToolboxpp's own CI pin.
+      VCPKG_COMMIT: ce613c41372b23b1f51333815feb3edd87ef8a8b
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout GWToolboxpp (master)
+        shell: bash
+        run: git clone --depth 1 https://github.com/gwdevhub/GWToolboxpp.git GWToolboxpp
+
+      - name: Inject AccountExport plugin
+        shell: pwsh
+        run: |
+          Copy-Item -Recurse gwtoolbox-plugin/AccountExport GWToolboxpp/plugins/AccountExport
+          Add-Content GWToolboxpp/cmake/gwtoolboxdll_plugins.cmake "`nadd_tb_plugin(AccountExport)"
+          Get-Content GWToolboxpp/cmake/gwtoolboxdll_plugins.cmake -Tail 3
+
+      - name: Cache vcpkg toolchain
+        id: cache-vcpkg-tool
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/vcpkg
+          key: vcpkg-tool-${{ runner.os }}-${{ env.VCPKG_COMMIT }}
+
+      - name: Install vcpkg
+        if: steps.cache-vcpkg-tool.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git
+          cd vcpkg
+          git checkout "$VCPKG_COMMIT"
+          ./bootstrap-vcpkg.bat
+
+      - name: Set VCPKG_ROOT
+        shell: powershell
+        run: echo "VCPKG_ROOT=${{ github.workspace }}\vcpkg" >> $env:GITHUB_ENV
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/vcpkg-bincache
+          key: vcpkg-bin-${{ runner.os }}-${{ hashFiles('GWToolboxpp/vcpkg.json', 'GWToolboxpp/vcpkg-configuration.json', 'GWToolboxpp/vcpkg-overlays/**') }}
+          restore-keys: |
+            vcpkg-bin-${{ runner.os }}-
+
+      - name: Restore FetchContent cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/GWToolboxpp/build/_deps
+          key: deps-${{ runner.os }}-${{ hashFiles('GWToolboxpp/cmake/*.cmake') }}
+          restore-keys: |
+            deps-${{ runner.os }}-
+
+      - name: Configure CMake (vcpkg preset, Win32)
+        shell: bash
+        working-directory: GWToolboxpp
+        run: cmake . --preset=vcpkg
+        env:
+          VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg-bincache,readwrite"
+
+      - name: Build AccountExport
+        shell: bash
+        working-directory: GWToolboxpp
+        run: cmake --build build --config RelWithDebInfo --target AccountExport
+
+      - name: Collect artifact
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out | Out-Null
+          Get-ChildItem -Recurse GWToolboxpp/bin -Include AccountExport.dll, AccountExport.pdb |
+            Copy-Item -Destination out
+          Get-ChildItem out
+
+      - name: Upload AccountExport.dll
+        uses: actions/upload-artifact@v4
+        with:
+          name: AccountExport
+          path: out/
+          if-no-files-found: error

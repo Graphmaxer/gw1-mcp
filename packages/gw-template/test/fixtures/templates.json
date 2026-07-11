@@ -1,5 +1,5 @@
 {
- "_comment": "Golden fixtures. 'roundtrip: true' asserts encode(decode(code)) === code (modern-format codes only). TODO(Maxime): ajouter 10-15 codes r\u00e9els de tes builds Nightfall (joueur + h\u00e9ros), dont un slot vide, un build sans \u00e9lite, un sans secondaire.",
+ "_comment": "Golden fixtures. 'roundtrip: true' asserts encode(decode(code)) === code (modern-format codes only). TODO(Maxime): ajouter 10-15 codes réels de tes builds Nightfall (joueur + héros), dont un slot vide, un build sans élite, un sans secondaire.",
  "fixtures": [
   {
    "name": "Critical Scythe Assassin (wiki example, modern format)",
@@ -188,7 +188,7 @@
    }
   },
   {
-   "name": "P/W Imbagon Luxon (PvXwiki) \u2014 attributes NOT in ascending order in the original; our canonical encoder sorts, so only semantic round-trip holds",
+   "name": "P/W Imbagon Luxon (PvXwiki) — attributes NOT in ascending order in the original; our canonical encoder sorts, so only semantic round-trip holds",
    "code": "OQGjgylopSAAAAieAh5iXFpbAA",
    "roundtrip": false,
    "expect": {
@@ -221,7 +221,7 @@
    }
   },
   {
-   "name": "Me/any PvE Energy Surge (PvXwiki) \u2014 PvX's encoder pads attribute ids to 5 bits where the spec minimum is 4 (all ids here are <= 3); an in-game code with all attribute ids < 16 would arbitrate what the game emits",
+   "name": "Me/any PvE Energy Surge (PvXwiki) — PvX's encoder pads attribute ids to 5 bits where the spec minimum is 4 (all ids here are <= 3); an in-game code with all attribute ids < 16 would arbitrate what the game emits",
    "code": "OQBTAYBPGS0ZJ4EY6x0BAAAAuE",
    "roundtrip": false,
    "expect": {
@@ -250,6 +250,175 @@
      0,
      0,
      2416
+    ]
+   }
+  },
+  {
+   "name": "Rt/any Signet of Spirits Farmer (gw1builds.com, verified against icon skill ids)",
+   "code": "OACjAaiM5SXT+glTVTQT0gAAAAA",
+   "roundtrip": true,
+   "expect": {
+    "primary": 8,
+    "secondary": 0,
+    "attributes": [
+     {
+      "attributeId": 32,
+      "rank": 6
+     },
+     {
+      "attributeId": 34,
+      "rank": 12
+     },
+     {
+      "attributeId": 36,
+      "rank": 11
+     }
+    ],
+    "skills": [
+     1239,
+     2110,
+     1253,
+     1237,
+     1232,
+     2100,
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "name": "D/any Avatar of Grenth Tank (gw1builds.com, full bar, verified against icon skill ids)",
+   "code": "OgCjkyqJbSVXPXfXdfvlqi0kwXA",
+   "roundtrip": true,
+   "expect": {
+    "primary": 10,
+    "secondary": 0,
+    "attributes": [
+     {
+      "attributeId": 41,
+      "rank": 12
+     },
+     {
+      "attributeId": 42,
+      "rank": 9
+     },
+     {
+      "attributeId": 44,
+      "rank": 9
+     }
+    ],
+    "skills": [
+     1493,
+     1487,
+     1503,
+     2013,
+     2415,
+     2218,
+     2356,
+     1520
+    ]
+   }
+  },
+  {
+   "name": "N/Mo Unyielding Aura Prot hero (gw1builds.com) — gw1builds encodes via @buildwars/gw-templates (unsorted attribute order and/or width floors), so only semantic round-trip holds; primary attribute stored last",
+   "code": "OAND04rGTMEVVNg1DBECEaRbh",
+   "roundtrip": false,
+   "expect": {
+    "primary": 4,
+    "secondary": 3,
+    "attributes": [
+     {
+      "attributeId": 13,
+      "rank": 8
+     },
+     {
+      "attributeId": 15,
+      "rank": 10
+     },
+     {
+      "attributeId": 6,
+      "rank": 12
+     }
+    ],
+    "skills": [
+     268,
+     1365,
+     2061,
+     245,
+     257,
+     258,
+     1114,
+     2139
+    ]
+   }
+  },
+  {
+   "name": "Me/P Energy Surge hero, four attributes incl. cross-profession Command (gw1builds.com) — gw1builds encodes via @buildwars/gw-templates (unsorted attribute order and/or width floors), so only semantic round-trip holds",
+   "code": "OQlkYeCMAOgzJY6Z6yBFhMwyfHD",
+   "roundtrip": false,
+   "expect": {
+    "primary": 5,
+    "secondary": 9,
+    "attributes": [
+     {
+      "attributeId": 38,
+      "rank": 7
+     },
+     {
+      "attributeId": 2,
+      "rank": 12
+     },
+     {
+      "attributeId": 0,
+      "rank": 8
+     },
+     {
+      "attributeId": 3,
+      "rank": 8
+     }
+    ],
+    "skills": [
+     39,
+     979,
+     934,
+     57,
+     69,
+     25,
+     1995,
+     1595
+    ]
+   }
+  },
+  {
+   "name": "Me/any Panic hero (gw1builds.com), exercises '/' charset char — gw1builds encodes via @buildwars/gw-templates (unsorted attribute order and/or width floors), so only semantic round-trip holds",
+   "code": "OQBDIMoDO0gpnpLHgTzAL/bK",
+   "roundtrip": false,
+   "expect": {
+    "primary": 5,
+    "secondary": 0,
+    "attributes": [
+     {
+      "attributeId": 2,
+      "rank": 12
+     },
+     {
+      "attributeId": 0,
+      "rank": 10
+     },
+     {
+      "attributeId": 3,
+      "rank": 8
+     }
+    ],
+    "skills": [
+     52,
+     979,
+     934,
+     57,
+     1336,
+     25,
+     1995,
+     1335
     ]
    }
   }

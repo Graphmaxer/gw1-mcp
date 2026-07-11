@@ -104,7 +104,9 @@ codes, semantic round-trip always holds and is asserted for every fixture.
    like PvXCode and @buildwars/gw-templates do (shared authorship)? Our
    encoder emits the minimum; both forms decode identically everywhere.
 Fixture wishlist from Maxime's client: one Mesmer bar (ids < 16), one bar
-with no attributes, plus R/Rt/E/D primaries (missing from the web harvest).
+with no attributes, plus Elementalist and Ranger primaries (the only two
+missing from the web harvest — 13 fixtures cover the other 8; gw1builds.com
+proved a rich second source: plaintext codes plus skill IDS in icon URLs).
 
 ## Golden tests (non-negotiable)
 

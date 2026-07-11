@@ -14,6 +14,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@buildwars/gw-skilldata": "^1.1.0"
+    "@buildwars/gw-skilldata": "^1.1.0",
+    "ajv": "^8.20.0"
   }
 }

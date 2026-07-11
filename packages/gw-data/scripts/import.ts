@@ -30,6 +30,45 @@ async function loadUpstream() {
     const constants = await import(pathToFileURL(join(cloneRoot, "es6", "constants.js")).href);
     const skilldata = JSON.parse(readFileSync(join(cloneRoot, "data", "json-full", "skilldata.json"), "utf8"));
     const desc = JSON.parse(readFileSync(join(cloneRoot, "data", "json-full", "skilldesc-en.json"), "utf8"));
+
+    // Validate the upstream files against the schemas they publish
+    // (data/schemas/, also served on their GitHub Pages). This makes the
+    // weekly auto-update PR fail loudly on upstream format drift instead of
+    // silently importing garbage.
+    const { Ajv2020 } = await import("ajv/dist/2020.js");
+    const ajv = new Ajv2020({ strict: false, allErrors: true });
+    for (const [file, payload] of [
+      ["skilldata", skilldata],
+      ["skilldesc", desc],
+    ] as const) {
+      const schema = JSON.parse(
+        readFileSync(join(cloneRoot, "data", "schemas", `${file}.schema.json`), "utf8"),
+      ) as Record<string, unknown>;
+      delete schema.$id; // avoid remote-$ref resolution
+      delete schema.$schema;
+      // Upstream quirk: "float" is not a JSON Schema type (they use
+      // ["float","integer"] on adrenaline_precise). Normalize to "number".
+      const normalizeTypes = (node: unknown): void => {
+        if (Array.isArray(node)) return node.forEach(normalizeTypes);
+        if (node && typeof node === "object") {
+          const record = node as Record<string, unknown>;
+          if (Array.isArray(record.type)) {
+            record.type = [...new Set(record.type.map((t) => (t === "float" ? "number" : t)))];
+          } else if (record.type === "float") {
+            record.type = "number";
+          }
+          Object.values(record).forEach(normalizeTypes);
+        }
+      };
+      normalizeTypes(schema);
+      const validate = ajv.compile(schema);
+      if (!validate(payload)) {
+        console.error(`upstream ${file}.json fails its own schema:`, validate.errors?.slice(0, 5));
+        process.exit(1);
+      }
+      console.log(`${file}.json: valid against upstream schema`);
+    }
+
     const version = `git:${JSON.parse(readFileSync(join(cloneRoot, "package.json"), "utf8")).version}`;
     return { ...constants, skilldata: skilldata.skilldata, skilldesc: desc.skilldesc, version };
   }

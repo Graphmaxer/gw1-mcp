@@ -96,3 +96,19 @@ trademark of NCSoft Corporation. Game data courtesy of the
 [build-wars/gw-skilldata](https://github.com/build-wars/gw-skilldata) project
 (MIT) and the format documentation on the
 [Guild Wars Wiki](https://wiki.guildwars.com/wiki/Skill_template_format)._
+
+## Development
+
+```bash
+pnpm install && pnpm -r test
+```
+
+Node >= 22, pnpm 11. Nothing builds to dist — exports point at the .ts
+sources and the worker bundles via wrangler. See
+[CONTRIBUTING.md](./CONTRIBUTING.md) to get started and
+[CLAUDE.md](./CLAUDE.md) for the full architecture, conventions and the
+honest register of known debts.
+
+## License
+
+MIT

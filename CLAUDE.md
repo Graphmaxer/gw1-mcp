@@ -67,7 +67,7 @@ The codec in `packages/gw-template` is implemented and round-trip tested. Do **n
 1. The golden test fixtures (below) — real codes; extend them, never edit them.
 2. The verification corpus itself — 18 golden fixtures from four independent
    encoders (the pre-2007 game client, PvXCode, @buildwars/gw-templates, a
-   GWW player page), differential + fuzz + malformed-input tests. Maxime's
+   GWW player page), differential + fuzz + malformed-input tests. The maintainer's
    historical Python codec, once planned as a reference oracle under
    reference/, is no longer needed for correctness; welcome as an optional
    extra cross-check if it ever surfaces.
@@ -114,7 +114,7 @@ codes, semantic round-trip always holds and is asserted for every fixture.
    @buildwars/gw-templates via gw1builds.com whose icon URLs expose skill IDS
    for id-level verification, plus a GWW player page whose Ranger codes are
    byte-identical to our encoding except one trailing zero-padding char).
-   Fixture wishlist from Maxime's client (each arbitrates one open question):
+   Fixture wishlist from the maintainer's game client (each arbitrates one open question):
    one bar with no attributes (unused width-field filler), one bar with all
    attribute ids < 16 (4-vs-5-bit attribute width), and ANY bar at all (exact
    trailing-padding convention: we pad to 6 bits; the Catbus source emits one
@@ -209,7 +209,7 @@ for action. Nothing else in the repo is knowingly imperfect.
    gate).
 2. The C++ plugin compiled clean on the first CI run (/W4 /WX, zero
    warnings — 2026-07-11) but has never been loaded in-game. Trigger:
-   Maxime runs /exportaccount with the artifact DLL.
+   the maintainer runs /exportaccount with the artifact DLL.
 3. Three open codec questions (trailing-padding convention, zero-attribute
    filler, 4-vs-5-bit attribute width) — arbitrable only by in-game codes;
    the encoder is correct for the game's decoder either way.
@@ -257,7 +257,7 @@ for action. Nothing else in the repo is knowingly imperfect.
 ]
 ```
 
-<!-- TODO(Maxime): coller ici 10-15 codes réels de tes builds Nightfall (joueur + héros),
+<!-- TODO(maintainer): paste here 10-15 real codes from live Nightfall builds (player + heroes),
      dont au moins : un build avec slot vide, un build sans élite, un build sans secondaire,
      un build de héros avec skills de plusieurs campagnes. -->
 
@@ -286,9 +286,9 @@ Windows inside a GWToolboxpp checkout (see gwtoolbox-plugin/README.md).
 validate_build/encode_template accept `unlockedSkillIds` from its export.
 Fixture set now includes two PvXwiki codes independently verified against the
 pages' declared professions/attributes/skills (character-exact round-trips,
-including '+' charset chars and EotN skill ids). Maxime's in-game codes remain
+including '+' charset chars and EotN skill ids). the maintainer's in-game codes remain
 wanted as the final confirmation layer.
-NEXT: golden fixtures from real gameplay (needs Maxime's codes),
+NEXT: golden fixtures from real gameplay (needs the maintainer's in-game codes),
 first real deployment (`wrangler login && pnpm --filter @gw1-mcp/gw-worker deploy`),
 first Windows build of the AccountExport plugin, then MCP resources (gw1://roles,
 hero constraints) and heroes_from_progression.

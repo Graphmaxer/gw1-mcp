@@ -23,10 +23,19 @@ function toOurShape(decoded: ReturnType<SkillTemplate["decode"]>) {
   };
 }
 
+const sortAttributes = <T extends { attributes: Array<{ attributeId: number }> }>(t: T): T => ({
+  ...t,
+  attributes: [...t.attributes].sort((a, b) => a.attributeId - b.attributeId),
+});
+
 describe("differential: fixtures", () => {
   for (const fixture of fixtureFile.fixtures) {
     it(`both codecs agree on ${fixture.name}`, () => {
-      expect(decodeTemplate(fixture.code)).toEqual(toOurShape(theirs.decode(fixture.code)));
+      // Order-insensitive on attributes: their decode returns an object whose
+      // integer keys iterate ascending regardless of the code's actual order.
+      expect(sortAttributes(decodeTemplate(fixture.code))).toEqual(
+        sortAttributes(toOurShape(theirs.decode(fixture.code))),
+      );
     });
   }
 });

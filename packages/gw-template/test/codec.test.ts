@@ -8,14 +8,30 @@ describe("golden fixtures", () => {
       expect(decodeTemplate(fixture.code)).toEqual(fixture.expect);
     });
 
+    // Semantic round-trip holds for every fixture: re-encoding our decode
+    // and decoding again must yield the same template (attribute order in
+    // wild codes varies by tool — see the Imbagon fixture — so only
+    // string-exact round-trip is opt-in via roundtrip:true).
+    const reDecoded = decodeTemplate(encodeTemplate(decodeTemplate(fixture.code)));
+    const sortAttrs = (t: typeof reDecoded) => ({
+      ...t,
+      attributes: [...t.attributes].sort((a, b) => a.attributeId - b.attributeId),
+    });
+    expect(sortAttrs(reDecoded)).toEqual(sortAttrs(decodeTemplate(fixture.code)));
     if (fixture.roundtrip) {
       it(`round-trips ${fixture.name} character-exact`, () => {
         expect(encodeTemplate(decodeTemplate(fixture.code))).toBe(fixture.code);
       });
     } else {
       it(`re-encodes ${fixture.name} to a semantically equal modern template`, () => {
+        // Attribute order is not semantic (wild codes vary; our encoder
+        // canonicalizes to ascending ids), so compare order-insensitively.
+        const sortAttrs = (t: ReturnType<typeof decodeTemplate>) => ({
+          ...t,
+          attributes: [...t.attributes].sort((a, b) => a.attributeId - b.attributeId),
+        });
         const decoded = decodeTemplate(fixture.code);
-        expect(decodeTemplate(encodeTemplate(decoded))).toEqual(decoded);
+        expect(sortAttrs(decodeTemplate(encodeTemplate(decoded)))).toEqual(sortAttrs(decoded));
       });
     }
   }

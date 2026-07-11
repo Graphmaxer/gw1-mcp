@@ -128,6 +128,97 @@
      25
     ]
    }
+  },
+  {
+   "name": "W/any Hundred Blades (PvXwiki, three empty optionals)",
+   "code": "OQASEZKT9F7gTNAAAAAAXFxgA",
+   "roundtrip": true,
+   "expect": {
+    "primary": 1,
+    "secondary": 0,
+    "attributes": [
+     {
+      "attributeId": 17,
+      "rank": 12
+     },
+     {
+      "attributeId": 20,
+      "rank": 12
+     }
+    ],
+    "skills": [
+     381,
+     2107,
+     851,
+     0,
+     0,
+     0,
+     343,
+     2097
+    ]
+   }
+  },
+  {
+   "name": "W/P Hundred Blades Enduring Harmony variant (PvXwiki, full bar)",
+   "code": "OQkSEZKTmYXFGW9F7gTN8V0kA",
+   "roundtrip": true,
+   "expect": {
+    "primary": 1,
+    "secondary": 9,
+    "attributes": [
+     {
+      "attributeId": 17,
+      "rank": 12
+     },
+     {
+      "attributeId": 20,
+      "rank": 12
+     }
+    ],
+    "skills": [
+     1574,
+     343,
+     1414,
+     381,
+     2107,
+     851,
+     1404,
+     2356
+    ]
+   }
+  },
+  {
+   "name": "P/W Imbagon Luxon (PvXwiki) — attributes NOT in ascending order in the original; our canonical encoder sorts, so only semantic round-trip holds",
+   "code": "OQGjgylopSAAAAieAh5iXFpbAA",
+   "roundtrip": false,
+   "expect": {
+    "primary": 9,
+    "secondary": 1,
+    "attributes": [
+     {
+      "attributeId": 40,
+      "rank": 12
+     },
+     {
+      "attributeId": 37,
+      "rank": 8
+     },
+     {
+      "attributeId": 38,
+      "rank": 10
+     }
+    ],
+    "skills": [
+     0,
+     0,
+     1954,
+     2112,
+     2233,
+     343,
+     1769,
+     0
+    ]
+   }
   }
  ]
 }

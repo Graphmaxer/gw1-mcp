@@ -86,6 +86,15 @@ The codec must be perfectly **round-trip stable**: `encode(decode(code)) === cod
    paw-ned2 team container format (decode_pawned_team tool); individual bars
    are decoded by OUR codec.
 
+## Attribute order in template codes (learned from wild codes)
+
+Real-world codes do NOT share a canonical attribute order: most tools emit
+ascending ids, but e.g. the PvX Imbagon code stores [Leadership 40, Spear 37,
+Command 38]. The game's decoder accepts any order. Our encoder canonicalizes
+to ascending ids (deterministic output, matches the majority of wild codes);
+consequence: string-exact round-trip is only guaranteed for ascending-order
+codes, semantic round-trip always holds and is asserted for every fixture.
+
 ## Golden tests (non-negotiable)
 
 `packages/gw-template/test/fixtures/templates.json` contains real template codes with their expected decoded form:

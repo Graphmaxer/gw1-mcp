@@ -158,9 +158,14 @@ the MCP isError flag via the jsonError helper — keep new tools consistent.
 ## Internal conventions (uniform on purpose)
 
 - Sub-packages are all `"private": true` — @gw1-mcp/* must never reach npm.
-- ONE script archetype: every script wraps its execution flow in main()
-  behind an `isDirectRun` guard — importing a script must never trigger
-  network fetches or file writes. Scripts whose logic is unit-tested
+- ONE script archetype, and it covers entry shims too (stdio.ts, worker
+  node.ts): every executable wraps its flow in main() behind an
+  `isDirectRun` guard — importing a module must never trigger I/O
+  (network, files, ports, stdin). Two deliberate non-violations: pure
+  in-memory index building at import time is initialization, not a side
+  effect (gw-data repository Maps — required for Workers bundling); and
+  gw-worker/src/index.ts exports `createApp()` because the Cloudflare
+  Workers module contract demands a default export. Scripts whose logic is unit-tested
   additionally export their pure functions (import-heroes.ts); import.ts
   exports nothing because nothing tests it. (This replaced an earlier
   two-archetype rule: the top-level form was symmetrized once we realized

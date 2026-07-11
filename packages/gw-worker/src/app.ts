@@ -20,6 +20,8 @@ export function createApp(): Hono {
       endpoint: "/mcp",
       transport: "streamable-http",
       repository: "https://github.com/Graphmaxer/gw1-mcp",
+      disclaimer:
+        "Unofficial fan-made tool. Guild Wars is a registered trademark of NCSoft Corporation; not affiliated with or endorsed by NCSoft or ArenaNet.",
     }),
   );
 
@@ -47,6 +49,11 @@ export function createApp(): Hono {
         "no request content is persisted by the application. The service runs on",
         "Cloudflare Workers; Cloudflare may process standard operational metadata",
         "(such as IP addresses in transient logs) per its own privacy policy.",
+        "",
+        "",
+        "Unofficial fan-made tool. Guild Wars is a registered trademark of",
+        "NCSoft Corporation; not affiliated with or endorsed by NCSoft or",
+        "ArenaNet.",
         "",
         "Contact: open an issue at https://github.com/Graphmaxer/gw1-mcp",
       ].join("\n"),

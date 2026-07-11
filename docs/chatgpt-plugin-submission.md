@@ -15,7 +15,9 @@ redeploy needed).
 - Short description: Design, validate and encode Guild Wars 1 skill
   builds with live Reforged data.
 - Long description: A deterministic build compiler for the original Guild
-  Wars. Look up any of the game's 1485 skills with current
+  Wars. Unofficial fan-made tool — Guild Wars is a registered trademark of
+  NCSoft Corporation; not affiliated with or endorsed by NCSoft or
+  ArenaNet. Look up any of the game's 1485 skills with current
   Guild Wars Reforged stats, search by profession/attribute/campaign,
   browse the full hero roster, decode any in-game template code or
   paw-ned2 team blob, and compile builds into official template codes —
@@ -37,6 +39,23 @@ redeploy needed).
   UI and the server calls no third-party domain at request time)
 - Domain verification: paste the portal token into the Worker variable
   OPENAI_APPS_CHALLENGE (Cloudflare dash → Worker → Settings → Variables)
+
+## Annotation justification (the portal asks for one per tool)
+
+All 8 tools share the same justification, because they share the same
+nature: each one is a pure, deterministic computation over game data
+bundled inside the Worker at deploy time. No tool creates, updates,
+deletes or sends anything; no tool calls any external system, API or
+website at request time; every call is side-effect-free and safe to
+retry. Hence readOnlyHint=true, destructiveHint=false, openWorldHint=false
+on every tool — there are no write tools in this app.
+
+Anticipated reviewer question — "is this an unofficial connector to a
+third-party service?": No. The app never communicates with Guild Wars
+servers or any NCSoft/ArenaNet system. It is a standalone calculator over
+the MIT-licensed community dataset build-wars/gw-skilldata, refreshed at
+build time. The listing and the server's own /privacy and / routes carry
+an explicit non-affiliation disclaimer.
 
 ## Starter prompts
 

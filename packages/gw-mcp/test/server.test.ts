@@ -379,3 +379,15 @@ describe("remaining tool surfaces", () => {
     expect(res.isError).toBe(true);
   });
 });
+
+describe("LLM-client hardening (from the first production transcript)", () => {
+  it("UNKNOWN_ATTRIBUTE suggests the closest valid attribute names", async () => {
+    const client = await connectedClient();
+    const res = await client.callTool({
+      name: "search_skills",
+      arguments: { attributeName: "Motivations" },
+    });
+    expect(res.isError).toBe(true);
+    expect(JSON.stringify(res.content)).toContain("Motivation");
+  });
+});

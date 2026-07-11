@@ -95,6 +95,15 @@ function levenshtein(a: string, b: string): number {
 }
 
 /** Closest skill names to a (possibly misspelled) query — for LLM self-correction. */
+export function suggestAttributeNames(name: string, count = 3): string[] {
+  const needle = normalizeName(name);
+  return attributes
+    .map((a) => ({ a, d: levenshtein(needle, normalizeName(a.name)) }))
+    .sort((x, y) => x.d - y.d)
+    .slice(0, count)
+    .map(({ a }) => a.name);
+}
+
 export function suggestSkillNames(name: string, count = 3): string[] {
   const needle = normalizeName(name);
   return skills

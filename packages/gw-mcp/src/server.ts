@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   campaigns,
   getAttributeByName,
+  suggestAttributeNames,
   getHeroById,
   getHeroByName,
   getProfessionByName,
@@ -152,7 +153,7 @@ export function createServer(): McpServer {
         if (!attribute)
           return jsonError(
             "UNKNOWN_ATTRIBUTE",
-            `Unknown attribute ${JSON.stringify(attributeName)}`,
+            `Unknown attribute ${JSON.stringify(attributeName)}. Closest valid attribute names: ${suggestAttributeNames(attributeName).join(", ")}. Note: title tracks and each profession's attribute lines are listed in the gw1://meta resource.`,
           );
         filters.attributeId = attribute.id;
       }
@@ -267,7 +268,7 @@ export function createServer(): McpServer {
     {
       title: "Encode a build into a template code",
       description:
-        "Compile a build (professions, attributes, 8 skills by exact English name) into an official in-game template code. The build is validated first; on rule violations the errors are returned instead of a code. Unknown skill names return closest-match suggestions.",
+        "Compile a build (professions, attributes, 8 skills by exact English name) into an official in-game template code. The build is validated first; on rule violations the errors are returned instead of a code. Unknown skill names return closest-match suggestions. IMPORTANT: template codes MUST come from this tool — never write or guess a code by hand, hand-written codes are invalid in-game. If unsure, verify any code with decode_template.",
       inputSchema: {
         ...namedBuildSchema,
         forHero: z

@@ -174,8 +174,10 @@ for action. Nothing else in the repo is knowingly imperfect.
    on purpose — update the sentinel and delete this line.
 5. heroes.json content (professions/campaign/unlock notes) is hand-curated,
    but DRIFT IS NOW DETECTED automatically: scripts/check-heroes.ts compares
-   ids/names against the GWCA HeroID enum (vendored in GWToolboxpp — gains
-   new Reforged heroes within days) and the weekly data workflow fails when
+   ids/names against the GWCA HeroID enum (vendored in GWToolboxpp — the
+   standalone gwdevhub/GWCA repo 404s since ~2026, the vendored copy IS the
+   living source, and it gains new Reforged heroes within days) and the
+   weekly data workflow fails when
    upstream has a hero we lack. Trigger: that failing run; then curate the
    new hero's metadata from GWW.
 6. The public worker has no auth or rate limiting — acceptable for a

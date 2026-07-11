@@ -1,8 +1,11 @@
 /**
  * Drift detection for data/heroes.json against the canonical upstream:
- * the GWCA `HeroID` enum, as vendored inside GWToolboxpp (this is the copy
- * the Toolbox actually ships, and it gains new Reforged heroes within days
- * — Devona and GhostOfAlthea appeared there with the April 2026 patches).
+ * the GWCA `HeroID` enum, vendored inside GWToolboxpp. That vendored copy
+ * is not a fallback — it is the LIVING source: the standalone gwdevhub/GWCA
+ * repository 404s (deleted or made private) as of July 2026, and GWToolbox's
+ * own cmake consumes Dependencies/GWCA directly. It gains new Reforged
+ * heroes within days (Devona and GhostOfAlthea appeared with the April 2026
+ * patches). Do not "fix" ENUM_URL to point at a standalone GWCA repo.
  *
  *   pnpm --filter @gw1-mcp/gw-data check:heroes
  *
@@ -70,7 +73,11 @@ async function main(): Promise<void> {
   const localById = new Map(local.map((hero) => [hero.id, hero.name]));
 
   const response = await fetch(ENUM_URL);
-  if (!response.ok) throw new Error(`Fetching GWCA constants failed: ${response.status}`);
+  if (!response.ok) {
+    throw new Error(
+      `Fetching GWCA constants failed: ${response.status} — if GWToolboxpp moved the vendored Dependencies/GWCA folder, locate the new path in their tree`,
+    );
+  }
   const upstream = parseHeroEnum(await response.text());
 
   const missing = [...upstream].filter(([id]) => !localById.has(id));

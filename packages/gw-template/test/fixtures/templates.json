@@ -1,5 +1,5 @@
 {
- "_comment": "Golden fixtures. 'roundtrip: true' asserts encode(decode(code)) === code (modern-format codes only). TODO(Maxime): ajouter 10-15 codes réels de tes builds Nightfall (joueur + héros), dont un slot vide, un build sans élite, un sans secondaire.",
+ "_comment": "Golden fixtures. 'roundtrip: true' asserts encode(decode(code)) === code (modern-format codes only). TODO(Maxime): ajouter 10-15 codes r\u00e9els de tes builds Nightfall (joueur + h\u00e9ros), dont un slot vide, un build sans \u00e9lite, un sans secondaire.",
  "fixtures": [
   {
    "name": "Critical Scythe Assassin (wiki example, modern format)",
@@ -188,7 +188,7 @@
    }
   },
   {
-   "name": "P/W Imbagon Luxon (PvXwiki) — attributes NOT in ascending order in the original; our canonical encoder sorts, so only semantic round-trip holds",
+   "name": "P/W Imbagon Luxon (PvXwiki) \u2014 attributes NOT in ascending order in the original; our canonical encoder sorts, so only semantic round-trip holds",
    "code": "OQGjgylopSAAAAieAh5iXFpbAA",
    "roundtrip": false,
    "expect": {
@@ -217,6 +217,39 @@
      343,
      1769,
      0
+    ]
+   }
+  },
+  {
+   "name": "Me/any PvE Energy Surge (PvXwiki) \u2014 PvX's encoder pads attribute ids to 5 bits where the spec minimum is 4 (all ids here are <= 3); an in-game code with all attribute ids < 16 would arbitrate what the game emits",
+   "code": "OQBTAYBPGS0ZJ4EY6x0BAAAAuE",
+   "roundtrip": false,
+   "expect": {
+    "primary": 5,
+    "secondary": 0,
+    "attributes": [
+     {
+      "attributeId": 0,
+      "rank": 12
+     },
+     {
+      "attributeId": 2,
+      "rank": 12
+     },
+     {
+      "attributeId": 3,
+      "rank": 3
+     }
+    ],
+    "skills": [
+     930,
+     75,
+     39,
+     979,
+     934,
+     0,
+     0,
+     2416
     ]
    }
   }

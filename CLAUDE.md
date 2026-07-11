@@ -95,6 +95,17 @@ to ascending ids (deterministic output, matches the majority of wild codes);
 consequence: string-exact round-trip is only guaranteed for ascending-order
 codes, semantic round-trip always holds and is asserted for every fixture.
 
+## Open codec questions only in-game codes can settle
+
+1. Zero-attribute bars: which filler value the game writes in the unused
+   attribute bit-length field.
+2. Attribute width floor: with all attribute ids < 16 (e.g. any Mesmer
+   FC/Dom/Insp bar), does the game emit the spec-minimal 4 bits or pad to 5
+   like PvXCode and @buildwars/gw-templates do (shared authorship)? Our
+   encoder emits the minimum; both forms decode identically everywhere.
+Fixture wishlist from Maxime's client: one Mesmer bar (ids < 16), one bar
+with no attributes, plus R/Rt/E/D primaries (missing from the web harvest).
+
 ## Golden tests (non-negotiable)
 
 `packages/gw-template/test/fixtures/templates.json` contains real template codes with their expected decoded form:

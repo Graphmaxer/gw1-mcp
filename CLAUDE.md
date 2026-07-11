@@ -155,6 +155,20 @@ remainder is response-formatting branches), gw-worker app.ts 100%
 resolution error code MUST have a test that triggers it. Tool failures use
 the MCP isError flag via the jsonError helper — keep new tools consistent.
 
+## Internal conventions (uniform on purpose)
+
+- Sub-packages are all `"private": true` — @gw1-mcp/* must never reach npm.
+- Two script archetypes, chosen by testability: scripts whose logic is
+  unit-tested export pure functions plus an `isDirectRun` guard
+  (import-heroes.ts); pure-CLI scripts run top-level (import.ts, which is
+  intentionally untested — see coverage notes). Do not "symmetrize" them.
+- Generated data files are always `JSON.stringify(data, null, 1)` plus a
+  trailing newline, whatever the concatenation syntax.
+- Docblocks: script entry points carry a full header (what, why, how to
+  run, failure modes); src modules deliberately carry none — this file,
+  the types and the tests are their documentation. Tool failures use
+  jsonError (MCP isError); validation reports are plain json.
+
 ## Data provenance rule
 
 data/_meta.json records provenance for EVERY generated data file, one key

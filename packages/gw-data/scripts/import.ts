@@ -1,12 +1,16 @@
 /**
- * Imports game data from @buildwars/gw-skilldata (MIT, npm) into
+ * Imports game data from build-wars/gw-skilldata (MIT) into
  * packages/gw-data/data/*.json.
  *
- * The upstream package is actively maintained and tracks Guild Wars Reforged
- * balance updates (including newly added skills). Updating the data is:
+ * The upstream is actively maintained and tracks Guild Wars Reforged balance
+ * updates (including newly added skills). Three source modes (see
+ * `loadUpstream` below): the npm package (default, local dev), the upstream's
+ * published GitHub Pages release files (an https URL — what the weekly
+ * workflow uses), or a local git clone (a path — offline use). Examples:
  *
  *   pnpm --filter @gw1-mcp/gw-data update @buildwars/gw-skilldata --latest
  *   pnpm --filter @gw1-mcp/gw-data import
+ *   pnpm --filter @gw1-mcp/gw-data import https://build-wars.github.io/gw-skilldata
  *
  * The generated JSON is committed: the MCP server never fetches at runtime.
  */

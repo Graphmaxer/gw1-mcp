@@ -121,9 +121,10 @@ Source: https://github.com/build-wars/gw1-database (MIT — keep the license not
 
 ## Current status (updated 2026-07-11)
 
-Milestones 0-4 are DONE: monorepo builds, codec implemented and round-trip
-tested against public example codes, gw1-database imported (1320 skills),
-MCP server with 5 tools passing end-to-end tests over InMemoryTransport,
+Milestones 0-4 are DONE: monorepo builds, codec implemented (round-trip,
+golden-fixture, and differentially tested — see Codec verification layers),
+gw-skilldata imported (1485 skills, Reforged-current),
+MCP server with 8 tools passing end-to-end tests over InMemoryTransport,
 and a stateless Streamable HTTP transport (packages/gw-worker, Hono) that
 runs identically on Node and Cloudflare Workers (wrangler dry-run: 234 KB gzip).
 The GWToolbox export plugin (gwtoolbox-plugin/AccountExport, C++/Win32) is WRITTEN
@@ -149,6 +150,7 @@ hero constraints) and heroes_from_progression.
 | `encode_template` | build object | template code (runs validation first; refuses on errors, returns them) |
 | `validate_build` | build object | `{ valid, errors[], warnings[] }` |
 | `get_hero` / `list_heroes` | name / campaign filter | hero record(s): professions, campaign, how unlocked (DONE — data curated in gw-data/data/heroes.json, ids aligned with GWCA HeroID; unlock notes are coarse-grained, verify specifics against the wiki) |
+| `decode_pawned_team` | paw-ned2 team blob (`pwnd0001...>...<`) | per-slot label/notes + each skill bar decoded by our codec (container parsed by @buildwars/gw-templates; tolerates pasted line wraps) |
 
 Tool design rules:
 

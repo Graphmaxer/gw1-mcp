@@ -270,6 +270,9 @@ const skills = Object.keys(upstream.skilldata)
   .sort((a, b) => a.id - b.id);
 
 // --- provenance ---------------------------------------------------------------
+// _meta.json records provenance for EVERY generated data file, one key per
+// pipeline (skills here, heroes in import-heroes.ts). Each generator
+// read-merge-writes its own key so independent runs never clobber each other.
 const meta = {
   source: "https://github.com/build-wars/gw-skilldata (npm: @buildwars/gw-skilldata)",
   sourceVersion: upstream.version,
@@ -292,4 +295,15 @@ write(
   skills,
   `${skills.length} (${skills.filter((s) => s.isPvpVersion).length} PvP versions)`,
 );
-write("_meta.json", meta, upstream.version);
+{
+  let existingMeta: Record<string, unknown> = {};
+  try {
+    existingMeta = JSON.parse(readFileSync(join(outDir, "_meta.json"), "utf8")) as Record<
+      string,
+      unknown
+    >;
+  } catch {
+    // first run: no _meta.json yet
+  }
+  write("_meta.json", { ...existingMeta, skills: meta }, upstream.version);
+}

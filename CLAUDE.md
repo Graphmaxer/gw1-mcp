@@ -155,6 +155,18 @@ remainder is response-formatting branches), gw-worker app.ts 100%
 resolution error code MUST have a test that triggers it. Tool failures use
 the MCP isError flag via the jsonError helper — keep new tools consistent.
 
+## Data provenance rule
+
+data/_meta.json records provenance for EVERY generated data file, one key
+per pipeline (skills <- @buildwars/gw-skilldata import, heroes <- GWCA enum
+
+- curated overlay). Each generator read-merge-writes only its own key. A
+  new generated artifact MUST add its key there — "no unmanaged copies":
+  every derived byte in the repo has a generator, a provenance record, and a
+  refresh path (the weekly workflow); everything else committed is either
+  curated original knowledge (heroes-meta.json) or a deliberately dated test
+  snapshot (fixtures).
+
 ## Known debts and risks (the honest register)
 
 Everything below is a KNOWN compromise, kept deliberately, with its trigger

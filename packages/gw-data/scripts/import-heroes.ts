@@ -122,6 +122,24 @@ async function main(): Promise<void> {
   }
   const heroes = generateHeroes(await response.text(), overlay);
   writeFileSync(join(dataDir, "heroes.json"), `${JSON.stringify(heroes, null, 1)}\n`);
+
+  // Merge our provenance key into _meta.json (see the note in import.ts):
+  // one key per data pipeline, read-merge-write so generators never clobber
+  // each other.
+  const metaPath = join(dataDir, "_meta.json");
+  let existingMeta: Record<string, unknown> = {};
+  try {
+    existingMeta = JSON.parse(readFileSync(metaPath, "utf8")) as Record<string, unknown>;
+  } catch {
+    // first run: no _meta.json yet
+  }
+  existingMeta["heroes"] = {
+    source: `${ENUM_URL} (GWCA HeroID enum, vendored in GWToolboxpp — the living source; standalone gwdevhub/GWCA is gone)`,
+    generatedAt: new Date().toISOString().slice(0, 10),
+    curatedOverlay:
+      "data/heroes-meta.json (professionId/campaignId/unlock — human knowledge, no machine-readable source exists)",
+  };
+  writeFileSync(metaPath, `${JSON.stringify(existingMeta, null, 1)}\n`);
   console.log(
     `data/heroes.json generated: ${heroes.length} heroes from the GWCA enum + curated overlay.`,
   );

@@ -14,60 +14,130 @@ import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { execSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
 /**
- * Data source resolution:
- * - default: the installed @buildwars/gw-skilldata npm package (versioned, may
- *   lag the repository by a release)
- * - optional argv[2]: path to a git clone of build-wars/gw-skilldata — used by
- *   the automated update workflow to always import the repository tip.
+ * Data source resolution (argv[2]):
+ * - absent: the installed @buildwars/gw-skilldata npm package (versioned, may
+ *   lag the repository by a release) — local dev default
+ * - an http(s) URL: the upstream's published GitHub Pages release files
+ *   (https://build-wars.github.io/gw-skilldata) — used by the automated
+ *   update workflow. These URLs are the author's public distribution
+ *   interface, rebuilt by their CI on every push to main, so this is
+ *   tip-fresh without cloning or depending on internal repo layout.
+ * - a filesystem path: a git clone of build-wars/gw-skilldata — offline use.
  */
-const cloneRoot = process.argv[2];
+const source = process.argv[2];
+const cloneRoot = source && !/^https?:\/\//.test(source) ? source : undefined;
+const pagesBase = source && /^https?:\/\//.test(source) ? source.replace(/\/$/, "") : undefined;
+
+function validateAgainstSchema(
+  ajv: import("ajv/dist/2020.js").Ajv2020,
+  name: string,
+  schemaText: string,
+  payload: unknown,
+): void {
+  const schema = JSON.parse(schemaText) as Record<string, unknown>;
+  delete schema.$id; // avoid remote-$ref resolution
+  delete schema.$schema;
+  // Upstream quirk: "float" is not a JSON Schema type (they use
+  // ["float","integer"] on adrenaline_precise). Normalize to "number".
+  const normalizeTypes = (node: unknown): void => {
+    if (Array.isArray(node)) return node.forEach(normalizeTypes);
+    if (node && typeof node === "object") {
+      const record = node as Record<string, unknown>;
+      if (Array.isArray(record.type)) {
+        record.type = [...new Set(record.type.map((t) => (t === "float" ? "number" : t)))];
+      } else if (record.type === "float") {
+        record.type = "number";
+      }
+      Object.values(record).forEach(normalizeTypes);
+    }
+  };
+  normalizeTypes(schema);
+  const validate = ajv.compile(schema);
+  if (!validate(payload)) {
+    console.error(`upstream ${name} fails its own schema:`, validate.errors?.slice(0, 5));
+    process.exit(1);
+  }
+  console.log(`${name}: valid against upstream schema`);
+}
 
 async function loadUpstream() {
+  if (pagesBase) {
+    const fetchText = async (path: string): Promise<string> => {
+      const response = await fetch(`${pagesBase}/${path}`);
+      if (!response.ok) throw new Error(`GET ${pagesBase}/${path} -> ${response.status}`);
+      return response.text();
+    };
+    const [skilldataText, descText, skilldataSchema, descSchema, bundle] = await Promise.all([
+      fetchText("json/skilldata.json"),
+      fetchText("json/skilldesc-en.json"),
+      fetchText("schemas/skilldata.schema.json"),
+      fetchText("schemas/skilldesc.schema.json"),
+      fetchText("js/gw-skilldata-node.cjs"),
+    ]);
+    const skilldata = JSON.parse(skilldataText);
+    const desc = JSON.parse(descText);
+
+    const { Ajv2020 } = await import("ajv/dist/2020.js");
+    const ajv = new Ajv2020({ strict: false, allErrors: true });
+    validateAgainstSchema(ajv, "skilldata.json", skilldataSchema, skilldata);
+    validateAgainstSchema(ajv, "skilldesc-en.json", descSchema, desc);
+
+    // Constants (PROFESSIONS/ATTRIBUTES/CAMPAIGNS/SKILLTYPES) must come from
+    // the same channel as the data (SKILLTYPES evolves): the Pages-served
+    // node bundle is built by their CI from the same commit. Executing it is
+    // the same trust level as our npm dependency on the same author.
+    const { tmpdir } = await import("node:os");
+    const bundlePath = join(tmpdir(), `gw-skilldata-${Date.now()}.cjs`);
+    writeFileSync(bundlePath, bundle);
+    const require = createRequire(import.meta.url);
+    const constants = require(bundlePath) as Record<string, unknown>;
+
+    let version = `pages:${new Date().toISOString().slice(0, 10)}`;
+    try {
+      const head = execSync(
+        "git ls-remote https://github.com/build-wars/gw-skilldata.git refs/heads/main",
+      )
+        .toString()
+        .slice(0, 12);
+      version = `pages@${head}`;
+    } catch {
+      /* provenance falls back to the fetch date */
+    }
+    return {
+      ATTRIBUTES: constants.ATTRIBUTES,
+      CAMPAIGNS: constants.CAMPAIGNS,
+      PROFESSIONS: constants.PROFESSIONS,
+      SKILLTYPES: constants.SKILLTYPES,
+      skilldata: skilldata.skilldata,
+      skilldesc: desc.skilldesc,
+      version,
+    };
+  }
+
   if (cloneRoot) {
     const constants = await import(pathToFileURL(join(cloneRoot, "es6", "constants.js")).href);
     const skilldata = JSON.parse(readFileSync(join(cloneRoot, "data", "json-full", "skilldata.json"), "utf8"));
     const desc = JSON.parse(readFileSync(join(cloneRoot, "data", "json-full", "skilldesc-en.json"), "utf8"));
 
-    // Validate the upstream files against the schemas they publish
-    // (data/schemas/, also served on their GitHub Pages). This makes the
-    // weekly auto-update PR fail loudly on upstream format drift instead of
-    // silently importing garbage.
+    // Validate the upstream files against the schemas they ship.
     const { Ajv2020 } = await import("ajv/dist/2020.js");
     const ajv = new Ajv2020({ strict: false, allErrors: true });
-    for (const [file, payload] of [
-      ["skilldata", skilldata],
-      ["skilldesc", desc],
-    ] as const) {
-      const schema = JSON.parse(
-        readFileSync(join(cloneRoot, "data", "schemas", `${file}.schema.json`), "utf8"),
-      ) as Record<string, unknown>;
-      delete schema.$id; // avoid remote-$ref resolution
-      delete schema.$schema;
-      // Upstream quirk: "float" is not a JSON Schema type (they use
-      // ["float","integer"] on adrenaline_precise). Normalize to "number".
-      const normalizeTypes = (node: unknown): void => {
-        if (Array.isArray(node)) return node.forEach(normalizeTypes);
-        if (node && typeof node === "object") {
-          const record = node as Record<string, unknown>;
-          if (Array.isArray(record.type)) {
-            record.type = [...new Set(record.type.map((t) => (t === "float" ? "number" : t)))];
-          } else if (record.type === "float") {
-            record.type = "number";
-          }
-          Object.values(record).forEach(normalizeTypes);
-        }
-      };
-      normalizeTypes(schema);
-      const validate = ajv.compile(schema);
-      if (!validate(payload)) {
-        console.error(`upstream ${file}.json fails its own schema:`, validate.errors?.slice(0, 5));
-        process.exit(1);
-      }
-      console.log(`${file}.json: valid against upstream schema`);
-    }
+    validateAgainstSchema(
+      ajv,
+      "skilldata.json",
+      readFileSync(join(cloneRoot, "data", "schemas", "skilldata.schema.json"), "utf8"),
+      skilldata,
+    );
+    validateAgainstSchema(
+      ajv,
+      "skilldesc-en.json",
+      readFileSync(join(cloneRoot, "data", "schemas", "skilldesc.schema.json"), "utf8"),
+      desc,
+    );
 
     const version = `git:${JSON.parse(readFileSync(join(cloneRoot, "package.json"), "utf8")).version}`;
     return { ...constants, skilldata: skilldata.skilldata, skilldesc: desc.skilldesc, version };

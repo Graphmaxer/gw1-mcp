@@ -188,15 +188,19 @@ Tool design rules:
 - Provenance in packages/gw-data/data/_meta.json, exposed via gw1://meta.
 - .github/workflows/update-data.yml re-imports the upstream repo tip weekly
   and opens a PR when the data changes (golden-fixture tests gate the merge).
-  The import validates the upstream files against the JSON Schemas they ship
-  (data/schemas/, draft 2020-12) so upstream format drift fails loudly.
-- Upstream distribution channels, freshest first: git tip == GitHub Pages
-  (https://build-wars.github.io/gw-skilldata/ — rebuilt by their CI on every
-  push to main; serves skilldata.json, skilldesc-en.json, combined JSON,
-  schemas, and per-skill JSON at /json/skills/[SKILL_ID].json) > npm release
-  (may lag by a release). The workflow clones the git tip; Pages is the
-  documented fallback if git access is ever unavailable, and the per-skill
-  endpoint is available should a lightweight runtime lookup ever be wanted.
+  The import validates the upstream files against the JSON Schemas they
+  publish (draft 2020-12) so upstream format drift fails loudly.
+- Import source modes (scripts/import.ts argv[2]): none = npm package (local
+  dev); an https URL = the upstream's published GitHub Pages release files
+  (what the workflow uses: https://build-wars.github.io/gw-skilldata — the
+  author's public distribution interface, rebuilt by their CI on every push
+  to main, so tip-fresh without cloning or coupling to internal repo layout);
+  a path = a local git clone (offline use). In URL mode the constant tables
+  (SKILLTYPES evolves!) come from the Pages-served node bundle built from the
+  same commit, and provenance records the tip sha via git ls-remote.
+- Pages also serves combined JSON, paw-ned2 CSVs, and per-skill JSON at
+  /json/skills/[SKILL_ID].json should a lightweight runtime lookup ever be
+  wanted. npm release may lag the Pages/tip by a release.
 - Skill ids/names/professions/attributes/elite flags are stable across
   balance patches — the codec and validator never go stale; only stats and
   descriptions move, and the upstream now keeps those fresh too.

@@ -62,9 +62,8 @@ secrets. Free plan is plenty.
 ```bash
 pnpm --filter @gw1-mcp/gw-data update @buildwars/gw-skilldata --latest
 pnpm --filter @gw1-mcp/gw-data import
-# or, to import the upstream repository tip (what the weekly workflow does):
-git clone --depth 1 https://github.com/build-wars/gw-skilldata.git /tmp/gw-skilldata
-pnpm --filter @gw1-mcp/gw-data import /tmp/gw-skilldata
+# or, to import the upstream's published release files (what the weekly workflow does):
+pnpm --filter @gw1-mcp/gw-data import https://build-wars.github.io/gw-skilldata
 ```
 
 ## GWToolbox integration

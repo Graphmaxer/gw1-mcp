@@ -19,10 +19,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Import latest upstream data (repository tip)
-        run: |
-          git clone --depth 1 https://github.com/build-wars/gw-skilldata.git /tmp/gw-skilldata
-          pnpm --filter @gw1-mcp/gw-data import /tmp/gw-skilldata
+      - name: Import latest upstream data (published GitHub Pages release files)
+        run: pnpm --filter @gw1-mcp/gw-data import https://build-wars.github.io/gw-skilldata
       - name: Check for meaningful changes (ignore import date)
         id: diff
         run: |

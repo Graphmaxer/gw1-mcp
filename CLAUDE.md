@@ -103,16 +103,18 @@ codes, semantic round-trip always holds and is asserted for every fixture.
    FC/Dom/Insp bar), does the game emit the spec-minimal 4 bits or pad to 5
    like PvXCode and @buildwars/gw-templates do (shared authorship)? Our
    encoder emits the minimum; both forms decode identically everywhere.
-Corpus coverage (15 fixtures): 9/10 primary professions (W, Mo, N, Me, E, A,
-Rt, P, D), 7 secondaries, skills from all 5 campaigns (Core, Prophecies,
+Corpus coverage (18 fixtures): ALL 10 primary professions, 8 secondaries, skills from all 5 campaigns (Core, Prophecies,
 Factions, Nightfall, EotN), all 64 charset chars exercised ('+' and '/'
 included), both header formats, sorted and unsorted attribute orders, three
 independent third-party encoders (the game pre-2007, PvXCode, and
 @buildwars/gw-templates via gw1builds.com whose icon URLs expose skill IDS
-for id-level verification).
-Fixture wishlist from Maxime's client: a RANGER primary bar (the only
-profession missing everywhere on the web), one bar with no attributes, and
-one bar with all attribute ids < 16 (settles the 4-vs-5-bit width question).
+for id-level verification, plus a GWW player page whose Ranger codes are
+byte-identical to our encoding except one trailing zero-padding char).
+Fixture wishlist from Maxime's client (each arbitrates one open question):
+one bar with no attributes (unused width-field filler), one bar with all
+attribute ids < 16 (4-vs-5-bit attribute width), and ANY bar at all (exact
+trailing-padding convention: we pad to 6 bits; the Catbus source emits one
+extra zero group; compare code LENGTH char-for-char).
 
 ## Golden tests (non-negotiable)
 

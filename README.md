@@ -60,11 +60,20 @@ git clone --depth 1 https://github.com/build-wars/gw1-database.git /tmp/gw1-data
 pnpm --filter @gw1-mcp/gw-data import /tmp/gw1-database
 ```
 
+## GWToolbox integration
+
+`gwtoolbox-plugin/` contains **Kormir**, a read-only GWToolbox plugin adding
+`/kormir`: it copies your account state (heroes, unlocked skills) as JSON to
+the clipboard. Paste it in your conversation and pass `unlockedAccountSkills`
+to `validate_build` / `encode_template` as `unlockedSkillIds` — proposed
+skills you don't own are flagged. Windows build instructions in
+[gwtoolbox-plugin/README.md](gwtoolbox-plugin/README.md).
+
 ## Roadmap
 
-MCP resources for build archetypes and hero constraints, hero availability from
-campaign progression, Cloudflare Workers deployment (Streamable HTTP), and a
-GWToolbox export plugin. See `CLAUDE.md` for the full architecture notes.
+MCP resources for build archetypes and hero constraints, hero availability
+from campaign progression, and upstreaming the account export into GWToolbox
+itself. See `CLAUDE.md` for the full architecture notes.
 
 ---
 

@@ -24,7 +24,7 @@ export interface ValidationResult {
  */
 export function validateBuild(
   template: SkillTemplate,
-  options: { forHero?: boolean } = {},
+  options: { forHero?: boolean; unlockedSkillIds?: number[] } = {},
 ): ValidationResult {
   const errors: ValidationIssue[] = [];
   const warnings: ValidationIssue[] = [];
@@ -112,6 +112,17 @@ export function validateBuild(
       errors.push({
         code: "PROFESSION_MISMATCH",
         message: `Slot ${slot + 1}: "${skill.name}" is a ${prof?.name ?? "?"} skill, not available to ${primary?.abbr ?? "?"}/${secondary?.abbr ?? "?"}`,
+      });
+    }
+
+    // Availability against a Kormir account export (/kormir in GWToolbox).
+    if (
+      options.unlockedSkillIds !== undefined &&
+      !options.unlockedSkillIds.includes(skill.id)
+    ) {
+      warnings.push({
+        code: "SKILL_NOT_UNLOCKED",
+        message: `Slot ${slot + 1}: "${skill.name}" is not in the provided unlocked skill list`,
       });
     }
 

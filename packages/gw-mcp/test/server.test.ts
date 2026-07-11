@@ -107,3 +107,26 @@ describe("gw1-mcp server", () => {
     expect(codes).toContain("PRIMARY_ATTRIBUTE_ON_SECONDARY"); // Divine Favor with Monk secondary
   });
 });
+
+describe("Kormir account export integration", () => {
+  it("warns on skills outside the unlocked list", async () => {
+    const client = await connectedClient();
+    const result = payload(
+      await client.callTool({
+        name: "validate_build",
+        arguments: {
+          primary: "Dervish",
+          secondary: "Monk",
+          attributes: [{ attribute: "Mysticism", rank: 12 }],
+          skills: ["Avatar of Balthazar", "Mending Touch", null, null, null, null, null, null],
+          forHero: true,
+          unlockedSkillIds: [1518], // only Avatar of Balthazar unlocked
+        },
+      }),
+    );
+    expect(result.valid).toBe(true); // warnings, not errors
+    const codes = result.warnings.map((w: { code: string }) => w.code);
+    expect(codes).toContain("SKILL_NOT_UNLOCKED");
+    expect(result.warnings.some((w: { message: string }) => w.message.includes("Mending Touch"))).toBe(true);
+  });
+});

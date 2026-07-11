@@ -111,9 +111,14 @@ tested against public example codes, gw1-database imported (1320 skills),
 MCP server with 5 tools passing end-to-end tests over InMemoryTransport,
 and a stateless Streamable HTTP transport (packages/gw-worker, Hono) that
 runs identically on Node and Cloudflare Workers (wrangler dry-run: 234 KB gzip).
+The GWToolbox export plugin (gwtoolbox-plugin/Kormir, C++/Win32) is WRITTEN
+against the real GWCA headers but NOT YET COMPILED — it must be built on
+Windows inside a GWToolboxpp checkout (see gwtoolbox-plugin/README.md).
+validate_build/encode_template accept `unlockedSkillIds` from its export.
 NEXT: golden fixtures from real gameplay (blocking, needs Maxime's codes),
 first real deployment (`wrangler login && pnpm --filter @gw1-mcp/gw-worker deploy`),
-then MCP resources (gw1://roles, hero constraints) and heroes_from_progression.
+first Windows build of the Kormir plugin, then MCP resources (gw1://roles,
+hero constraints) and heroes_from_progression.
 
 ## MCP tools (MVP scope — do not add more without discussion)
 
@@ -146,7 +151,7 @@ Tool design rules:
 1. MCP `resources` (e.g. `gw1://roles`, hero constraints, mission threat summaries) to help the client LLM reason.
 2. `heroes_from_progression` tool: compute available heroes deterministically from campaign progress.
 3. Cloudflare Workers deployment + custom connector on claude.ai; then Anthropic connectors directory submission.
-4. GWToolbox export plugin (separate C++ repo): `/exportaccount` → JSON of unlocked heroes/skills to clipboard.
+4. ~~GWToolbox export plugin~~ — written in gwtoolbox-plugin/Kormir; needs first Windows build, then consider upstreaming as a PR to GWToolbox's Completion window.
 
 ## Conventions
 

@@ -1,0 +1,206 @@
+#include "Kormir.h"
+
+#include <GWCA/Constants/Constants.h>
+#include <GWCA/Context/AccountContext.h>
+#include <GWCA/Context/CharContext.h>
+#include <GWCA/Context/WorldContext.h>
+#include <GWCA/GameContainers/Array.h>
+#include <GWCA/GameEntities/Agent.h>
+#include <GWCA/GameEntities/Hero.h>
+#include <GWCA/Managers/AgentMgr.h>
+#include <GWCA/Managers/ChatMgr.h>
+#include <GWCA/Managers/MapMgr.h>
+#include <GWCA/Utilities/Hook.h>
+
+#include <imgui.h>
+
+#include <string>
+
+namespace {
+
+GW::HookEntry ChatCmd_HookEntry;
+GW::HookEntry ChatCmdAlias_HookEntry;
+
+// Indexed by GW::Constants::HeroID (Constants.h). Names are the canonical
+// English hero names as used by gw1-mcp / the wiki.
+constexpr const char* kHeroNames[] = {
+    "None", "Norgu", "Goren", "Tahlkora", "Master of Whispers",
+    "Acolyte Jin", "Koss", "Dunkoro", "Acolyte Sousuke", "Melonni",
+    "Zhed Shadowhoof", "General Morgahn", "Margrid the Sly", "Zenmai",
+    "Olias", "Razah", "M.O.X.", "Keiran Thackeray", "Jora",
+    "Pyre Fierceshot", "Anton", "Livia", "Hayda", "Kahmu", "Gwen",
+    "Xandra", "Vekk", "Ogden Stonehealer",
+    "Mercenary 1", "Mercenary 2", "Mercenary 3", "Mercenary 4",
+    "Mercenary 5", "Mercenary 6", "Mercenary 7", "Mercenary 8",
+    "Miku", "Zei Ri", "Devona", "Ghost of Althea",
+};
+
+const char* HeroName(const uint32_t hero_id)
+{
+    if (hero_id < _countof(kHeroNames)) {
+        return kHeroNames[hero_id];
+    }
+    return "Unknown";
+}
+
+void JsonEscapeInto(std::string& out, const std::string& value)
+{
+    for (const char c : value) {
+        switch (c) {
+            case '"': out += "\\\""; break;
+            case '\\': out += "\\\\"; break;
+            case '\n': out += "\\n"; break;
+            case '\r': out += "\\r"; break;
+            case '\t': out += "\\t"; break;
+            default:
+                if (static_cast<unsigned char>(c) < 0x20) {
+                    char buffer[8];
+                    snprintf(buffer, sizeof(buffer), "\\u%04x", c);
+                    out += buffer;
+                }
+                else {
+                    out += c;
+                }
+        }
+    }
+}
+
+std::string WStringToUtf8(const wchar_t* wstr)
+{
+    if (!wstr || !*wstr) {
+        return {};
+    }
+    const int needed = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, nullptr, 0, nullptr, nullptr);
+    if (needed <= 1) {
+        return {};
+    }
+    std::string out(static_cast<size_t>(needed) - 1, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, wstr, -1, out.data(), needed, nullptr, nullptr);
+    return out;
+}
+
+// Append the set bit indices of a skill-unlock bitfield as a JSON array of
+// skill ids (bit index == template skill id).
+void AppendSkillBitfield(std::string& out, const GW::Array<uint32_t>& bitfield)
+{
+    out += '[';
+    bool first = true;
+    if (bitfield.valid()) {
+        for (uint32_t word_index = 0; word_index < bitfield.size(); word_index++) {
+            const uint32_t word = bitfield[word_index];
+            if (!word) {
+                continue;
+            }
+            for (uint32_t bit = 0; bit < 32; bit++) {
+                if (word & (1u << bit)) {
+                    if (!first) {
+                        out += ',';
+                    }
+                    out += std::to_string(word_index * 32 + bit);
+                    first = false;
+                }
+            }
+        }
+    }
+    out += ']';
+}
+
+void ExportAccount(GW::HookStatus*, const wchar_t*, int, const LPWSTR*)
+{
+    const auto* world = GW::GetWorldContext();
+    const auto* account = GW::GetAccountContext();
+    const auto* character = GW::GetCharContext();
+    const auto* player = GW::Agents::GetControlledCharacter();
+
+    if (!world || !account || !character || !player) {
+        GW::Chat::WriteChat(GW::Chat::Channel::CHANNEL_WARNING,
+                            L"[Kormir] Not in game yet - load a character first.", nullptr, true);
+        return;
+    }
+
+    std::string json;
+    json.reserve(16 * 1024);
+    json += "{\"type\":\"gw1-mcp-account-export\",\"version\":1";
+
+    // --- character ----------------------------------------------------------
+    json += ",\"character\":{\"name\":\"";
+    JsonEscapeInto(json, WStringToUtf8(character->player_name));
+    json += "\",\"primaryProfessionId\":";
+    json += std::to_string(static_cast<uint32_t>(player->primary));
+    json += ",\"secondaryProfessionId\":";
+    json += std::to_string(static_cast<uint32_t>(player->secondary));
+    json += ",\"level\":";
+    json += std::to_string(player->level);
+    json += ",\"mapId\":";
+    json += std::to_string(static_cast<uint32_t>(GW::Map::GetMapID()));
+    json += "}";
+
+    // --- heroes -------------------------------------------------------------
+    json += ",\"heroes\":[";
+    uint32_t hero_count = 0;
+    const auto& heroes = world->hero_info;
+    if (heroes.valid()) {
+        for (uint32_t i = 0; i < heroes.size(); i++) {
+            const GW::HeroInfo& hero = heroes[i];
+            if (hero_count > 0) {
+                json += ',';
+            }
+            json += "{\"id\":";
+            json += std::to_string(static_cast<uint32_t>(hero.hero_id));
+            json += ",\"name\":\"";
+            JsonEscapeInto(json, HeroName(hero.hero_id));
+            json += "\",\"level\":";
+            json += std::to_string(hero.level);
+            json += ",\"primaryProfessionId\":";
+            json += std::to_string(static_cast<uint32_t>(hero.primary));
+            json += ",\"secondaryProfessionId\":";
+            json += std::to_string(static_cast<uint32_t>(hero.secondary));
+            json += "}";
+            hero_count++;
+        }
+    }
+    json += "]";
+
+    // --- skills -------------------------------------------------------------
+    // Account-unlocked skills: what heroes can equip (and tomes can teach).
+    json += ",\"unlockedAccountSkills\":";
+    AppendSkillBitfield(json, account->unlocked_account_skills);
+
+    // Character-learned skills: what this character can put on their own bar.
+    json += ",\"learnedCharacterSkills\":";
+    AppendSkillBitfield(json, world->unlocked_character_skills);
+
+    json += "}";
+
+    ImGui::SetClipboardText(json.c_str());
+
+    wchar_t message[128];
+    swprintf(message, _countof(message),
+             L"[Kormir] Account export copied to clipboard (%u heroes). Paste it to your assistant.",
+             hero_count);
+    GW::Chat::WriteChat(GW::Chat::Channel::CHANNEL_GLOBAL, message, nullptr, true);
+}
+
+} // namespace
+
+DLLAPI ToolboxPlugin* ToolboxPluginInstance()
+{
+    static Kormir instance;
+    return &instance;
+}
+
+void Kormir::Initialize(ImGuiContext* ctx, const ImGuiAllocFns allocator_fns, const HMODULE toolbox_dll)
+{
+    ToolboxPlugin::Initialize(ctx, allocator_fns, toolbox_dll);
+    GW::Chat::CreateCommand(&ChatCmd_HookEntry, L"kormir", ExportAccount);
+    GW::Chat::CreateCommand(&ChatCmdAlias_HookEntry, L"exportaccount", ExportAccount);
+    GW::Chat::WriteChat(GW::Chat::Channel::CHANNEL_GLOBAL,
+                        L"[Kormir] Loaded. Type /kormir to export your account state.", nullptr, true);
+}
+
+void Kormir::SignalTerminate()
+{
+    ToolboxPlugin::SignalTerminate();
+    GW::Chat::DeleteCommand(&ChatCmd_HookEntry);
+    GW::Chat::DeleteCommand(&ChatCmdAlias_HookEntry);
+}

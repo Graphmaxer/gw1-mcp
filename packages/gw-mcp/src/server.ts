@@ -190,13 +190,22 @@ export function createServer(): McpServer {
           .boolean()
           .default(false)
           .describe("Set true if this bar is for a hero (PvE-only skills are flagged)"),
+        unlockedSkillIds: z
+          .array(z.number().int())
+          .optional()
+          .describe(
+            "Optional: unlocked skill ids from a Kormir account export (/kormir in GWToolbox). Skills outside this list are flagged as warnings.",
+          ),
       },
     },
-    async ({ forHero, ...build }) => {
+    async ({ forHero, unlockedSkillIds, ...build }) => {
       const resolution = resolveNamedBuild(build);
       if (!resolution.template) return json({ errors: resolution.errors });
 
-      const validation = validateBuild(resolution.template, { forHero });
+      const validation = validateBuild(resolution.template, {
+        forHero,
+        ...(unlockedSkillIds !== undefined ? { unlockedSkillIds } : {}),
+      });
       if (!validation.valid) return json(validation);
 
       return json({
@@ -215,14 +224,25 @@ export function createServer(): McpServer {
       inputSchema: {
         ...namedBuildSchema,
         forHero: z.boolean().default(false),
+        unlockedSkillIds: z
+          .array(z.number().int())
+          .optional()
+          .describe(
+            "Optional: unlocked skill ids from a Kormir account export (/kormir in GWToolbox). Skills outside this list are flagged as warnings.",
+          ),
       },
     },
-    async ({ forHero, ...build }) => {
+    async ({ forHero, unlockedSkillIds, ...build }) => {
       const resolution = resolveNamedBuild(build);
       if (!resolution.template) {
         return json({ valid: false, errors: resolution.errors, warnings: [] });
       }
-      return json(validateBuild(resolution.template, { forHero }));
+      return json(
+        validateBuild(resolution.template, {
+          forHero,
+          ...(unlockedSkillIds !== undefined ? { unlockedSkillIds } : {}),
+        }),
+      );
     },
   );
 

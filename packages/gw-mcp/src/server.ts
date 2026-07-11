@@ -78,16 +78,17 @@ export function createServer(): McpServer {
       description:
         "Look up a single GW1 skill by exact English name or by template skill id. Returns full stats (energy, activation, recharge, adrenaline, sacrifice), profession, attribute, campaign, elite flag and description. If the name is not found, returns the closest matches so you can correct spelling.",
       inputSchema: {
-        name: z.string().optional().describe('Exact English skill name, e.g. "Mystic Regeneration"'),
+        name: z
+          .string()
+          .optional()
+          .describe('Exact English skill name, e.g. "Mystic Regeneration"'),
         id: z.number().int().optional().describe("Template skill id"),
       },
     },
     async ({ name, id }) => {
       if (id !== undefined) {
         const skill = fullSkill(id);
-        return skill
-          ? json(skill)
-          : jsonError("NOT_FOUND", `No skill with id ${id}`);
+        return skill ? json(skill) : jsonError("NOT_FOUND", `No skill with id ${id}`);
       }
       if (name !== undefined) {
         const skill = getSkillByName(name);
@@ -117,31 +118,46 @@ export function createServer(): McpServer {
         campaignName: z.string().optional(),
         elite: z.boolean().optional(),
         nameContains: z.string().optional(),
-        includePvpVersions: z.boolean().default(false).describe("Include separate '(PvP)' skill versions"),
+        includePvpVersions: z
+          .boolean()
+          .default(false)
+          .describe("Include separate '(PvP)' skill versions"),
         limit: z.number().int().min(1).max(200).default(50),
       },
     },
-    async ({ professionName, attributeName, campaignName, elite, nameContains, includePvpVersions, limit }) => {
+    async ({
+      professionName,
+      attributeName,
+      campaignName,
+      elite,
+      nameContains,
+      includePvpVersions,
+      limit,
+    }) => {
       const filters: Parameters<typeof searchSkills>[0] = { includePvpVersions };
       if (professionName !== undefined) {
         if (/^none$/i.test(professionName)) filters.professionId = 0;
         else {
           const profession = getProfessionByName(professionName);
           if (!profession)
-            return jsonError("UNKNOWN_PROFESSION", `Unknown profession ${JSON.stringify(professionName)}`);
+            return jsonError(
+              "UNKNOWN_PROFESSION",
+              `Unknown profession ${JSON.stringify(professionName)}`,
+            );
           filters.professionId = profession.id;
         }
       }
       if (attributeName !== undefined) {
         const attribute = getAttributeByName(attributeName);
         if (!attribute)
-          return jsonError("UNKNOWN_ATTRIBUTE", `Unknown attribute ${JSON.stringify(attributeName)}`);
+          return jsonError(
+            "UNKNOWN_ATTRIBUTE",
+            `Unknown attribute ${JSON.stringify(attributeName)}`,
+          );
         filters.attributeId = attribute.id;
       }
       if (campaignName !== undefined) {
-        const campaign = campaigns.find(
-          (c) => c.name.toLowerCase() === campaignName.toLowerCase(),
-        );
+        const campaign = campaigns.find((c) => c.name.toLowerCase() === campaignName.toLowerCase());
         if (!campaign)
           return jsonError("UNKNOWN_CAMPAIGN", `Unknown campaign ${JSON.stringify(campaignName)}`);
         filters.campaignId = campaign.id;
@@ -172,7 +188,7 @@ export function createServer(): McpServer {
     {
       title: "Decode a skill template code",
       description:
-        "Decode an in-game GW1 skill template code (e.g. \"OwpiMypMBg1cxcBAMBdmtIKAA\") into professions, attribute allocations and the 8 skills with their stats and descriptions.",
+        'Decode an in-game GW1 skill template code (e.g. "OwpiMypMBg1cxcBAMBdmtIKAA") into professions, attribute allocations and the 8 skills with their stats and descriptions.',
       inputSchema: {
         code: z.string().describe("The template code string"),
       },
@@ -202,7 +218,10 @@ export function createServer(): McpServer {
     async ({ pwnd }) => {
       // Re-join line-wrapped payloads: strip all whitespace inside the
       // base64 section between '>' and '<' (pasted blobs often wrap).
-      const cleaned = pwnd.replace(/>([^<]*)</s, (_, payload: string) => `>${payload.replace(/\s+/g, "")}<`);
+      const cleaned = pwnd.replace(
+        />([^<]*)</s,
+        (_, payload: string) => `>${payload.replace(/\s+/g, "")}<`,
+      );
       let entries;
       try {
         entries = new PwndTemplate().decode(cleaned);
@@ -318,7 +337,6 @@ export function createServer(): McpServer {
     },
   );
 
-
   server.registerTool(
     "get_hero",
     {
@@ -365,7 +383,10 @@ export function createServer(): McpServer {
       if (professionName !== undefined) {
         const profession = getProfessionByName(professionName);
         if (!profession)
-          return jsonError("UNKNOWN_PROFESSION", `Unknown profession ${JSON.stringify(professionName)}`);
+          return jsonError(
+            "UNKNOWN_PROFESSION",
+            `Unknown profession ${JSON.stringify(professionName)}`,
+          );
         results = results.filter((h) => h.professionId === profession.id);
       }
       if (campaignName !== undefined) {
@@ -408,7 +429,8 @@ export function createServer(): McpServer {
     "gw1://meta",
     {
       title: "Data provenance and freshness",
-      description: "Where the skill data comes from and how fresh it is relative to Guild Wars Reforged balance updates",
+      description:
+        "Where the skill data comes from and how fresh it is relative to Guild Wars Reforged balance updates",
       mimeType: "application/json",
     },
     async (uri) => ({

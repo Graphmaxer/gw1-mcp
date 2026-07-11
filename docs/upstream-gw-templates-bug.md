@@ -5,10 +5,10 @@
 `getPadSize($nums, $min_pad)` increments the pad size at most once per element:
 
 ```js
-for(let num of $nums){
-    if(PHPJS.intval(num) >= Math.pow(2, $min_pad)){
-        $min_pad++;
-    }
+for (let num of $nums) {
+  if (PHPJS.intval(num) >= Math.pow(2, $min_pad)) {
+    $min_pad++;
+  }
 }
 ```
 

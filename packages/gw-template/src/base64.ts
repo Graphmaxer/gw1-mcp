@@ -5,12 +5,9 @@ import { TemplateError } from "./types.js";
  * but the 6-bit groups are interpreted lowest-bit-first (see
  * https://wiki.guildwars.com/wiki/Skill_template_format).
  */
-const CHARSET =
-  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-const CHAR_TO_VALUE = new Map<string, number>(
-  [...CHARSET].map((c, i) => [c, i] as const),
-);
+const CHAR_TO_VALUE = new Map<string, number>([...CHARSET].map((c, i) => [c, i] as const));
 
 /** Convert a template string into an array of 6-bit values. */
 export function charsToValues(template: string): number[] {
@@ -36,10 +33,7 @@ export function valuesToChars(values: number[]): string {
     .map((v) => {
       const c = CHARSET[v];
       if (c === undefined) {
-        throw new TemplateError(
-          "VALUE_OUT_OF_RANGE",
-          `6-bit value out of range: ${v}`,
-        );
+        throw new TemplateError("VALUE_OUT_OF_RANGE", `6-bit value out of range: ${v}`);
       }
       return c;
     })

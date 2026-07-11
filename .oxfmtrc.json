@@ -1,0 +1,8 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "ignorePatterns": [
+    "packages/gw-data/data/**",
+    "packages/gw-template/test/fixtures/**",
+    "pnpm-lock.yaml"
+  ]
+}

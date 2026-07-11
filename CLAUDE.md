@@ -5,7 +5,7 @@
 An MCP (Model Context Protocol) server that gives any compatible LLM client (Claude, ChatGPT, Cursor…) reliable, deterministic knowledge of **Guild Wars 1** builds: skill data lookup, template code encoding/decoding, and build validation.
 
 **Core design principle — the MCP is a compiler, not a brain.**
-The LLM does all strategic reasoning (which skills to pick, team composition, meta knowledge, reading guides). This server only does things that must be *exact*:
+The LLM does all strategic reasoning (which skills to pick, team composition, meta knowledge, reading guides). This server only does things that must be _exact_:
 
 - know the canonical game data (skills, professions, attributes, heroes, IDs)
 - encode/decode official in-game template codes
@@ -54,7 +54,7 @@ Validation rules:
 1. **At most one elite skill** per bar.
 2. Every skill must belong to the primary profession, the secondary profession, or be profession-less (common / PvE-only skills).
 3. A skill's attribute must belong to one of the two professions (or be no-attribute).
-4. The **primary attribute** of a profession (e.g. Divine Favor, Mysticism, Soul Reaping) is only available if that profession is the *primary* one.
+4. The **primary attribute** of a profession (e.g. Divine Favor, Mysticism, Soul Reaping) is only available if that profession is the _primary_ one.
 5. Attribute ranks in a template are **base ranks 0–12** (runes/headgear are not part of the template code).
 6. No duplicate skills on one bar.
 7. Warnings (not errors) for things like: PvE-only skills on a hero bar (heroes cannot use most PvE-only skills), skills from a campaign the player may not own.
@@ -103,18 +103,18 @@ codes, semantic round-trip always holds and is asserted for every fixture.
    FC/Dom/Insp bar), does the game emit the spec-minimal 4 bits or pad to 5
    like PvXCode and @buildwars/gw-templates do (shared authorship)? Our
    encoder emits the minimum; both forms decode identically everywhere.
-Corpus coverage (18 fixtures): ALL 10 primary professions, 8 secondaries, skills from all 5 campaigns (Core, Prophecies,
-Factions, Nightfall, EotN), all 64 charset chars exercised ('+' and '/'
-included), both header formats, sorted and unsorted attribute orders, three
-independent third-party encoders (the game pre-2007, PvXCode, and
-@buildwars/gw-templates via gw1builds.com whose icon URLs expose skill IDS
-for id-level verification, plus a GWW player page whose Ranger codes are
-byte-identical to our encoding except one trailing zero-padding char).
-Fixture wishlist from Maxime's client (each arbitrates one open question):
-one bar with no attributes (unused width-field filler), one bar with all
-attribute ids < 16 (4-vs-5-bit attribute width), and ANY bar at all (exact
-trailing-padding convention: we pad to 6 bits; the Catbus source emits one
-extra zero group; compare code LENGTH char-for-char).
+   Corpus coverage (18 fixtures): ALL 10 primary professions, 8 secondaries, skills from all 5 campaigns (Core, Prophecies,
+   Factions, Nightfall, EotN), all 64 charset chars exercised ('+' and '/'
+   included), both header formats, sorted and unsorted attribute orders, three
+   independent third-party encoders (the game pre-2007, PvXCode, and
+   @buildwars/gw-templates via gw1builds.com whose icon URLs expose skill IDS
+   for id-level verification, plus a GWW player page whose Ranger codes are
+   byte-identical to our encoding except one trailing zero-padding char).
+   Fixture wishlist from Maxime's client (each arbitrates one open question):
+   one bar with no attributes (unused width-field filler), one bar with all
+   attribute ids < 16 (4-vs-5-bit attribute width), and ANY bar at all (exact
+   trailing-padding convention: we pad to 6 bits; the Catbus source emits one
+   extra zero group; compare code LENGTH char-for-char).
 
 ## TypeScript configuration philosophy
 
@@ -126,15 +126,16 @@ justification comment. Before adding an option, probe whether the default
 already covers it; before removing one, know which file relies on it (e.g.
 `module: ESNext` exists for the single `with { type: "json" }` import).
 
-## Linting and formatting stance
+## Linting and formatting: oxlint + oxfmt
 
-No ESLint/Prettier/Biome on purpose: TypeScript strict-plus (see the
-tsconfig philosophy) plus the test suite catches the bug classes linters
-target here, the codebase is small and single-author, and a formatter now
-would add a giant diff plus a config surface for zero behavior change. The
-style is consistent by convention (2-space, double quotes, trailing
-commas). REVISIT if the project gains outside contributors — then add
-Biome (one dep, one config) rather than the ESLint+Prettier stack.
+`pnpm lint` (oxlint, ~10ms, zero config) and `pnpm fmt` / `pnpm fmt:check`
+(oxfmt); both run in CI. The earlier no-linter stance was revisited once
+the Rust toolchain made the cost negligible — adoption found exactly one
+real finding (an ambiguous `new Array(n)`), confirming the code was clean
+but the guard is free. CRITICAL: .oxfmtrc.json ignores generated files
+(packages/gw-data/data/**, gw-template test fixtures) — formatting them
+would fight the scripts that emit them and pollute every weekly data PR.
+Keep that list in sync when adding generated outputs.
 
 ## Coverage expectations
 
@@ -172,7 +173,7 @@ the MCP isError flag via the jsonError helper — keep new tools consistent.
      dont au moins : un build avec slot vide, un build sans élite, un build sans secondaire,
      un build de héros avec skills de plusieurs campagnes. -->
 
-Any change to the codec must keep every fixture green. When a bug is found, add the failing code as a new fixture *first*, then fix.
+Any change to the codec must keep every fixture green. When a bug is found, add the failing code as a new fixture _first_, then fix.
 
 ## Game data
 
@@ -206,19 +207,19 @@ hero constraints) and heroes_from_progression.
 
 ## MCP tools (MVP scope — do not add more without discussion)
 
-| Tool | In | Out |
-|---|---|---|
-| `get_skill` | name or id | full skill record, or structured not-found with close-match suggestions |
-| `search_skills` | filters (profession, attribute, elite, campaign, text) | paginated list of skill records |
-| `decode_template` | template code | build object (professions, attributes, skills) |
-| `encode_template` | build object | template code (runs validation first; refuses on errors, returns them) |
-| `validate_build` | build object | `{ valid, errors[], warnings[] }` |
-| `get_hero` / `list_heroes` | name / campaign filter | hero record(s): professions, campaign, how unlocked (DONE — data curated in gw-data/data/heroes.json, ids aligned with GWCA HeroID; unlock notes are coarse-grained, verify specifics against the wiki) |
-| `decode_pawned_team` | paw-ned2 team blob (`pwnd0001...>...<`) | per-slot label/notes + each skill bar decoded by our codec (container parsed by @buildwars/gw-templates; tolerates pasted line wraps) |
+| Tool                       | In                                                     | Out                                                                                                                                                                                                     |
+| -------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `get_skill`                | name or id                                             | full skill record, or structured not-found with close-match suggestions                                                                                                                                 |
+| `search_skills`            | filters (profession, attribute, elite, campaign, text) | paginated list of skill records                                                                                                                                                                         |
+| `decode_template`          | template code                                          | build object (professions, attributes, skills)                                                                                                                                                          |
+| `encode_template`          | build object                                           | template code (runs validation first; refuses on errors, returns them)                                                                                                                                  |
+| `validate_build`           | build object                                           | `{ valid, errors[], warnings[] }`                                                                                                                                                                       |
+| `get_hero` / `list_heroes` | name / campaign filter                                 | hero record(s): professions, campaign, how unlocked (DONE — data curated in gw-data/data/heroes.json, ids aligned with GWCA HeroID; unlock notes are coarse-grained, verify specifics against the wiki) |
+| `decode_pawned_team`       | paw-ned2 team blob (`pwnd0001...>...<`)                | per-slot label/notes + each skill bar decoded by our codec (container parsed by @buildwars/gw-templates; tolerates pasted line wraps)                                                                   |
 
 Tool design rules:
 
-- Inputs and outputs are Zod schemas; every tool has a precise `description` written *for an LLM caller* (state units, enums, exact expected names).
+- Inputs and outputs are Zod schemas; every tool has a precise `description` written _for an LLM caller_ (state units, enums, exact expected names).
 - All failures are structured JSON (`{ error: { code, message, suggestions? } }`), never bare thrown strings.
 - Tools are pure/deterministic: same input → same output, no hidden state.
 - When a skill name is not found, always return the 3 closest matches (Levenshtein or similar) — LLMs make small spelling errors and must be able to self-correct in one round-trip.
@@ -275,7 +276,7 @@ Tool design rules:
 
 - Conventional commits (`feat:`, `fix:`, `test:`, `chore:`…).
 - Every package typechecks and tests independently: `pnpm -r typecheck && pnpm -r test` must pass from a clean clone (nothing is ever built to dist; exports point at .ts sources, and the worker bundles via wrangler).
-- Public functions get TSDoc; keep comments about *why*, not *what*.
+- Public functions get TSDoc; keep comments about _why_, not _what_.
 - CI: GitHub Actions running lint + build + tests on every PR.
 - Language: code, identifiers, docs and commits in **English** (public OSS repo); it's fine to discuss in French in issues/PRs.
 

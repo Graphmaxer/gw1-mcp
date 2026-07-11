@@ -124,8 +124,12 @@ async function loadUpstream() {
 
   if (cloneRoot) {
     const constants = await import(pathToFileURL(join(cloneRoot, "es6", "constants.js")).href);
-    const skilldata = JSON.parse(readFileSync(join(cloneRoot, "data", "json-full", "skilldata.json"), "utf8"));
-    const desc = JSON.parse(readFileSync(join(cloneRoot, "data", "json-full", "skilldesc-en.json"), "utf8"));
+    const skilldata = JSON.parse(
+      readFileSync(join(cloneRoot, "data", "json-full", "skilldata.json"), "utf8"),
+    );
+    const desc = JSON.parse(
+      readFileSync(join(cloneRoot, "data", "json-full", "skilldesc-en.json"), "utf8"),
+    );
 
     // Validate the upstream files against the schemas they ship.
     const { Ajv2020 } = await import("ajv/dist/2020.js");
@@ -148,7 +152,9 @@ async function loadUpstream() {
   }
   const module_ = await import("@buildwars/gw-skilldata");
   const require = createRequire(import.meta.url);
-  const pkg = JSON.parse(readFileSync(require.resolve("@buildwars/gw-skilldata/package.json"), "utf8"));
+  const pkg = JSON.parse(
+    readFileSync(require.resolve("@buildwars/gw-skilldata/package.json"), "utf8"),
+  );
   const english = new module_.SkillLangEnglish() as unknown as {
     skilldata: Record<string, unknown>;
     skilldesc: Record<string, unknown>;
@@ -231,10 +237,13 @@ const skillTypes = Object.entries(SKILLTYPES as unknown as Record<string, Upstre
 
 // --- skills ------------------------------------------------------------------
 const skills = Object.keys(upstream.skilldata)
-  .map((id) => ({
-    ...(upstream.skilldata[id] as object),
-    ...(upstream.skilldesc[id] as object),
-  }) as UpstreamSkill)
+  .map(
+    (id) =>
+      ({
+        ...(upstream.skilldata[id] as object),
+        ...(upstream.skilldesc[id] as object),
+      }) as UpstreamSkill,
+  )
   .filter((s) => s.id !== 0) // id 0 = "No Skill" (empty-slot sentinel)
   .map((s) => ({
     id: s.id,
@@ -278,5 +287,9 @@ write("campaigns.json", campaigns, campaigns.length);
 write("professions.json", professions, professions.length);
 write("attributes.json", attributes, attributes.length);
 write("skill-types.json", skillTypes, skillTypes.length);
-write("skills.json", skills, `${skills.length} (${skills.filter((s) => s.isPvpVersion).length} PvP versions)`);
+write(
+  "skills.json",
+  skills,
+  `${skills.length} (${skills.filter((s) => s.isPvpVersion).length} PvP versions)`,
+);
 write("_meta.json", meta, upstream.version);

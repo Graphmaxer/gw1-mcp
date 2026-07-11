@@ -1,9 +1,4 @@
-import {
-  getAttribute,
-  getProfession,
-  getSkillById,
-  type Skill,
-} from "@gw1-mcp/gw-data";
+import { getAttribute, getProfession, getSkillById, type Skill } from "@gw1-mcp/gw-data";
 import type { SkillTemplate } from "@gw1-mcp/gw-template";
 
 export interface ValidationIssue {
@@ -135,10 +130,7 @@ export function validateBuild(
     }
 
     // Availability against a GWToolbox account export (/exportaccount).
-    if (
-      options.unlockedSkillIds !== undefined &&
-      !options.unlockedSkillIds.includes(skill.id)
-    ) {
+    if (options.unlockedSkillIds !== undefined && !options.unlockedSkillIds.includes(skill.id)) {
       warnings.push({
         code: "SKILL_NOT_UNLOCKED",
         message: `Slot ${slot + 1}: "${skill.name}" is not in the provided unlocked skill list`,

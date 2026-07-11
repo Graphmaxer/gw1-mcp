@@ -30,36 +30,24 @@ export function normalizeName(name: string): string {
     .trim();
 }
 
-const heroByNormalizedName = new Map(
-  heroes.map((h) => [normalizeName(h.name), h]),
-);
+const heroByNormalizedName = new Map(heroes.map((h) => [normalizeName(h.name), h]));
 const heroById = new Map(heroes.map((h) => [h.id, h]));
 
-const skillByNormalizedName = new Map(
-  skills.map((s) => [normalizeName(s.name), s]),
-);
-const professionByNormalizedName = new Map(
-  professions.map((p) => [normalizeName(p.name), p]),
-);
-const attributeByNormalizedName = new Map(
-  attributes.map((a) => [normalizeName(a.name), a]),
-);
+const skillByNormalizedName = new Map(skills.map((s) => [normalizeName(s.name), s]));
+const professionByNormalizedName = new Map(professions.map((p) => [normalizeName(p.name), p]));
+const attributeByNormalizedName = new Map(attributes.map((a) => [normalizeName(a.name), a]));
 
 export const getSkillById = (id: number): Skill | undefined => skillById.get(id);
 export const getSkillByName = (name: string): Skill | undefined =>
   skillByNormalizedName.get(normalizeName(name));
-export const getProfession = (id: number): Profession | undefined =>
-  professionById.get(id);
+export const getProfession = (id: number): Profession | undefined => professionById.get(id);
 export const getProfessionByName = (name: string): Profession | undefined =>
   professionByNormalizedName.get(normalizeName(name));
-export const getAttribute = (id: number): Attribute | undefined =>
-  attributeById.get(id);
+export const getAttribute = (id: number): Attribute | undefined => attributeById.get(id);
 export const getAttributeByName = (name: string): Attribute | undefined =>
   attributeByNormalizedName.get(normalizeName(name));
-export const getCampaign = (id: number): Campaign | undefined =>
-  campaignById.get(id);
-export const getSkillType = (id: number): SkillType | undefined =>
-  skillTypeById.get(id);
+export const getCampaign = (id: number): Campaign | undefined => campaignById.get(id);
+export const getSkillType = (id: number): SkillType | undefined => skillTypeById.get(id);
 export const getHeroById = (id: number): Hero | undefined => heroById.get(id);
 export const getHeroByName = (name: string): Hero | undefined =>
   heroByNormalizedName.get(normalizeName(name));
@@ -76,18 +64,13 @@ export interface SkillSearchFilters {
 
 export function searchSkills(filters: SkillSearchFilters): Skill[] {
   const needle =
-    filters.nameContains !== undefined
-      ? normalizeName(filters.nameContains)
-      : undefined;
+    filters.nameContains !== undefined ? normalizeName(filters.nameContains) : undefined;
   return skills.filter(
     (s) =>
       (filters.includePvpVersions === true || !s.isPvpVersion) &&
-      (filters.professionId === undefined ||
-        s.professionId === filters.professionId) &&
-      (filters.attributeId === undefined ||
-        s.attributeId === filters.attributeId) &&
-      (filters.campaignId === undefined ||
-        s.campaignId === filters.campaignId) &&
+      (filters.professionId === undefined || s.professionId === filters.professionId) &&
+      (filters.attributeId === undefined || s.attributeId === filters.attributeId) &&
+      (filters.campaignId === undefined || s.campaignId === filters.campaignId) &&
       (filters.elite === undefined || s.elite === filters.elite) &&
       (needle === undefined || normalizeName(s.name).includes(needle)),
   );
@@ -98,7 +81,7 @@ function levenshtein(a: string, b: string): number {
   const n = b.length;
   let prev = Array.from({ length: n + 1 }, (_, j) => j);
   for (let i = 1; i <= m; i++) {
-    const curr = [i, ...new Array<number>(n).fill(0)];
+    const curr = [i, ...Array.from({ length: n }, () => 0)];
     for (let j = 1; j <= n; j++) {
       curr[j] = Math.min(
         (prev[j] ?? 0) + 1,

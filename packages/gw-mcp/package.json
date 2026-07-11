@@ -1,8 +1,8 @@
 {
   "name": "@gw1-mcp/gw-mcp",
   "version": "0.1.0",
-  "type": "module",
   "license": "MIT",
+  "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },

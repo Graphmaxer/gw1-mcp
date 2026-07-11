@@ -156,8 +156,7 @@ describe("differential: fuzz", () => {
       //    semantic equality (cross-decode) always.
       const maxAttribute = template.attributes.reduce((m, a) => Math.max(m, a.attributeId), 0);
       const maxSkill = Math.max(...template.skills);
-      const floorsAgree =
-        template.attributes.length > 0 && maxAttribute >= 16 && maxSkill >= 512;
+      const floorsAgree = template.attributes.length > 0 && maxAttribute >= 16 && maxSkill >= 512;
       if (floorsAgree && !theirCodeIsCorrupt) {
         expect(ourCode.replace(/A+$/u, "")).toBe(theirCode.replace(/A+$/u, ""));
         expect(decodeTemplate(theirCode)).toEqual(decodeTemplate(ourCode));

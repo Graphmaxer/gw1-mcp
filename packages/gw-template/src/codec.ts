@@ -28,10 +28,7 @@ export function decodeTemplate(code: string): SkillTemplate {
   if (first === TEMPLATE_TYPE_SKILL) {
     const version = reader.read(4);
     if (version !== 0) {
-      throw new TemplateError(
-        "INVALID_HEADER",
-        `Unsupported skill template version: ${version}`,
-      );
+      throw new TemplateError("INVALID_HEADER", `Unsupported skill template version: ${version}`);
     }
   } else if (first !== 0) {
     throw new TemplateError(
@@ -76,10 +73,7 @@ export function encodeTemplate(template: SkillTemplate): string {
   const professionCode = Math.max(0, Math.ceil((bitLength(maxProfession) - 4) / 2));
   const professionBits = professionCode * 2 + 4;
 
-  const maxAttribute = template.attributes.reduce(
-    (m, a) => Math.max(m, a.attributeId),
-    0,
-  );
+  const maxAttribute = template.attributes.reduce((m, a) => Math.max(m, a.attributeId), 0);
   const attributeBits = Math.max(4, bitLength(maxAttribute));
   const attributeCode = attributeBits - 4;
 
@@ -98,9 +92,7 @@ export function encodeTemplate(template: SkillTemplate): string {
   // Canonical form: attributes sorted by ascending id. All known in-game and
   // third-party codes use this order (attribute order is semantically
   // meaningless), and it makes encoding deterministic for equal builds.
-  const sortedAttributes = [...template.attributes].sort(
-    (a, b) => a.attributeId - b.attributeId,
-  );
+  const sortedAttributes = [...template.attributes].sort((a, b) => a.attributeId - b.attributeId);
   for (const { attributeId, rank } of sortedAttributes) {
     writer.write(attributeId, attributeBits);
     writer.write(rank, 4);

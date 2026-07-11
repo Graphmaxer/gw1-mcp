@@ -49,10 +49,7 @@ export class BitWriter {
 
   write(value: number, n: number): void {
     if (value < 0 || value >= 2 ** n) {
-      throw new TemplateError(
-        "VALUE_OUT_OF_RANGE",
-        `Value ${value} does not fit in ${n} bits`,
-      );
+      throw new TemplateError("VALUE_OUT_OF_RANGE", `Value ${value} does not fit in ${n} bits`);
     }
     for (let i = 0; i < n; i++) this.bits.push((value >> i) & 1);
   }

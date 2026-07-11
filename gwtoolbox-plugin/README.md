@@ -29,13 +29,13 @@ and will flag any proposed skill you don't actually own.
 
 ## Data sources (GWCA)
 
-| Field | Source |
-|---|---|
-| Character name | `GW::GetCharContext()->player_name` |
-| Character professions/level | `GW::Agents::GetControlledCharacter()` |
-| Heroes | `GW::GetWorldContext()->hero_info` |
-| Account-unlocked skills | `GW::GetAccountContext()->unlocked_account_skills` (bitfield, bit index = skill id) |
-| Character-learned skills | `GW::GetWorldContext()->unlocked_character_skills` (bitfield) |
+| Field                       | Source                                                                              |
+| --------------------------- | ----------------------------------------------------------------------------------- |
+| Character name              | `GW::GetCharContext()->player_name`                                                 |
+| Character professions/level | `GW::Agents::GetControlledCharacter()`                                              |
+| Heroes                      | `GW::GetWorldContext()->hero_info`                                                  |
+| Account-unlocked skills     | `GW::GetAccountContext()->unlocked_account_skills` (bitfield, bit index = skill id) |
+| Character-learned skills    | `GW::GetWorldContext()->unlocked_character_skills` (bitfield)                       |
 
 Everything is read-only; the plugin never writes game memory, sends packets,
 or automates anything.
@@ -47,7 +47,7 @@ or automates anything.
 The repo ships `.github/workflows/build-gwtoolbox-plugin.yml`: it builds the
 DLL on a GitHub-hosted Windows runner against the GWToolboxpp master branch,
 mirroring their own CI (same vcpkg pin, their `vcpkg` CMake preset). Go to
-the **Actions** tab → *Build GWToolbox plugin* → **Run workflow**, wait
+the **Actions** tab → _Build GWToolbox plugin_ → **Run workflow**, wait
 (~20-30 min cold, faster once caches are warm), then download the
 `AccountExport` artifact from the run — it contains the DLL (and PDB).
 The workflow also re-runs automatically on any push touching

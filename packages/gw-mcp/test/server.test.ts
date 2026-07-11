@@ -6,10 +6,7 @@ import { createServer } from "../src/server.js";
 async function connectedClient() {
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "test", version: "0.0.0" });
-  await Promise.all([
-    createServer().connect(serverTransport),
-    client.connect(clientTransport),
-  ]);
+  await Promise.all([createServer().connect(serverTransport), client.connect(clientTransport)]);
   return client;
 }
 
@@ -36,16 +33,23 @@ describe("gw1-mcp server", () => {
 
   it("gets a skill with suggestions on typo", async () => {
     const client = await connectedClient();
-    const ok = payload(await client.callTool({ name: "get_skill", arguments: { name: "Mystic Regeneration" } }));
+    const ok = payload(
+      await client.callTool({ name: "get_skill", arguments: { name: "Mystic Regeneration" } }),
+    );
     expect(ok.profession).toBe("Dervish");
-    const ko = payload(await client.callTool({ name: "get_skill", arguments: { name: "Mystic Regenration" } }));
+    const ko = payload(
+      await client.callTool({ name: "get_skill", arguments: { name: "Mystic Regenration" } }),
+    );
     expect(ko.error.suggestions).toContain("Mystic Regeneration");
   });
 
   it("decodes the golden template", async () => {
     const client = await connectedClient();
     const decoded = payload(
-      await client.callTool({ name: "decode_template", arguments: { code: "OwpiMypMBg1cxcBAMBdmtIKAA" } }),
+      await client.callTool({
+        name: "decode_template",
+        arguments: { code: "OwpiMypMBg1cxcBAMBdmtIKAA" },
+      }),
     );
     expect(decoded.primary).toBe("Assassin");
     expect(decoded.secondary).toBe("Dervish");
@@ -95,11 +99,7 @@ describe("gw1-mcp server", () => {
           primary: "Warrior",
           secondary: "Monk",
           attributes: [{ attribute: "Divine Favor", rank: 12 }],
-          skills: [
-            "Avatar of Balthazar",
-            "Hundred Blades",
-            null, null, null, null, null, null,
-          ],
+          skills: ["Avatar of Balthazar", "Hundred Blades", null, null, null, null, null, null],
         },
       }),
     );
@@ -130,7 +130,9 @@ describe("GWToolbox account export integration", () => {
     expect(result.valid).toBe(true); // warnings, not errors
     const codes = result.warnings.map((w: { code: string }) => w.code);
     expect(codes).toContain("SKILL_NOT_UNLOCKED");
-    expect(result.warnings.some((w: { message: string }) => w.message.includes("Mending Touch"))).toBe(true);
+    expect(
+      result.warnings.some((w: { message: string }) => w.message.includes("Mending Touch")),
+    ).toBe(true);
   });
 });
 
@@ -157,14 +159,18 @@ describe("audit regressions", () => {
 describe("heroes and resources", () => {
   it("gets a hero by name with resolved profession", async () => {
     const client = await connectedClient();
-    const hero = payload(await client.callTool({ name: "get_hero", arguments: { name: "master of whispers" } }));
+    const hero = payload(
+      await client.callTool({ name: "get_hero", arguments: { name: "master of whispers" } }),
+    );
     expect(hero.profession).toBe("Necromancer");
     expect(hero.id).toBe(4); // GWCA HeroID — must match plugin export
   });
 
   it("lists Dervish heroes", async () => {
     const client = await connectedClient();
-    const result = payload(await client.callTool({ name: "list_heroes", arguments: { professionName: "Dervish" } }));
+    const result = payload(
+      await client.callTool({ name: "list_heroes", arguments: { professionName: "Dervish" } }),
+    );
     const names = result.heroes.map((h: { name: string }) => h.name);
     expect(names).toContain("Melonni");
     expect(names).toContain("Kahmu");
@@ -186,7 +192,9 @@ describe("paw-ned2 team decoding", () => {
     // Verbatim from the PvX page rendering, including wrap-induced spaces.
     const pwnd =
       "pwnd0001?download pawned2 @ Copyright 2008-2018 Redeemer >XOwBR4ZymcBaXMmEAAAAAAAAAAAAAABXUGxheWVyCmh0dHBzOi8vZ3dwdnguZ2FtZXBlZGlhLmNvbS9 CdWlsZDpUZWFtXy1fM19IZXJvX0Rpc2NvcmR3YXkZOAhjUoGYIPxsjaGTaO5GmjzLGAAAACEIAAKSGVy byAxCgbOAhkUsG3RFuTMzOgIkmTuhJ1+iBAAAACEJAAKSGVybyAyCgZOANDUshvSxMVBoBbhKg3V1DBE AAAACEIAAKSGVybyAzCg<";
-    const result = payload(await client.callTool({ name: "decode_pawned_team", arguments: { pwnd } }));
+    const result = payload(
+      await client.callTool({ name: "decode_pawned_team", arguments: { pwnd } }),
+    );
     expect(result.builds).toHaveLength(4);
     expect(result.builds.map((b: { label: string }) => b.label)).toEqual([
       "Player",
@@ -198,7 +206,9 @@ describe("paw-ned2 team decoding", () => {
     // The three Discord hero bars are Necromancer-primary.
     for (const hero of result.builds.slice(1)) {
       expect(hero.build.primary).toBe("Necromancer");
-      expect(hero.build.skills.some((s: { name: string | null }) => s.name === "Discord")).toBe(true);
+      expect(hero.build.skills.some((s: { name: string | null }) => s.name === "Discord")).toBe(
+        true,
+      );
     }
   });
 });
@@ -224,7 +234,10 @@ describe("resources and error surfaces", () => {
 
   it("returns a structured error for malformed template codes", async () => {
     const client = await connectedClient();
-    const res = await client.callTool({ name: "decode_template", arguments: { code: "not a code!!" } });
+    const res = await client.callTool({
+      name: "decode_template",
+      arguments: { code: "not a code!!" },
+    });
     expect(res.isError).toBe(true);
   });
 
@@ -232,13 +245,19 @@ describe("resources and error surfaces", () => {
     const client = await connectedClient();
     const ko = await client.callTool({ name: "get_hero", arguments: { name: "Gandalf" } });
     expect(JSON.stringify(ko.content)).toMatch(/[Nn]o hero|not found|Unknown/);
-    const nf = await client.callTool({ name: "list_heroes", arguments: { campaignName: "Nightfall" } });
+    const nf = await client.callTool({
+      name: "list_heroes",
+      arguments: { campaignName: "Nightfall" },
+    });
     expect(JSON.stringify(nf.content)).toContain("Koss");
   });
 
   it("decode_pawned_team rejects garbage blobs with a structured error", async () => {
     const client = await connectedClient();
-    const res = await client.callTool({ name: "decode_pawned_team", arguments: { blob: "pwnd-garbage" } });
+    const res = await client.callTool({
+      name: "decode_pawned_team",
+      arguments: { blob: "pwnd-garbage" },
+    });
     expect(res.isError).toBe(true);
   });
 });
@@ -246,28 +265,60 @@ describe("resources and error surfaces", () => {
 describe("remaining tool surfaces", () => {
   it("encode_template resolves, validates and encodes a named build", async () => {
     const client = await connectedClient();
-    const res = payload(await client.callTool({ name: "encode_template", arguments: {
-      primary: "Dervish",
-      attributes: [
-        { attribute: "Scythe Mastery", rank: 11 }, { attribute: "Mysticism", rank: 10 }, { attribute: "Earth Prayers", rank: 8 },
-      ],
-      skills: ["Avatar of Balthazar","Staggering Force","Twin Moon Sweep","Wearying Strike","Pious Fury","Aura of Holy Might (Kurzick)","Asuran Scan","Sunspear Rebirth Signet"],
-    } }));
+    const res = payload(
+      await client.callTool({
+        name: "encode_template",
+        arguments: {
+          primary: "Dervish",
+          attributes: [
+            { attribute: "Scythe Mastery", rank: 11 },
+            { attribute: "Mysticism", rank: 10 },
+            { attribute: "Earth Prayers", rank: 8 },
+          ],
+          skills: [
+            "Avatar of Balthazar",
+            "Staggering Force",
+            "Twin Moon Sweep",
+            "Wearying Strike",
+            "Pious Fury",
+            "Aura of Holy Might (Kurzick)",
+            "Asuran Scan",
+            "Sunspear Rebirth Signet",
+          ],
+        },
+      }),
+    );
     expect(res.code).toBe("OgCjkurIrSuXaXPXBYihygvlYcA");
   });
 
   it("encode_template surfaces resolution errors with isError", async () => {
     const client = await connectedClient();
-    const res = await client.callTool({ name: "encode_template", arguments: {
-      primary: "Bard", attributes: [],
-      skills: ["Avatar of Balthazar","Staggering Force","Twin Moon Sweep","Wearying Strike","Pious Fury","Aura of Holy Might (Kurzick)","Asuran Scan","Sunspear Rebirth Signet"],
-    } });
+    const res = await client.callTool({
+      name: "encode_template",
+      arguments: {
+        primary: "Bard",
+        attributes: [],
+        skills: [
+          "Avatar of Balthazar",
+          "Staggering Force",
+          "Twin Moon Sweep",
+          "Wearying Strike",
+          "Pious Fury",
+          "Aura of Holy Might (Kurzick)",
+          "Asuran Scan",
+          "Sunspear Rebirth Signet",
+        ],
+      },
+    });
     expect(JSON.stringify(res.content)).toContain("UNKNOWN_PROFESSION");
   });
 
   it("search_skills flags unknown profession and campaign filters", async () => {
     const client = await connectedClient();
-    for (const args of [{ nameContains: "strike", professionName: "Bard" }, { nameContains: "strike", campaignName: "Atlantis" }]) {
+    for (const args of [
+      { nameContains: "strike", professionName: "Bard" },
+      { nameContains: "strike", campaignName: "Atlantis" },
+    ]) {
       const res = await client.callTool({ name: "search_skills", arguments: args });
       expect(res.isError).toBe(true);
     }
@@ -275,7 +326,17 @@ describe("remaining tool surfaces", () => {
 
   it("search_skills filters by valid profession, campaign and elite flag", async () => {
     const client = await connectedClient();
-    const res = payload(await client.callTool({ name: "search_skills", arguments: { nameContains: "avatar", professionName: "Dervish", campaignName: "Nightfall", elite: true } }));
+    const res = payload(
+      await client.callTool({
+        name: "search_skills",
+        arguments: {
+          nameContains: "avatar",
+          professionName: "Dervish",
+          campaignName: "Nightfall",
+          elite: true,
+        },
+      }),
+    );
     expect(JSON.stringify(res)).toContain("Avatar of Balthazar");
   });
 
@@ -283,17 +344,38 @@ describe("remaining tool surfaces", () => {
     const client = await connectedClient();
     const byId = payload(await client.callTool({ name: "get_skill", arguments: { id: 1518 } }));
     expect(JSON.stringify(byId)).toContain("Avatar of Balthazar");
-    const report = payload(await client.callTool({ name: "validate_build", arguments: {
-      primary: "Dervish",
-      attributes: [{ attribute: "Scythe Mastery", rank: 11 }, { attribute: "Mysticism", rank: 10 }, { attribute: "Earth Prayers", rank: 8 }],
-      skills: ["Avatar of Balthazar","Staggering Force","Twin Moon Sweep","Wearying Strike","Pious Fury","Aura of Holy Might (Kurzick)","Asuran Scan","Sunspear Rebirth Signet"],
-    } }));
+    const report = payload(
+      await client.callTool({
+        name: "validate_build",
+        arguments: {
+          primary: "Dervish",
+          attributes: [
+            { attribute: "Scythe Mastery", rank: 11 },
+            { attribute: "Mysticism", rank: 10 },
+            { attribute: "Earth Prayers", rank: 8 },
+          ],
+          skills: [
+            "Avatar of Balthazar",
+            "Staggering Force",
+            "Twin Moon Sweep",
+            "Wearying Strike",
+            "Pious Fury",
+            "Aura of Holy Might (Kurzick)",
+            "Asuran Scan",
+            "Sunspear Rebirth Signet",
+          ],
+        },
+      }),
+    );
     expect(report.valid).toBe(true);
   });
 
   it("list_heroes rejects unknown campaigns with isError", async () => {
     const client = await connectedClient();
-    const res = await client.callTool({ name: "list_heroes", arguments: { campaignName: "Atlantis" } });
+    const res = await client.callTool({
+      name: "list_heroes",
+      arguments: { campaignName: "Atlantis" },
+    });
     expect(res.isError).toBe(true);
   });
 });

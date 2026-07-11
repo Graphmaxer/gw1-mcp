@@ -10,15 +10,15 @@ this server does the things that must be exact.
 
 ## Tools
 
-| Tool | Purpose |
-|---|---|
-| `get_skill` | Full record for one skill (by exact name or template id), with closest-match suggestions on typos |
-| `search_skills` | Filtered search: profession, attribute, campaign, elite, name substring |
-| `decode_template` | In-game template code → professions, attributes, 8 skills with stats |
-| `encode_template` | Named build → validated, official in-game template code |
-| `validate_build` | GW1 rule check: one elite max, profession/attribute ownership, primary attributes, duplicates |
-| `get_hero` / `list_heroes` | Heroes with professions, campaigns and unlock notes |
-| `decode_pawned_team` | paw-ned2 team blobs (PvXwiki team pages) → every bar decoded |
+| Tool                       | Purpose                                                                                           |
+| -------------------------- | ------------------------------------------------------------------------------------------------- |
+| `get_skill`                | Full record for one skill (by exact name or template id), with closest-match suggestions on typos |
+| `search_skills`            | Filtered search: profession, attribute, campaign, elite, name substring                           |
+| `decode_template`          | In-game template code → professions, attributes, 8 skills with stats                              |
+| `encode_template`          | Named build → validated, official in-game template code                                           |
+| `validate_build`           | GW1 rule check: one elite max, profession/attribute ownership, primary attributes, duplicates     |
+| `get_hero` / `list_heroes` | Heroes with professions, campaigns and unlock notes                                               |
+| `decode_pawned_team`       | paw-ned2 team blobs (PvXwiki team pages) → every bar decoded                                      |
 
 Resources: `gw1://guide/build-workflow` (methodology for the LLM) and `gw1://heroes`.
 
@@ -41,6 +41,7 @@ official wiki and the pre-2007 in-game format, several verified down to the
 skill-id level), fuzzed round-trips, differential testing against an
 independent implementation, and malformed-input rejection tests. Validation
 rules are table-tested one by one. `pnpm test:coverage` for the numbers.
+
 - `packages/gw-mcp` — the MCP server (transport-agnostic core + stdio entry)
 - `packages/gw-worker` — Streamable HTTP wrapper (Hono), runs on Cloudflare Workers and Node
 
@@ -90,8 +91,8 @@ itself. See `CLAUDE.md` for the full architecture notes.
 
 ---
 
-*This project is not affiliated with ArenaNet or NCSoft. Guild Wars is a
+_This project is not affiliated with ArenaNet or NCSoft. Guild Wars is a
 trademark of NCSoft Corporation. Game data courtesy of the
 [build-wars/gw-skilldata](https://github.com/build-wars/gw-skilldata) project
 (MIT) and the format documentation on the
-[Guild Wars Wiki](https://wiki.guildwars.com/wiki/Skill_template_format).*
+[Guild Wars Wiki](https://wiki.guildwars.com/wiki/Skill_template_format)._

@@ -1,8 +1,8 @@
 {
   "name": "@gw1-mcp/gw-worker",
   "version": "0.1.0",
-  "type": "module",
   "license": "MIT",
+  "type": "module",
   "scripts": {
     "dev": "wrangler dev",
     "dev:node": "tsx src/node.ts",

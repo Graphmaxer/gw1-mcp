@@ -23,6 +23,19 @@ export function createApp(): Hono {
     }),
   );
 
+  // 16x16 favicon (required by app directories that fetch domain favicons).
+  const FAVICON_ICO = Uint8Array.from(
+    atob(
+      "AAABAAEAEBAAAAAAIADFAAAAFgAAAIlQTkcNChoKAAAADUlIRFIAAAAQAAAAEAgGAAAAH/P/YQAAAIxJREFUeJxjZMAC5KSV/mMTf/T0HiO6GBOxmnHJMeKTxAdgrsFwAamAiRjbt00RZdg2RRRFDKaHkVinwwzwynmN6QJ0RdgATCO6GowwwGcINkBWICJbQnEsYAQirsDCJc7IwIAZjbjCAV3zo6f3GJlgDHwKcWmGuwCbKwgBDAOINQjdtRixgC3L4pMDABsCP+uu0YCqAAAAAElFTkSuQmCC",
+    ),
+    (ch) => ch.charCodeAt(0),
+  );
+  app.get("/favicon.ico", (c) => {
+    c.header("Content-Type", "image/x-icon");
+    c.header("Cache-Control", "public, max-age=86400");
+    return c.body(FAVICON_ICO);
+  });
+
   app.get("/privacy", (c) =>
     c.text(
       [

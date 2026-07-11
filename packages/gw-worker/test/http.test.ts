@@ -91,3 +91,13 @@ describe("directory-readiness routes", () => {
     expect(await res.text()).toBe("tok123");
   });
 });
+
+describe("favicon", () => {
+  it("serves a valid ICO", async () => {
+    const res = await createApp().request("/favicon.ico");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("image/x-icon");
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    expect([bytes[0], bytes[1], bytes[2], bytes[3]]).toEqual([0, 0, 1, 0]); // ICO magic
+  });
+});

@@ -12,6 +12,7 @@ name: Build GWToolbox plugin
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - "gwtoolbox-plugin/**"
       - ".github/workflows/build-gwtoolbox-plugin.yml"

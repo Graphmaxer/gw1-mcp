@@ -158,10 +158,14 @@ the MCP isError flag via the jsonError helper — keep new tools consistent.
 ## Internal conventions (uniform on purpose)
 
 - Sub-packages are all `"private": true` — @gw1-mcp/* must never reach npm.
-- Two script archetypes, chosen by testability: scripts whose logic is
-  unit-tested export pure functions plus an `isDirectRun` guard
-  (import-heroes.ts); pure-CLI scripts run top-level (import.ts, which is
-  intentionally untested — see coverage notes). Do not "symmetrize" them.
+- ONE script archetype: every script wraps its execution flow in main()
+  behind an `isDirectRun` guard — importing a script must never trigger
+  network fetches or file writes. Scripts whose logic is unit-tested
+  additionally export their pure functions (import-heroes.ts); import.ts
+  exports nothing because nothing tests it. (This replaced an earlier
+  two-archetype rule: the top-level form was symmetrized once we realized
+  the generated files themselves prove such a refactor — byte-identical
+  output before/after.)
 - Generated data files are always `JSON.stringify(data, null, 1)` plus a
   trailing newline, whatever the concatenation syntax.
 - Docblocks: script entry points carry a full header (what, why, how to

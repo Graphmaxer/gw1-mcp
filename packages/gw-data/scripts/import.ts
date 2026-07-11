@@ -170,140 +170,151 @@ async function loadUpstream() {
   };
 }
 
-const upstream = await loadUpstream();
-const { ATTRIBUTES, CAMPAIGNS, PROFESSIONS, SKILLTYPES } = upstream;
+async function main(): Promise<void> {
+  const upstream = await loadUpstream();
+  const { ATTRIBUTES, CAMPAIGNS, PROFESSIONS, SKILLTYPES } = upstream;
 
-const outDir = join(dirname(fileURLToPath(import.meta.url)), "..", "data");
-mkdirSync(outDir, { recursive: true });
+  const outDir = join(dirname(fileURLToPath(import.meta.url)), "..", "data");
+  mkdirSync(outDir, { recursive: true });
 
-// Upstream constant shapes (informal, mirrored from es6/constants.js).
-type LangName = { en: string; de: string };
-type UpstreamAttribute = { prof: number; pri: boolean; max: number; name: LangName };
-type UpstreamProfession = { name: LangName; abbr: LangName };
-type UpstreamCampaign = { name: LangName; continent: unknown };
-type UpstreamSkillType = { name: LangName };
-type UpstreamSkill = {
-  id: number;
-  campaign: number;
-  profession: number;
-  attribute: number;
-  type: number;
-  is_elite: boolean;
-  is_rp: boolean;
-  is_pvp: boolean;
-  pvp_split: boolean;
-  split_id: number;
-  upkeep: number;
-  energy: number;
-  activation: number;
-  recharge: number;
-  adrenaline: number;
-  sacrifice: number;
-  overcast: number;
-  name: string;
-  description: string;
-  concise: string;
-};
+  // Upstream constant shapes (informal, mirrored from es6/constants.js).
+  type LangName = { en: string; de: string };
+  type UpstreamAttribute = { prof: number; pri: boolean; max: number; name: LangName };
+  type UpstreamProfession = { name: LangName; abbr: LangName };
+  type UpstreamCampaign = { name: LangName; continent: unknown };
+  type UpstreamSkillType = { name: LangName };
+  type UpstreamSkill = {
+    id: number;
+    campaign: number;
+    profession: number;
+    attribute: number;
+    type: number;
+    is_elite: boolean;
+    is_rp: boolean;
+    is_pvp: boolean;
+    pvp_split: boolean;
+    split_id: number;
+    upkeep: number;
+    energy: number;
+    activation: number;
+    recharge: number;
+    adrenaline: number;
+    sacrifice: number;
+    overcast: number;
+    name: string;
+    description: string;
+    concise: string;
+  };
 
-// --- campaigns / professions / attributes / types ---------------------------
-const campaigns = (CAMPAIGNS as unknown as UpstreamCampaign[]).map((c, id) => ({
-  id,
-  name: c.name.en,
-  nameDe: c.name.de,
-}));
+  // --- campaigns / professions / attributes / types ---------------------------
+  const campaigns = (CAMPAIGNS as unknown as UpstreamCampaign[]).map((c, id) => ({
+    id,
+    name: c.name.en,
+    nameDe: c.name.de,
+  }));
 
-const professions = (PROFESSIONS as unknown as UpstreamProfession[]).map((p, id) => ({
-  id,
-  name: p.name.en,
-  nameDe: p.name.de,
-  abbr: p.abbr.en,
-}));
+  const professions = (PROFESSIONS as unknown as UpstreamProfession[]).map((p, id) => ({
+    id,
+    name: p.name.en,
+    nameDe: p.name.de,
+    abbr: p.abbr.en,
+  }));
 
-const attributes = Object.entries(ATTRIBUTES as unknown as Record<string, UpstreamAttribute>).map(
-  ([id, a]) => ({
-    id: Number(id),
-    name: a.name.en,
-    nameDe: a.name.de,
-    isPrimary: a.pri,
-    professionId: a.prof,
-    /** Maximum achievable rank incl. bonuses (21 for regular attributes, title cap otherwise). */
-    max: a.max,
-  }),
-);
+  const attributes = Object.entries(ATTRIBUTES as unknown as Record<string, UpstreamAttribute>).map(
+    ([id, a]) => ({
+      id: Number(id),
+      name: a.name.en,
+      nameDe: a.name.de,
+      isPrimary: a.pri,
+      professionId: a.prof,
+      /** Maximum achievable rank incl. bonuses (21 for regular attributes, title cap otherwise). */
+      max: a.max,
+    }),
+  );
 
-const skillTypes = Object.entries(SKILLTYPES as unknown as Record<string, UpstreamSkillType>).map(
-  ([id, t]) => ({ id: Number(id), name: t.name.en }),
-);
+  const skillTypes = Object.entries(SKILLTYPES as unknown as Record<string, UpstreamSkillType>).map(
+    ([id, t]) => ({ id: Number(id), name: t.name.en }),
+  );
 
-// --- skills ------------------------------------------------------------------
-const skills = Object.keys(upstream.skilldata)
-  .map(
-    (id) =>
-      ({
-        ...(upstream.skilldata[id] as object),
-        ...(upstream.skilldesc[id] as object),
-      }) as UpstreamSkill,
-  )
-  .filter((s) => s.id !== 0) // id 0 = "No Skill" (empty-slot sentinel)
-  .map((s) => ({
-    id: s.id,
-    name: s.name,
-    description: s.concise || s.description,
-    campaignId: s.campaign,
-    professionId: s.profession,
-    attributeId: s.attribute,
-    elite: s.is_elite,
-    /** True for the separate "(PvP)" version of a split skill (not encodable in PvE templates). */
-    isPvpVersion: s.is_pvp,
-    /** True if the skill has a separate PvP version; splitId points to it. */
-    pvpSplit: s.pvp_split,
-    splitId: s.split_id || 0,
-    typeId: s.type,
-    upkeep: s.upkeep,
-    energy: s.energy,
-    activation: s.activation,
-    recharge: s.recharge,
-    adrenaline: s.adrenaline,
-    sacrifice: s.sacrifice,
-    overcast: s.overcast,
-  }))
-  .sort((a, b) => a.id - b.id);
+  // --- skills ------------------------------------------------------------------
+  const skills = Object.keys(upstream.skilldata)
+    .map(
+      (id) =>
+        ({
+          ...(upstream.skilldata[id] as object),
+          ...(upstream.skilldesc[id] as object),
+        }) as UpstreamSkill,
+    )
+    .filter((s) => s.id !== 0) // id 0 = "No Skill" (empty-slot sentinel)
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      description: s.concise || s.description,
+      campaignId: s.campaign,
+      professionId: s.profession,
+      attributeId: s.attribute,
+      elite: s.is_elite,
+      /** True for the separate "(PvP)" version of a split skill (not encodable in PvE templates). */
+      isPvpVersion: s.is_pvp,
+      /** True if the skill has a separate PvP version; splitId points to it. */
+      pvpSplit: s.pvp_split,
+      splitId: s.split_id || 0,
+      typeId: s.type,
+      upkeep: s.upkeep,
+      energy: s.energy,
+      activation: s.activation,
+      recharge: s.recharge,
+      adrenaline: s.adrenaline,
+      sacrifice: s.sacrifice,
+      overcast: s.overcast,
+    }))
+    .sort((a, b) => a.id - b.id);
 
-// --- provenance ---------------------------------------------------------------
-// _meta.json records provenance for EVERY generated data file, one key per
-// pipeline (skills here, heroes in import-heroes.ts). Each generator
-// read-merge-writes its own key so independent runs never clobber each other.
-const meta = {
-  source: "https://github.com/build-wars/gw-skilldata (npm: @buildwars/gw-skilldata)",
-  sourceVersion: upstream.version,
-  importedAt: new Date().toISOString().slice(0, 10),
-  freshness:
-    "Upstream is actively maintained and tracks Guild Wars Reforged balance updates (stat changes and newly added skills). Data is only as fresh as the installed package version; run the update workflow or `pnpm update @buildwars/gw-skilldata` to refresh. Recent balance notes: https://wiki.guildwars.com/wiki/Game_updates",
-};
+  // --- provenance ---------------------------------------------------------------
+  // _meta.json records provenance for EVERY generated data file, one key per
+  // pipeline (skills here, heroes in import-heroes.ts). Each generator
+  // read-merge-writes its own key so independent runs never clobber each other.
+  const meta = {
+    source: "https://github.com/build-wars/gw-skilldata (npm: @buildwars/gw-skilldata)",
+    sourceVersion: upstream.version,
+    importedAt: new Date().toISOString().slice(0, 10),
+    freshness:
+      "Upstream is actively maintained and tracks Guild Wars Reforged balance updates (stat changes and newly added skills). Data is only as fresh as the installed package version; run the update workflow or `pnpm update @buildwars/gw-skilldata` to refresh. Recent balance notes: https://wiki.guildwars.com/wiki/Game_updates",
+  };
 
-// --- write --------------------------------------------------------------------
-const write = (name: string, data: unknown, count: number | string) => {
-  writeFileSync(join(outDir, name), JSON.stringify(data, null, 1) + "\n");
-  console.log(`${name}: ${count}`);
-};
-write("campaigns.json", campaigns, campaigns.length);
-write("professions.json", professions, professions.length);
-write("attributes.json", attributes, attributes.length);
-write("skill-types.json", skillTypes, skillTypes.length);
-write(
-  "skills.json",
-  skills,
-  `${skills.length} (${skills.filter((s) => s.isPvpVersion).length} PvP versions)`,
-);
-{
-  let existingMeta: Record<string, unknown> = {};
-  try {
-    existingMeta = JSON.parse(readFileSync(join(outDir, "_meta.json"), "utf8")) as Record<
-      string,
-      unknown
-    >;
-  } catch {
-    // first run: no _meta.json yet
+  // --- write --------------------------------------------------------------------
+  const write = (name: string, data: unknown, count: number | string) => {
+    writeFileSync(join(outDir, name), JSON.stringify(data, null, 1) + "\n");
+    console.log(`${name}: ${count}`);
+  };
+  write("campaigns.json", campaigns, campaigns.length);
+  write("professions.json", professions, professions.length);
+  write("attributes.json", attributes, attributes.length);
+  write("skill-types.json", skillTypes, skillTypes.length);
+  write(
+    "skills.json",
+    skills,
+    `${skills.length} (${skills.filter((s) => s.isPvpVersion).length} PvP versions)`,
+  );
+  {
+    let existingMeta: Record<string, unknown> = {};
+    try {
+      existingMeta = JSON.parse(readFileSync(join(outDir, "_meta.json"), "utf8")) as Record<
+        string,
+        unknown
+      >;
+    } catch {
+      // first run: no _meta.json yet
+    }
+    write("_meta.json", { ...existingMeta, skills: meta }, upstream.version);
   }
-  write("_meta.json", { ...existingMeta, skills: meta }, upstream.version);
+}
+
+const isDirectRun =
+  process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href;
+if (isDirectRun) {
+  main().catch((error: unknown) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
 }

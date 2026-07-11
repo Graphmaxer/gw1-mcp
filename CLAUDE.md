@@ -129,7 +129,7 @@ hero constraints) and heroes_from_progression.
 | `decode_template` | template code | build object (professions, attributes, skills) |
 | `encode_template` | build object | template code (runs validation first; refuses on errors, returns them) |
 | `validate_build` | build object | `{ valid, errors[], warnings[] }` |
-| `get_hero` / `list_heroes` | name / campaign filter | hero record(s): professions, campaign, how unlocked |
+| `get_hero` / `list_heroes` | name / campaign filter | hero record(s): professions, campaign, how unlocked (DONE — data curated in gw-data/data/heroes.json, ids aligned with GWCA HeroID; unlock notes are coarse-grained, verify specifics against the wiki) |
 
 Tool design rules:
 
@@ -148,7 +148,7 @@ Tool design rules:
 
 ## Later milestones (context, not current work)
 
-1. MCP `resources` (e.g. `gw1://roles`, hero constraints, mission threat summaries) to help the client LLM reason.
+1. ~~MCP `resources`~~ — gw1://guide/build-workflow and gw1://heroes are live; mission threat summaries still to do.
 2. `heroes_from_progression` tool: compute available heroes deterministically from campaign progress.
 3. Cloudflare Workers deployment + custom connector on claude.ai; then Anthropic connectors directory submission.
 4. ~~GWToolbox export plugin~~ — written in gwtoolbox-plugin/AccountExport; needs first Windows build, then consider upstreaming as a PR to GWToolbox's Completion window.

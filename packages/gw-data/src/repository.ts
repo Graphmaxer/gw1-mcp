@@ -3,13 +3,15 @@ import professionsJson from "../data/professions.json";
 import attributesJson from "../data/attributes.json";
 import skillTypesJson from "../data/skill-types.json";
 import skillsJson from "../data/skills.json";
-import type { Attribute, Campaign, Profession, Skill, SkillType } from "./types.js";
+import heroesJson from "../data/heroes.json";
+import type { Attribute, Campaign, Hero, Profession, Skill, SkillType } from "./types.js";
 
 export const campaigns: Campaign[] = campaignsJson;
 export const professions: Profession[] = professionsJson;
 export const attributes: Attribute[] = attributesJson;
 export const skillTypes: SkillType[] = skillTypesJson;
 export const skills: Skill[] = skillsJson;
+export const heroes: Hero[] = heroesJson;
 
 const skillById = new Map(skills.map((s) => [s.id, s]));
 const professionById = new Map(professions.map((p) => [p.id, p]));
@@ -27,6 +29,11 @@ export function normalizeName(name: string): string {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+const heroByNormalizedName = new Map(
+  heroes.map((h) => [normalizeName(h.name), h]),
+);
+const heroById = new Map(heroes.map((h) => [h.id, h]));
 
 const skillByNormalizedName = new Map(
   skills.map((s) => [normalizeName(s.name), s]),
@@ -53,6 +60,9 @@ export const getCampaign = (id: number): Campaign | undefined =>
   campaignById.get(id);
 export const getSkillType = (id: number): SkillType | undefined =>
   skillTypeById.get(id);
+export const getHeroById = (id: number): Hero | undefined => heroById.get(id);
+export const getHeroByName = (name: string): Hero | undefined =>
+  heroByNormalizedName.get(normalizeName(name));
 
 export interface SkillSearchFilters {
   professionId?: number;

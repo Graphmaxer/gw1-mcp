@@ -3,8 +3,11 @@ import { z } from "zod";
 import {
   campaigns,
   getAttributeByName,
+  getHeroById,
+  getHeroByName,
   getProfessionByName,
   getSkillByName,
+  heroes,
   getSkillById,
   getAttribute,
   getCampaign,
@@ -253,5 +256,137 @@ export function createServer(): McpServer {
     },
   );
 
+
+  server.registerTool(
+    "get_hero",
+    {
+      title: "Get a Guild Wars 1 hero",
+      description:
+        "Look up a GW1 hero by name or by id (GWCA HeroID, matching the AccountExport plugin output). Returns profession, campaign and how the hero is unlocked. Remember: heroes can equip any skill unlocked at ACCOUNT level, but not most PvE-only skills.",
+      inputSchema: {
+        name: z.string().optional().describe('Hero name, e.g. "Master of Whispers"'),
+        id: z.number().int().optional().describe("GWCA HeroID value"),
+      },
+    },
+    async ({ name, id }) => {
+      const hero =
+        id !== undefined ? getHeroById(id) : name !== undefined ? getHeroByName(name) : undefined;
+      if (!hero) {
+        return json({
+          error: {
+            code: "NOT_FOUND",
+            message: `No hero matching ${JSON.stringify(name ?? id)}`,
+          },
+        });
+      }
+      return json({
+        ...hero,
+        profession: getProfession(hero.professionId)?.name ?? null,
+        campaign: getCampaign(hero.campaignId)?.name ?? null,
+      });
+    },
+  );
+
+  server.registerTool(
+    "list_heroes",
+    {
+      title: "List Guild Wars 1 heroes",
+      description:
+        "List all GW1 heroes, optionally filtered by profession or campaign name. Useful for team-building: shows which professions are coverable by heroes and how each hero is unlocked.",
+      inputSchema: {
+        professionName: z.string().optional(),
+        campaignName: z.string().optional(),
+      },
+    },
+    async ({ professionName, campaignName }) => {
+      let results = heroes;
+      if (professionName !== undefined) {
+        const profession = getProfessionByName(professionName);
+        if (!profession)
+          return json({ error: { code: "UNKNOWN_PROFESSION", message: `Unknown profession ${JSON.stringify(professionName)}` } });
+        results = results.filter((h) => h.professionId === profession.id);
+      }
+      if (campaignName !== undefined) {
+        const campaign = campaigns.find((c) => c.name.toLowerCase() === campaignName.toLowerCase());
+        if (!campaign)
+          return json({ error: { code: "UNKNOWN_CAMPAIGN", message: `Unknown campaign ${JSON.stringify(campaignName)}` } });
+        results = results.filter((h) => h.campaignId === campaign.id);
+      }
+      return json({
+        total: results.length,
+        heroes: results.map((h) => ({
+          ...h,
+          profession: getProfession(h.professionId)?.name ?? null,
+          campaign: getCampaign(h.campaignId)?.name ?? null,
+        })),
+      });
+    },
+  );
+
+  server.registerResource(
+    "build-workflow",
+    "gw1://guide/build-workflow",
+    {
+      title: "GW1 build-making workflow",
+      description: "Recommended workflow for an LLM composing GW1 builds with this server",
+      mimeType: "text/markdown",
+    },
+    async (uri) => ({
+      contents: [
+        {
+          uri: uri.href,
+          text: BUILD_WORKFLOW_GUIDE,
+        },
+      ],
+    }),
+  );
+
+  server.registerResource(
+    "heroes",
+    "gw1://heroes",
+    {
+      title: "All GW1 heroes",
+      description: "Heroes with professions, campaigns and unlock notes",
+      mimeType: "application/json",
+    },
+    async (uri) => ({
+      contents: [
+        {
+          uri: uri.href,
+          text: JSON.stringify(
+            heroes.map((h) => ({
+              ...h,
+              profession: getProfession(h.professionId)?.name ?? null,
+              campaign: getCampaign(h.campaignId)?.name ?? null,
+            })),
+            null,
+            2,
+          ),
+        },
+      ],
+    }),
+  );
+
   return server;
 }
+
+const BUILD_WORKFLOW_GUIDE = `# Composing a GW1 build with gw1-mcp
+
+1. **Understand the context**: mission/area, party size, player profession,
+   hero slots, and — if provided — the AccountExport JSON (/exportaccount in
+   GWToolbox) with unlocked heroes and skills.
+2. **Pick roles first**: damage, healing/protection, energy management,
+   interrupts/shutdown, party support. In Nightfall-era PvE a typical 3-hero
+   core covers healing (Mo or Rt), support/curses (N), and damage.
+3. **Choose the 8 skills yourself** using search_skills / get_skill for exact
+   data — never invent names or numbers. One elite maximum; check energy cost,
+   recharge and attribute lines for coherence.
+4. **Allocate attributes**: base ranks 0-12 only; the primary attribute of a
+   profession is only available when that profession is primary. Title tracks
+   (Sunspear, Lightbringer…) are NOT template attributes.
+5. **Validate** with validate_build (pass unlockedSkillIds from the account
+   export when available; set forHero=true for hero bars — heroes cannot use
+   most PvE-only skills).
+6. **Encode** with encode_template only once validation passes, and give the
+   player the code(s) to paste in-game.
+`;

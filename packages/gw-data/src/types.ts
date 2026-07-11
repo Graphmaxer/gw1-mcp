@@ -56,3 +56,13 @@ export interface Skill {
   sacrifice: number;
   overcast: number;
 }
+
+export interface Hero {
+  /** GWCA HeroID enum value — matches the ids in AccountExport plugin output. */
+  id: number;
+  name: string;
+  professionId: number;
+  campaignId: number;
+  /** Curated, coarse-grained unlock description. Verify against the wiki before relying on specifics. */
+  unlock: string;
+}

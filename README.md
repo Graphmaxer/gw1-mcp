@@ -17,6 +17,9 @@ this server does the things that must be exact.
 | `decode_template` | In-game template code → professions, attributes, 8 skills with stats |
 | `encode_template` | Named build → validated, official in-game template code |
 | `validate_build` | GW1 rule check: one elite max, profession/attribute ownership, primary attributes, duplicates |
+| `get_hero` / `list_heroes` | Heroes with professions, campaigns and unlock notes |
+
+Resources: `gw1://guide/build-workflow` (methodology for the LLM) and `gw1://heroes`.
 
 ## Quick start
 

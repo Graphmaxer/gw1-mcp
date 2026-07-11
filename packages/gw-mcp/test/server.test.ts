@@ -19,13 +19,15 @@ function payload(result: Awaited<ReturnType<Client["callTool"]>>) {
 }
 
 describe("gw1-mcp server", () => {
-  it("lists the five compiler tools", async () => {
+  it("lists the compiler tools", async () => {
     const client = await connectedClient();
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
       "decode_template",
       "encode_template",
+      "get_hero",
       "get_skill",
+      "list_heroes",
       "search_skills",
       "validate_build",
     ]);
@@ -148,5 +150,31 @@ describe("audit regressions", () => {
     expect(result.errors.map((e: { code: string }) => e.code)).toContain(
       "ATTRIBUTE_NOT_TEMPLATABLE",
     );
+  });
+});
+
+describe("heroes and resources", () => {
+  it("gets a hero by name with resolved profession", async () => {
+    const client = await connectedClient();
+    const hero = payload(await client.callTool({ name: "get_hero", arguments: { name: "master of whispers" } }));
+    expect(hero.profession).toBe("Necromancer");
+    expect(hero.id).toBe(4); // GWCA HeroID — must match plugin export
+  });
+
+  it("lists Dervish heroes", async () => {
+    const client = await connectedClient();
+    const result = payload(await client.callTool({ name: "list_heroes", arguments: { professionName: "Dervish" } }));
+    const names = result.heroes.map((h: { name: string }) => h.name);
+    expect(names).toContain("Melonni");
+    expect(names).toContain("Kahmu");
+    expect(names).toContain("M.O.X.");
+  });
+
+  it("exposes the build workflow guide as a resource", async () => {
+    const client = await connectedClient();
+    const { resources } = await client.listResources();
+    expect(resources.map((r) => r.uri)).toContain("gw1://guide/build-workflow");
+    const doc = await client.readResource({ uri: "gw1://guide/build-workflow" });
+    expect((doc.contents[0] as { text: string }).text).toContain("One elite maximum");
   });
 });

@@ -50,7 +50,9 @@ describe("streamable HTTP endpoint", () => {
     expect(names).toEqual([
       "decode_template",
       "encode_template",
+      "get_hero",
       "get_skill",
+      "list_heroes",
       "search_skills",
       "validate_build",
     ]);

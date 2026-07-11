@@ -203,6 +203,13 @@
   "unlock": "Guild Wars Beyond \u2014 Winds of Change (Factions)"
  },
  {
+  "id": 38,
+  "name": "Devona",
+  "professionId": 1,
+  "campaignId": 1,
+  "unlock": "Guild Wars Reforged \u2014 unlocked as a hero through the Reforged Mode dungeon or in Lion's Arch (April 2026 addition)"
+ },
+ {
   "id": 39,
   "name": "Ghost of Althea",
   "professionId": 5,

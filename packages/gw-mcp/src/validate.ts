@@ -22,12 +22,31 @@ export interface ValidationResult {
  * Errors mean the template cannot legally exist; warnings mean it is
  * encodable but suspicious (e.g. PvE-only skills on a hero bar).
  */
+/** Cumulative attribute point cost to reach rank r (index = rank). */
+const RANK_COST = [0, 1, 3, 6, 10, 15, 21, 28, 37, 48, 61, 77, 97] as const;
+/** Max attribute points at level 20 including the two +15 point quests. */
+const MAX_ATTRIBUTE_POINTS = 200;
+
 export function validateBuild(
   template: SkillTemplate,
   options: { forHero?: boolean; unlockedSkillIds?: number[] } = {},
 ): ValidationResult {
   const errors: ValidationIssue[] = [];
   const warnings: ValidationIssue[] = [];
+
+  // Attribute point budget: level 20 grants at most 200 points (170 base
+  // + 30 from quests). The in-game panel physically prevents exceeding it,
+  // so a build over budget cannot exist.
+  const spentPoints = template.attributes.reduce(
+    (total, { rank }) => total + (RANK_COST[rank] ?? Number.POSITIVE_INFINITY),
+    0,
+  );
+  if (spentPoints > MAX_ATTRIBUTE_POINTS) {
+    errors.push({
+      code: "ATTRIBUTE_POINTS_EXCEEDED",
+      message: `This attribute spread costs ${spentPoints} points; a level 20 character has at most ${MAX_ATTRIBUTE_POINTS} (170 base + 30 from quests). Lower some ranks.`,
+    });
+  }
 
   const primary = getProfession(template.primary);
   const secondary = getProfession(template.secondary);

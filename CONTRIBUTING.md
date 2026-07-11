@@ -40,6 +40,15 @@ runs the worker locally.
 - Importing any module must never trigger I/O; executables guard their
   flow behind `isDirectRun`.
 
+## Commit messages and releases
+
+Commit messages follow conventional commits (`feat:`, `fix:`, `docs:`,
+`refactor:`, `test:`, `deps:`, `chore:`, `ci:`) — release-please reads
+them to build the changelog and pick the next SemVer bump (`feat` = minor,
+`fix` = patch, `feat!`/`BREAKING CHANGE:` = major). A running release PR
+on main accumulates changes; merging it tags the release, publishes it on
+GitHub, and the MCP Registry metadata updates automatically.
+
 ## Pull requests
 
 Keep them small and focused. CI runs lint, format check, typecheck, the

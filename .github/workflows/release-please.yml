@@ -1,0 +1,19 @@
+name: Release Please
+# Watches main for conventional commits, maintains a running release PR
+# (version bump in package.json + server.json, CHANGELOG update). Merging
+# that PR tags and publishes the GitHub release — which in turn triggers
+# publish-registry.yml, so the MCP Registry metadata follows automatically.
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

@@ -1,0 +1,142 @@
+[
+ {
+  "id": 0,
+  "name": "Not a Skill"
+ },
+ {
+  "id": 1,
+  "name": "Skill"
+ },
+ {
+  "id": 2,
+  "name": "Bow Attack"
+ },
+ {
+  "id": 3,
+  "name": "Melee Attack"
+ },
+ {
+  "id": 4,
+  "name": "Axe Attack"
+ },
+ {
+  "id": 5,
+  "name": "Lead Attack"
+ },
+ {
+  "id": 6,
+  "name": "Off-Hand Attack"
+ },
+ {
+  "id": 7,
+  "name": "Dual Attack"
+ },
+ {
+  "id": 8,
+  "name": "Hammer Attack"
+ },
+ {
+  "id": 9,
+  "name": "Scythe Attack"
+ },
+ {
+  "id": 10,
+  "name": "Sword Attack"
+ },
+ {
+  "id": 11,
+  "name": "Pet Attack"
+ },
+ {
+  "id": 12,
+  "name": "Spear Attack"
+ },
+ {
+  "id": 13,
+  "name": "Chant"
+ },
+ {
+  "id": 14,
+  "name": "Echo"
+ },
+ {
+  "id": 15,
+  "name": "Form"
+ },
+ {
+  "id": 16,
+  "name": "Glyph"
+ },
+ {
+  "id": 17,
+  "name": "Preparation"
+ },
+ {
+  "id": 18,
+  "name": "Binding ritual"
+ },
+ {
+  "id": 19,
+  "name": "Nature ritual"
+ },
+ {
+  "id": 20,
+  "name": "Shout"
+ },
+ {
+  "id": 21,
+  "name": "Signet"
+ },
+ {
+  "id": 22,
+  "name": "Spell"
+ },
+ {
+  "id": 23,
+  "name": "Enchantment spell"
+ },
+ {
+  "id": 24,
+  "name": "Hex Spell"
+ },
+ {
+  "id": 25,
+  "name": "Item Spell"
+ },
+ {
+  "id": 26,
+  "name": "Ward Spell"
+ },
+ {
+  "id": 27,
+  "name": "Weapon Spell"
+ },
+ {
+  "id": 28,
+  "name": "Well Spell"
+ },
+ {
+  "id": 29,
+  "name": "Stance"
+ },
+ {
+  "id": 30,
+  "name": "Trap"
+ },
+ {
+  "id": 31,
+  "name": "Ranged attack"
+ },
+ {
+  "id": 32,
+  "name": "Ebon Vanguard Ritual"
+ },
+ {
+  "id": 33,
+  "name": "Flash Enchantment"
+ },
+ {
+  "id": 34,
+  "name": "Double Enchantment"
+ }
+]

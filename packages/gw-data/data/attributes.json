@@ -1,0 +1,410 @@
+[
+ {
+  "id": -9,
+  "name": "Norn Title Track",
+  "nameDe": "Norntitel",
+  "abbr": "nor",
+  "isPrimary": false,
+  "professionId": 0
+ },
+ {
+  "id": -8,
+  "name": "Ebon Vanguard Title Track",
+  "nameDe": "Ebon-Vorhut-Titel",
+  "abbr": "ebo",
+  "isPrimary": false,
+  "professionId": 0
+ },
+ {
+  "id": -7,
+  "name": "Deldrimor Title Track",
+  "nameDe": "Deldrimortitel",
+  "abbr": "del",
+  "isPrimary": false,
+  "professionId": 0
+ },
+ {
+  "id": -6,
+  "name": "Asura Title Track",
+  "nameDe": "Asuratitel",
+  "abbr": "asu",
+  "isPrimary": false,
+  "professionId": 0
+ },
+ {
+  "id": -5,
+  "name": "Friend of the Kurzicks Title Track",
+  "nameDe": "Freund der Kurzick",
+  "abbr": "kur",
+  "isPrimary": false,
+  "professionId": 0
+ },
+ {
+  "id": -4,
+  "name": "Friend of the Luxons Title Track",
+  "nameDe": "Freund der Luxon",
+  "abbr": "lux",
+  "isPrimary": false,
+  "professionId": 0
+ },
+ {
+  "id": -3,
+  "name": "Lightbringer Title Track",
+  "nameDe": "Lichtbringertitel",
+  "abbr": "lig",
+  "isPrimary": false,
+  "professionId": 0
+ },
+ {
+  "id": -2,
+  "name": "Sunspear Title Track",
+  "nameDe": "Sonnenspeertitel",
+  "abbr": "sun",
+  "isPrimary": false,
+  "professionId": 0
+ },
+ {
+  "id": -1,
+  "name": "No Attribute",
+  "nameDe": "Kein Attribut",
+  "abbr": "noa",
+  "isPrimary": false,
+  "professionId": 0
+ },
+ {
+  "id": 0,
+  "name": "Fast Casting",
+  "nameDe": "Schnellwirkung",
+  "abbr": "fas",
+  "isPrimary": true,
+  "professionId": 5
+ },
+ {
+  "id": 1,
+  "name": "Illusion Magic",
+  "nameDe": "Illusionsmagie",
+  "abbr": "ill",
+  "isPrimary": false,
+  "professionId": 5
+ },
+ {
+  "id": 2,
+  "name": "Domination Magic",
+  "nameDe": "Beherrschungsmagie",
+  "abbr": "dom",
+  "isPrimary": false,
+  "professionId": 5
+ },
+ {
+  "id": 3,
+  "name": "Inspiration Magic",
+  "nameDe": "Inspirationsmagie",
+  "abbr": "ins",
+  "isPrimary": false,
+  "professionId": 5
+ },
+ {
+  "id": 4,
+  "name": "Blood Magic",
+  "nameDe": "Blutmagie",
+  "abbr": "blo",
+  "isPrimary": false,
+  "professionId": 4
+ },
+ {
+  "id": 5,
+  "name": "Death Magic",
+  "nameDe": "Todesmagie",
+  "abbr": "dea",
+  "isPrimary": false,
+  "professionId": 4
+ },
+ {
+  "id": 6,
+  "name": "Soul Reaping",
+  "nameDe": "Seelensammlung",
+  "abbr": "sou",
+  "isPrimary": true,
+  "professionId": 4
+ },
+ {
+  "id": 7,
+  "name": "Curses",
+  "nameDe": "Flüche",
+  "abbr": "cur",
+  "isPrimary": false,
+  "professionId": 4
+ },
+ {
+  "id": 8,
+  "name": "Air Magic",
+  "nameDe": "Luftmagie",
+  "abbr": "air",
+  "isPrimary": false,
+  "professionId": 6
+ },
+ {
+  "id": 9,
+  "name": "Earth Magic",
+  "nameDe": "Erdmagie",
+  "abbr": "ear",
+  "isPrimary": false,
+  "professionId": 6
+ },
+ {
+  "id": 10,
+  "name": "Fire Magic",
+  "nameDe": "Feuermagie",
+  "abbr": "fir",
+  "isPrimary": false,
+  "professionId": 6
+ },
+ {
+  "id": 11,
+  "name": "Water Magic",
+  "nameDe": "Wassermagie",
+  "abbr": "wat",
+  "isPrimary": false,
+  "professionId": 6
+ },
+ {
+  "id": 12,
+  "name": "Energy Storage",
+  "nameDe": "Energiespeicherung",
+  "abbr": "ene",
+  "isPrimary": true,
+  "professionId": 6
+ },
+ {
+  "id": 13,
+  "name": "Healing Prayers",
+  "nameDe": "Heilgebete",
+  "abbr": "hea",
+  "isPrimary": false,
+  "professionId": 3
+ },
+ {
+  "id": 14,
+  "name": "Smiting Prayers",
+  "nameDe": "Peinigungsgebete",
+  "abbr": "smi",
+  "isPrimary": false,
+  "professionId": 3
+ },
+ {
+  "id": 15,
+  "name": "Protection Prayers",
+  "nameDe": "Schutzgebete",
+  "abbr": "pro",
+  "isPrimary": false,
+  "professionId": 3
+ },
+ {
+  "id": 16,
+  "name": "Divine Favor",
+  "nameDe": "Gunst der Götter",
+  "abbr": "div",
+  "isPrimary": true,
+  "professionId": 3
+ },
+ {
+  "id": 17,
+  "name": "Strength",
+  "nameDe": "Stärke",
+  "abbr": "str",
+  "isPrimary": true,
+  "professionId": 1
+ },
+ {
+  "id": 18,
+  "name": "Axe Mastery",
+  "nameDe": "Axtbeherrschung",
+  "abbr": "axe",
+  "isPrimary": false,
+  "professionId": 1
+ },
+ {
+  "id": 19,
+  "name": "Hammer Mastery",
+  "nameDe": "Hammerbeherrschung",
+  "abbr": "ham",
+  "isPrimary": false,
+  "professionId": 1
+ },
+ {
+  "id": 20,
+  "name": "Swordsmanship",
+  "nameDe": "Schwertkunst",
+  "abbr": "swo",
+  "isPrimary": false,
+  "professionId": 1
+ },
+ {
+  "id": 21,
+  "name": "Tactics",
+  "nameDe": "Taktik",
+  "abbr": "tac",
+  "isPrimary": false,
+  "professionId": 1
+ },
+ {
+  "id": 22,
+  "name": "Beast Mastery",
+  "nameDe": "Tierbeherrschung",
+  "abbr": "bea",
+  "isPrimary": false,
+  "professionId": 2
+ },
+ {
+  "id": 23,
+  "name": "Expertise",
+  "nameDe": "Fachkenntnis",
+  "abbr": "exp",
+  "isPrimary": true,
+  "professionId": 2
+ },
+ {
+  "id": 24,
+  "name": "Wilderness Survival",
+  "nameDe": "Überleben in der Wildnis",
+  "abbr": "wil",
+  "isPrimary": false,
+  "professionId": 2
+ },
+ {
+  "id": 25,
+  "name": "Marksmanship",
+  "nameDe": "Treffsicherheit",
+  "abbr": "mar",
+  "isPrimary": false,
+  "professionId": 2
+ },
+ {
+  "id": 29,
+  "name": "Dagger Mastery",
+  "nameDe": "Dolchbeherrschung",
+  "abbr": "dag",
+  "isPrimary": false,
+  "professionId": 7
+ },
+ {
+  "id": 30,
+  "name": "Deadly Arts",
+  "nameDe": "Tödliche Künste",
+  "abbr": "dead",
+  "isPrimary": false,
+  "professionId": 7
+ },
+ {
+  "id": 31,
+  "name": "Shadow Arts",
+  "nameDe": "Schattenkünste",
+  "abbr": "sha",
+  "isPrimary": false,
+  "professionId": 7
+ },
+ {
+  "id": 32,
+  "name": "Communing",
+  "nameDe": "Zwiesprache",
+  "abbr": "com",
+  "isPrimary": false,
+  "professionId": 8
+ },
+ {
+  "id": 33,
+  "name": "Restoration Magic",
+  "nameDe": "Wiederherstellungsmagie",
+  "abbr": "res",
+  "isPrimary": false,
+  "professionId": 8
+ },
+ {
+  "id": 34,
+  "name": "Channeling Magic",
+  "nameDe": "Kanalisierungsmagie",
+  "abbr": "cha",
+  "isPrimary": false,
+  "professionId": 8
+ },
+ {
+  "id": 35,
+  "name": "Critical Strikes",
+  "nameDe": "Kritische Stöße",
+  "abbr": "cri",
+  "isPrimary": true,
+  "professionId": 7
+ },
+ {
+  "id": 36,
+  "name": "Spawning Power",
+  "nameDe": "Macht des Herbeirufens",
+  "abbr": "spa",
+  "isPrimary": true,
+  "professionId": 8
+ },
+ {
+  "id": 37,
+  "name": "Spear Mastery",
+  "nameDe": "Speerbeherrschung",
+  "abbr": "spe",
+  "isPrimary": false,
+  "professionId": 9
+ },
+ {
+  "id": 38,
+  "name": "Command",
+  "nameDe": "Befehlsgewalt",
+  "abbr": "comma",
+  "isPrimary": false,
+  "professionId": 9
+ },
+ {
+  "id": 39,
+  "name": "Motivation",
+  "nameDe": "Motivation",
+  "abbr": "mot",
+  "isPrimary": false,
+  "professionId": 9
+ },
+ {
+  "id": 40,
+  "name": "Leadership",
+  "nameDe": "Führung",
+  "abbr": "lea",
+  "isPrimary": true,
+  "professionId": 9
+ },
+ {
+  "id": 41,
+  "name": "Scythe Mastery",
+  "nameDe": "Sensenbeherrschung",
+  "abbr": "scy",
+  "isPrimary": false,
+  "professionId": 10
+ },
+ {
+  "id": 42,
+  "name": "Wind Prayers",
+  "nameDe": "Windgebete",
+  "abbr": "win",
+  "isPrimary": false,
+  "professionId": 10
+ },
+ {
+  "id": 43,
+  "name": "Earth Prayers",
+  "nameDe": "Erdgebete",
+  "abbr": "earthp",
+  "isPrimary": false,
+  "professionId": 10
+ },
+ {
+  "id": 44,
+  "name": "Mysticism",
+  "nameDe": "Mystik",
+  "abbr": "mys",
+  "isPrimary": true,
+  "professionId": 10
+ }
+]

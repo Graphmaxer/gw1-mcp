@@ -1,0 +1,19 @@
+{
+  "name": "@gw1-mcp/gw-mcp",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "dev": "tsx src/stdio.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@gw1-mcp/gw-data": "workspace:*",
+    "@gw1-mcp/gw-template": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.24.0"
+  }
+}

@@ -1,0 +1,68 @@
+[
+ {
+  "id": 0,
+  "name": "none",
+  "nameDe": "keine",
+  "abbr": "X"
+ },
+ {
+  "id": 1,
+  "name": "Warrior",
+  "nameDe": "Krieger",
+  "abbr": "W"
+ },
+ {
+  "id": 2,
+  "name": "Ranger",
+  "nameDe": "Waldläufer",
+  "abbr": "R"
+ },
+ {
+  "id": 3,
+  "name": "Monk",
+  "nameDe": "Mönch",
+  "abbr": "Mo"
+ },
+ {
+  "id": 4,
+  "name": "Necromancer",
+  "nameDe": "Nekromant",
+  "abbr": "N"
+ },
+ {
+  "id": 5,
+  "name": "Mesmer",
+  "nameDe": "Mesmer",
+  "abbr": "Me"
+ },
+ {
+  "id": 6,
+  "name": "Elementalist",
+  "nameDe": "Elementarmagier",
+  "abbr": "E"
+ },
+ {
+  "id": 7,
+  "name": "Assassin",
+  "nameDe": "Assassine",
+  "abbr": "A"
+ },
+ {
+  "id": 8,
+  "name": "Ritualist",
+  "nameDe": "Ritualist",
+  "abbr": "Rt"
+ },
+ {
+  "id": 9,
+  "name": "Paragon",
+  "nameDe": "Paragon",
+  "abbr": "P"
+ },
+ {
+  "id": 10,
+  "name": "Dervish",
+  "nameDe": "Derwisch",
+  "abbr": "D"
+ }
+]

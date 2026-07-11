@@ -29,6 +29,9 @@ importers:
 
   packages/gw-mcp:
     dependencies:
+      '@buildwars/gw-templates':
+        specifier: ^1.0.1
+        version: 1.0.1
       '@gw1-mcp/gw-data':
         specifier: workspace:*
         version: link:../gw-data
@@ -42,7 +45,14 @@ importers:
         specifier: ^3.24.0
         version: 3.25.76
 
-  packages/gw-template: {}
+  packages/gw-template:
+    devDependencies:
+      '@buildwars/gw-templates':
+        specifier: ^1.0.1
+        version: 1.0.1
+      '@gw1-mcp/gw-data':
+        specifier: workspace:*
+        version: link:../gw-data
 
   packages/gw-worker:
     dependencies:
@@ -67,6 +77,9 @@ packages:
 
   '@buildwars/gw-skilldata@1.1.0':
     resolution: {integrity: sha512-FifyJExI8k0iAjEzPZMLcyss2kyd4g2Nxw//0k48W2sbojqjBJ1yWCGGs/Lf1d4wdokk6i9Z6a07VUx1PNDuqA==}
+
+  '@buildwars/gw-templates@1.0.1':
+    resolution: {integrity: sha512-kFoFkx0+Z3jyNPemqR8Yr4IeguvI+CljJ4bfSWck3H++vab5xoClPoFyWpb91G9P0qxcyU+sW3gPZFOcvsq6+A==}
 
   '@cloudflare/kv-asset-handler@0.5.0':
     resolution: {integrity: sha512-jxQYkj8dSIzc0cD6cMMNdOc1UVjqSqu8BZdor5s8cGjW2I8BjODt/kWPVdY+u9zj3ms75Q5qaZgnxUad83+eAg==}
@@ -1426,6 +1439,8 @@ snapshots:
   '@buildwars/gw-skilldata@1.1.0':
     optionalDependencies:
       '@rollup/rollup-linux-x64-gnu': 4.62.2
+
+  '@buildwars/gw-templates@1.0.1': {}
 
   '@cloudflare/kv-asset-handler@0.5.0': {}
 

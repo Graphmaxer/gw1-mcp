@@ -48,6 +48,7 @@ describe("streamable HTTP endpoint", () => {
     const { message } = await rpc({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} });
     const names = message.result.tools.map((t: { name: string }) => t.name).sort();
     expect(names).toEqual([
+      "decode_pawned_team",
       "decode_template",
       "encode_template",
       "get_hero",

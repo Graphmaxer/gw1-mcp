@@ -95,7 +95,13 @@ export function encodeTemplate(template: SkillTemplate): string {
   writer.write(template.secondary, professionBits);
   writer.write(template.attributes.length, 4);
   writer.write(attributeCode, 4);
-  for (const { attributeId, rank } of template.attributes) {
+  // Canonical form: attributes sorted by ascending id. All known in-game and
+  // third-party codes use this order (attribute order is semantically
+  // meaningless), and it makes encoding deterministic for equal builds.
+  const sortedAttributes = [...template.attributes].sort(
+    (a, b) => a.attributeId - b.attributeId,
+  );
+  for (const { attributeId, rank } of sortedAttributes) {
     writer.write(attributeId, attributeBits);
     writer.write(rank, 4);
   }

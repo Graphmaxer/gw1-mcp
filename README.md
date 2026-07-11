@@ -18,6 +18,7 @@ this server does the things that must be exact.
 | `encode_template` | Named build → validated, official in-game template code |
 | `validate_build` | GW1 rule check: one elite max, profession/attribute ownership, primary attributes, duplicates |
 | `get_hero` / `list_heroes` | Heroes with professions, campaigns and unlock notes |
+| `decode_pawned_team` | paw-ned2 team blobs (PvXwiki team pages) → every bar decoded |
 
 Resources: `gw1://guide/build-workflow` (methodology for the LLM) and `gw1://heroes`.
 
@@ -31,7 +32,7 @@ pnpm --filter @gw1-mcp/gw-mcp dev   # stdio server
 
 ## Packages
 
-- `packages/gw-template` — template code codec (zero dependencies, round-trip tested)
+- `packages/gw-template` — template code codec (zero dependencies; round-trip tested against in-game/PvX codes and differentially fuzzed against [@buildwars/gw-templates](https://github.com/build-wars/gw-templates))
 - `packages/gw-data` — game data (1485 skills, Reforged-current) imported from [build-wars/gw-skilldata](https://github.com/build-wars/gw-skilldata) (MIT)
 - `packages/gw-mcp` — the MCP server (transport-agnostic core + stdio entry)
 - `packages/gw-worker` — Streamable HTTP wrapper (Hono), runs on Cloudflare Workers and Node

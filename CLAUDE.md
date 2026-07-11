@@ -71,6 +71,21 @@ The codec in `packages/gw-template` is implemented and round-trip tested. Do **n
 
 The codec must be perfectly **round-trip stable**: `encode(decode(code)) === code` for every fixture, and `decode(encode(build))` deep-equals `build`.
 
+## Codec verification layers
+
+1. Golden fixtures (below) — game/PvX-generated codes, character-exact.
+2. Round-trip fuzz (2000 random builds).
+3. Differential fuzz vs @buildwars/gw-templates (independent implementation,
+   production-tested on gw1builds.com): their decoder must reproduce our
+   encoder's input on every legal build. Known upstream deviations are
+   documented in test/differential.test.ts (24-bit padding quirk, width
+   floors, silent normalization of illegal inputs) plus one real upstream
+   BUG (lone high skill id truncation — sentinel test + report in
+   docs/upstream-gw-templates-bug.md; consider filing it upstream).
+4. @buildwars/gw-templates is also a runtime dependency of gw-mcp for the
+   paw-ned2 team container format (decode_pawned_team tool); individual bars
+   are decoded by OUR codec.
+
 ## Golden tests (non-negotiable)
 
 `packages/gw-template/test/fixtures/templates.json` contains real template codes with their expected decoded form:

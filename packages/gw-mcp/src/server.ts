@@ -17,6 +17,7 @@ import {
   suggestSkillNames,
 } from "@gw1-mcp/gw-data";
 import { decodeTemplate, encodeTemplate, TemplateError } from "@gw1-mcp/gw-template";
+import { PwndTemplate } from "@buildwars/gw-templates";
 import dataMeta from "@gw1-mcp/gw-data/data/_meta.json" with { type: "json" };
 import { describeTemplate, resolveNamedBuild } from "./build-io.js";
 import { validateBuild } from "./validate.js";
@@ -180,6 +181,60 @@ export function createServer(): McpServer {
         }
         throw error;
       }
+    },
+  );
+
+  server.registerTool(
+    "decode_pawned_team",
+    {
+      title: "Decode a paw-ned2 team template",
+      description:
+        "Decode a paw-ned2 team build blob (the 'pwnd0001...>...<' format shared on PvXwiki team pages and by the paw-ned2 tool) into its individual builds: player/hero label, description, and each skill bar fully decoded. Whitespace and line wraps in the pasted blob are tolerated.",
+      inputSchema: {
+        pwnd: z.string().describe("The full pwnd blob, starting with 'pwnd000'"),
+      },
+    },
+    async ({ pwnd }) => {
+      // Re-join line-wrapped payloads: strip all whitespace inside the
+      // base64 section between '>' and '<' (pasted blobs often wrap).
+      const cleaned = pwnd.replace(/>([^<]*)</s, (_, payload: string) => `>${payload.replace(/\s+/g, "")}<`);
+      let entries;
+      try {
+        entries = new PwndTemplate().decode(cleaned);
+      } catch (error) {
+        return json({
+          error: {
+            code: "INVALID_PWND",
+            message: error instanceof Error ? error.message : String(error),
+          },
+        });
+      }
+      return json({
+        builds: entries.map((entry, index) => {
+          let build: unknown;
+          let buildError: unknown;
+          try {
+            build = describeTemplate(decodeTemplate(entry.skills));
+          } catch (error) {
+            buildError = {
+              code: error instanceof TemplateError ? error.code : "DECODE_FAILED",
+              message: error instanceof Error ? error.message : String(error),
+            };
+          }
+          // The description field holds "label\nnotes"; label is the slot
+          // name shown in paw-ned2 ("Player", "Hero 1", ...).
+          const [label = "", ...notes] = entry.description.split("\n");
+          return {
+            slot: index + 1,
+            label,
+            notes: notes.join("\n").trim() || null,
+            inGamePlayerName: entry.player || null,
+            skillsCode: entry.skills,
+            equipmentCode: entry.equipment || null,
+            ...(build !== undefined ? { build } : { error: buildError }),
+          };
+        }),
+      });
     },
   );
 

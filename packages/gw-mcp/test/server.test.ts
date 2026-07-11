@@ -23,6 +23,7 @@ describe("gw1-mcp server", () => {
     const client = await connectedClient();
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
+      "decode_pawned_team",
       "decode_template",
       "encode_template",
       "get_hero",
@@ -176,5 +177,28 @@ describe("heroes and resources", () => {
     expect(resources.map((r) => r.uri)).toContain("gw1://guide/build-workflow");
     const doc = await client.readResource({ uri: "gw1://guide/build-workflow" });
     expect((doc.contents[0] as { text: string }).text).toContain("One elite maximum");
+  });
+});
+
+describe("paw-ned2 team decoding", () => {
+  it("decodes a real PvXwiki team blob (3 Hero Discordway) despite line wraps", async () => {
+    const client = await connectedClient();
+    // Verbatim from the PvX page rendering, including wrap-induced spaces.
+    const pwnd =
+      "pwnd0001?download pawned2 @ Copyright 2008-2018 Redeemer >XOwBR4ZymcBaXMmEAAAAAAAAAAAAAABXUGxheWVyCmh0dHBzOi8vZ3dwdnguZ2FtZXBlZGlhLmNvbS9 CdWlsZDpUZWFtXy1fM19IZXJvX0Rpc2NvcmR3YXkZOAhjUoGYIPxsjaGTaO5GmjzLGAAAACEIAAKSGVy byAxCgbOAhkUsG3RFuTMzOgIkmTuhJ1+iBAAAACEJAAKSGVybyAyCgZOANDUshvSxMVBoBbhKg3V1DBE AAAACEIAAKSGVybyAzCg<";
+    const result = payload(await client.callTool({ name: "decode_pawned_team", arguments: { pwnd } }));
+    expect(result.builds).toHaveLength(4);
+    expect(result.builds.map((b: { label: string }) => b.label)).toEqual([
+      "Player",
+      "Hero 1",
+      "Hero 2",
+      "Hero 3",
+    ]);
+    expect(result.builds[0].notes).toContain("gwpvx");
+    // The three Discord hero bars are Necromancer-primary.
+    for (const hero of result.builds.slice(1)) {
+      expect(hero.build.primary).toBe("Necromancer");
+      expect(hero.build.skills.some((s: { name: string | null }) => s.name === "Discord")).toBe(true);
+    }
   });
 });

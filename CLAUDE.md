@@ -106,11 +106,14 @@ Source: https://github.com/build-wars/gw1-database (MIT — keep the license not
 
 ## Current status (updated 2026-07-11)
 
-Milestones 0-3 are DONE: monorepo builds, codec implemented and round-trip
+Milestones 0-4 are DONE: monorepo builds, codec implemented and round-trip
 tested against public example codes, gw1-database imported (1320 skills),
-MCP server with 5 tools passing end-to-end tests over InMemoryTransport.
-NEXT: more golden fixtures from real gameplay, then Streamable HTTP transport
-and Cloudflare Workers deployment.
+MCP server with 5 tools passing end-to-end tests over InMemoryTransport,
+and a stateless Streamable HTTP transport (packages/gw-worker, Hono) that
+runs identically on Node and Cloudflare Workers (wrangler dry-run: 234 KB gzip).
+NEXT: golden fixtures from real gameplay (blocking, needs Maxime's codes),
+first real deployment (`wrangler login && pnpm --filter @gw1-mcp/gw-worker deploy`),
+then MCP resources (gw1://roles, hero constraints) and heroes_from_progression.
 
 ## MCP tools (MVP scope — do not add more without discussion)
 

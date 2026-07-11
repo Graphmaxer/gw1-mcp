@@ -30,7 +30,28 @@ pnpm --filter @gw1-mcp/gw-mcp dev   # stdio server
 
 - `packages/gw-template` — template code codec (zero dependencies, round-trip tested)
 - `packages/gw-data` — game data (1320 skills) imported from [build-wars/gw1-database](https://github.com/build-wars/gw1-database) (MIT)
-- `packages/gw-mcp` — the MCP server
+- `packages/gw-mcp` — the MCP server (transport-agnostic core + stdio entry)
+- `packages/gw-worker` — Streamable HTTP wrapper (Hono), runs on Cloudflare Workers and Node
+
+## Deploy to Cloudflare Workers
+
+```bash
+pnpm --filter @gw1-mcp/gw-worker check    # offline bundling validation
+pnpm --filter @gw1-mcp/gw-worker deploy   # needs `wrangler login` once
+```
+
+The server is stateless (a fresh McpServer per request over bundled data), so it
+fits the Workers model with zero configuration: no Durable Objects, no KV, no
+secrets. Free plan is plenty.
+
+## Connect it
+
+- **claude.ai / Claude app**: Settings → Connectors → Add custom connector →
+  `https://gw1-mcp.<your-subdomain>.workers.dev/mcp`
+- **Claude Code**: `claude mcp add --transport http gw1 https://…/mcp`
+  or locally over stdio: `claude mcp add gw1 -- pnpm --filter @gw1-mcp/gw-mcp dev`
+- **Local HTTP without Cloudflare**: `pnpm --filter @gw1-mcp/gw-worker dev:node`
+  then point any client at `http://localhost:8787/mcp`
 
 ## Regenerating game data
 

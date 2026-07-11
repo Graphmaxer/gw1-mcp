@@ -1,0 +1,73 @@
+import { describe, expect, it } from "vitest";
+import { createApp } from "../src/app.js";
+
+const app = createApp();
+
+/** POST a JSON-RPC message to /mcp and parse the SSE-framed response. */
+async function rpc(body: unknown): Promise<{ status: number; message: any }> {
+  const res = await app.request("/mcp", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      accept: "application/json, text/event-stream",
+    },
+    body: JSON.stringify(body),
+  });
+  const text = await res.text();
+  const data = text
+    .split("\n")
+    .find((line) => line.startsWith("data: "))
+    ?.slice("data: ".length);
+  return { status: res.status, message: data ? JSON.parse(data) : null };
+}
+
+describe("streamable HTTP endpoint", () => {
+  it("serves a discovery document at the root", async () => {
+    const res = await app.request("/");
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.endpoint).toBe("/mcp");
+  });
+
+  it("answers initialize", async () => {
+    const { status, message } = await rpc({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: {
+        protocolVersion: "2025-03-26",
+        capabilities: {},
+        clientInfo: { name: "test", version: "0" },
+      },
+    });
+    expect(status).toBe(200);
+    expect(message.result.serverInfo.name).toBe("gw1-mcp");
+  });
+
+  it("lists tools statelessly (no prior session required)", async () => {
+    const { message } = await rpc({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} });
+    const names = message.result.tools.map((t: { name: string }) => t.name).sort();
+    expect(names).toEqual([
+      "decode_template",
+      "encode_template",
+      "get_skill",
+      "search_skills",
+      "validate_build",
+    ]);
+  });
+
+  it("calls a tool over HTTP", async () => {
+    const { message } = await rpc({
+      jsonrpc: "2.0",
+      id: 3,
+      method: "tools/call",
+      params: {
+        name: "decode_template",
+        arguments: { code: "OwpiMypMBg1cxcBAMBdmtIKAA" },
+      },
+    });
+    const payload = JSON.parse(message.result.content[0].text);
+    expect(payload.primary).toBe("Assassin");
+    expect(payload.secondary).toBe("Dervish");
+  });
+});

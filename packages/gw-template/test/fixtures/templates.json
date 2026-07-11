@@ -421,6 +421,72 @@
      1335
     ]
    }
+  },
+  {
+   "name": "E/P Mind Burn Fire hero (gw1builds.com, verified against icon skill ids) — gw1builds encodes via @buildwars/gw-templates, so only semantic round-trip holds",
+   "code": "OgljowMpZO5CdRwYsaMwF7YcMA",
+   "roundtrip": false,
+   "expect": {
+    "primary": 6,
+    "secondary": 9,
+    "attributes": [
+     {
+      "attributeId": 10,
+      "rank": 12
+     },
+     {
+      "attributeId": 12,
+      "rank": 9
+     },
+     {
+      "attributeId": 38,
+      "rank": 9
+     }
+    ],
+    "skills": [
+     185,
+     186,
+     193,
+     1379,
+     198,
+     184,
+     1595,
+     1592
+    ]
+   }
+  },
+  {
+   "name": "E/P Thunderclap Air hero (gw1builds.com, verified against icon skill ids) — gw1builds encodes via @buildwars/gw-templates, so only semantic round-trip holds",
+   "code": "OgljgwMpZOkjvhSLHGOqx7YcMA",
+   "roundtrip": false,
+   "expect": {
+    "primary": 6,
+    "secondary": 9,
+    "attributes": [
+     {
+      "attributeId": 8,
+      "rank": 12
+     },
+     {
+      "attributeId": 12,
+      "rank": 9
+     },
+     {
+      "attributeId": 38,
+      "rank": 9
+     }
+    ],
+    "skills": [
+     228,
+     223,
+     842,
+     1081,
+     225,
+     1589,
+     1595,
+     1592
+    ]
+   }
   }
  ]
 }

@@ -57,6 +57,25 @@ function json(data: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
 }
 
+const issueSchema = z.object({ code: z.string(), message: z.string() });
+/**
+ * Shared output contract for encode_template and validate_build. Exactly one
+ * of the shapes is populated: { code, warnings } on successful encode,
+ * { valid, errors, warnings } as a validation report, or { errors } alone
+ * when name resolution fails before validation.
+ */
+const buildResultSchema = {
+  code: z.string().optional().describe("Official in-game template code (successful encode only)"),
+  valid: z.boolean().optional(),
+  errors: z.array(issueSchema).optional(),
+  warnings: z.array(issueSchema).optional(),
+};
+
+/** Structured result: machine-parseable structuredContent plus the usual JSON text. */
+function jsonStructured(data: object) {
+  return { ...json(data), structuredContent: data as Record<string, unknown> };
+}
+
 /** Tool-level failure: same JSON body, plus the MCP isError flag so clients can react. */
 function jsonError(code: string, message: string) {
   return { ...json({ error: { code, message } }), isError: true };
@@ -92,7 +111,7 @@ export function createServer(): McpServer {
           .string()
           .optional()
           .describe('Exact English skill name, e.g. "Mystic Regeneration"'),
-        id: z.number().int().optional().describe("Template skill id"),
+        id: z.number().int().min(0).max(65535).optional().describe("Template skill id"),
       },
     },
     async ({ name, id }) => {
@@ -282,6 +301,7 @@ export function createServer(): McpServer {
       description:
         "Compile a build (professions, attributes, 8 skills by exact English name) into an official in-game template code. The build is validated first; on rule violations the errors are returned instead of a code. Unknown skill names return closest-match suggestions. IMPORTANT: template codes MUST come from this tool — never write or guess a code by hand, hand-written codes are invalid in-game. If unsure, verify any code with decode_template.",
       annotations: READ_ONLY,
+      outputSchema: buildResultSchema,
       inputSchema: {
         ...namedBuildSchema,
         forHero: z
@@ -289,7 +309,7 @@ export function createServer(): McpServer {
           .default(false)
           .describe("Set true if this bar is for a hero (PvE-only skills are flagged)"),
         unlockedSkillIds: z
-          .array(z.number().int())
+          .array(z.number().int().min(0).max(65535))
           .optional()
           .describe(
             "Optional: unlocked skill ids from a GWToolbox account export (/exportaccount). Skills outside this list are flagged as warnings.",
@@ -298,16 +318,16 @@ export function createServer(): McpServer {
     },
     async ({ forHero, unlockedSkillIds, ...build }) => {
       const resolution = resolveNamedBuild(build);
-      if (!resolution.template) return json({ errors: resolution.errors });
+      if (!resolution.template) return jsonStructured({ errors: resolution.errors });
 
       const validation = validateBuild(resolution.template, {
         forHero,
         ...(unlockedSkillIds !== undefined ? { unlockedSkillIds } : {}),
       });
-      if (!validation.valid) return json(validation);
+      if (!validation.valid) return jsonStructured(validation);
 
       try {
-        return json({
+        return jsonStructured({
           code: encodeTemplate(resolution.template),
           warnings: validation.warnings,
         });
@@ -327,11 +347,12 @@ export function createServer(): McpServer {
       description:
         "Check a build (professions, attributes, 8 skills by exact English name) against Guild Wars 1 rules: one elite max, profession/attribute ownership, primary attributes, duplicates, rank ranges. Returns { valid, errors, warnings } without encoding.",
       annotations: READ_ONLY,
+      outputSchema: buildResultSchema,
       inputSchema: {
         ...namedBuildSchema,
         forHero: z.boolean().default(false),
         unlockedSkillIds: z
-          .array(z.number().int())
+          .array(z.number().int().min(0).max(65535))
           .optional()
           .describe(
             "Optional: unlocked skill ids from a GWToolbox account export (/exportaccount). Skills outside this list are flagged as warnings.",
@@ -341,9 +362,9 @@ export function createServer(): McpServer {
     async ({ forHero, unlockedSkillIds, ...build }) => {
       const resolution = resolveNamedBuild(build);
       if (!resolution.template) {
-        return json({ valid: false, errors: resolution.errors, warnings: [] });
+        return jsonStructured({ valid: false, errors: resolution.errors, warnings: [] });
       }
-      return json(
+      return jsonStructured(
         validateBuild(resolution.template, {
           forHero,
           ...(unlockedSkillIds !== undefined ? { unlockedSkillIds } : {}),
@@ -361,7 +382,7 @@ export function createServer(): McpServer {
       annotations: READ_ONLY,
       inputSchema: {
         name: z.string().optional().describe('Hero name, e.g. "Master of Whispers"'),
-        id: z.number().int().optional().describe("GWCA HeroID value"),
+        id: z.number().int().min(0).max(255).optional().describe("GWCA HeroID value"),
       },
     },
     async ({ name, id }) => {

@@ -157,6 +157,29 @@ Tool design rules:
 3. Cloudflare Workers deployment + custom connector on claude.ai; then Anthropic connectors directory submission.
 4. ~~GWToolbox export plugin~~ — written in gwtoolbox-plugin/AccountExport; needs first Windows build, then consider upstreaming as a PR to GWToolbox's Completion window.
 
+## Data maintenance & Reforged
+
+- Upstream build-wars/gw1-database is UNMAINTAINED (last commit 2019-07); its
+  own source is the pre-Reforged paw-ned2 CSV feeds. Meanwhile Guild Wars
+  Reforged ships real balance updates (2026: Feb, May, Jun...) that change
+  skill stats and effects — but NEVER skill ids, names, professions,
+  attributes or elite flags. Consequence: encoding/decoding/validation stay
+  correct; stats/descriptions drift.
+- Provenance is recorded in packages/gw-data/data/_meta.json (written by the
+  import script) and exposed to LLM clients via the gw1://meta resource. The
+  build-workflow guide instructs clients to verify precise stats against
+  https://wiki.guildwars.com/wiki/Game_updates when they matter.
+- .github/workflows/update-data.yml re-imports upstream monthly and opens a PR
+  when the generated JSON changes (tests gate the merge).
+- DESIGNATED NEXT MILESTONE for freshness: a `refresh-from-wiki` importer that
+  queries the official wiki's MediaWiki API (wiki.guildwars.com/api.php) for
+  skill infoboxes, maps by canonical name to our ids, and updates ONLY the
+  stat/description fields. Never let a wiki import change ids or the
+  id->name mapping — those are locked by the golden fixtures.
+- Note: Ghost of Althea (HeroID 39) became an unlockable hero with Reforged;
+  Devona (HeroID 38) exists in the GWCA enum but her unlock status is
+  unverified — do not add her to heroes.json without checking the wiki.
+
 ## Conventions
 
 - Conventional commits (`feat:`, `fix:`, `test:`, `chore:`…).

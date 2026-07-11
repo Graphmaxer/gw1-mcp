@@ -1,0 +1,47 @@
+name: Update game data
+on:
+  schedule:
+    - cron: "17 6 1 * *"   # monthly
+  workflow_dispatch:
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Import latest upstream data
+        run: |
+          git clone --depth 1 https://github.com/build-wars/gw1-database.git /tmp/gw1-database
+          pnpm --filter @gw1-mcp/gw-data import /tmp/gw1-database
+      - name: Check for meaningful changes (ignore import date)
+        id: diff
+        run: |
+          if git diff --numstat -- packages/gw-data/data | grep -v "_meta.json" | grep -q .; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            git checkout -- packages/gw-data/data/_meta.json || true
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+      - run: pnpm -r test
+        if: steps.diff.outputs.changed == 'true'
+      - name: Open pull request
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: chore/update-game-data
+          title: "chore: update game data from upstream"
+          commit-message: "chore: update game data from build-wars/gw1-database"
+          body: |
+            Automated re-import from build-wars/gw1-database detected changes.
+            Review the diff in `packages/gw-data/data/` — CI runs the full
+            golden-fixture suite against the new data.

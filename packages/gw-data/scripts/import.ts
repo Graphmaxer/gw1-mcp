@@ -7,7 +7,8 @@
  *
  * The generated JSON is committed: the MCP server never fetches anything at runtime.
  */
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { execSync } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -177,3 +178,20 @@ write("professions.json", professions, professions.length);
 write("attributes.json", attributes, attributes.length);
 write("skill-types.json", skillTypes, skillTypes.length);
 write("skills.json", skills, skills.length);
+
+// --- provenance -------------------------------------------------------------
+let sourceCommit = "unknown";
+try {
+  if (existsSync(join(sourceRoot, ".git"))) {
+    sourceCommit = execSync(`git -C ${JSON.stringify(sourceRoot)} rev-parse HEAD`).toString().trim();
+  }
+} catch { /* best effort */ }
+const meta = {
+  source: "https://github.com/build-wars/gw1-database",
+  sourceCommit,
+  importedAt: new Date().toISOString().slice(0, 10),
+  caveat:
+    "Upstream data derives from pre-Reforged paw-ned2 feeds (2019). Skill IDs, names, professions, attributes and elite flags are stable across balance patches; energy/recharge/activation values and descriptions may differ from the live game since the Guild Wars Reforged balance updates (2025+). Check https://wiki.guildwars.com/wiki/Game_updates for recent balance notes.",
+};
+writeFileSync(join(outDir, "_meta.json"), JSON.stringify(meta, null, 1) + "\n");
+console.log("_meta.json: provenance written");

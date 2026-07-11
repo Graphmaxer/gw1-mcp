@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",
-  "exports": { ".": "./src/index.ts" },
+  "exports": {
+    ".": "./src/index.ts",
+    "./data/_meta.json": "./data/_meta.json"
+  },
   "scripts": {
     "import": "tsx scripts/import.ts",
     "build": "tsc -p tsconfig.json",

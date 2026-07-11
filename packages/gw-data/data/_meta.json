@@ -1,0 +1,6 @@
+{
+ "source": "https://github.com/build-wars/gw1-database",
+ "sourceCommit": "94ba489543aaf03e8d3a32aba7f9b135e5443613",
+ "importedAt": "2026-07-11",
+ "caveat": "Upstream data derives from pre-Reforged paw-ned2 feeds (2019). Skill IDs, names, professions, attributes and elite flags are stable across balance patches; energy/recharge/activation values and descriptions may differ from the live game since the Guild Wars Reforged balance updates (2025+). Check https://wiki.guildwars.com/wiki/Game_updates for recent balance notes."
+}

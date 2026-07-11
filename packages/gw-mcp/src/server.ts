@@ -17,6 +17,7 @@ import {
   suggestSkillNames,
 } from "@gw1-mcp/gw-data";
 import { decodeTemplate, encodeTemplate, TemplateError } from "@gw1-mcp/gw-template";
+import dataMeta from "@gw1-mcp/gw-data/data/_meta.json" with { type: "json" };
 import { describeTemplate, resolveNamedBuild } from "./build-io.js";
 import { validateBuild } from "./validate.js";
 
@@ -342,6 +343,19 @@ export function createServer(): McpServer {
   );
 
   server.registerResource(
+    "data-provenance",
+    "gw1://meta",
+    {
+      title: "Data provenance and freshness",
+      description: "Where the skill data comes from and how fresh it is relative to Guild Wars Reforged balance updates",
+      mimeType: "application/json",
+    },
+    async (uri) => ({
+      contents: [{ uri: uri.href, text: JSON.stringify(dataMeta, null, 2) }],
+    }),
+  );
+
+  server.registerResource(
     "heroes",
     "gw1://heroes",
     {
@@ -389,4 +403,11 @@ const BUILD_WORKFLOW_GUIDE = `# Composing a GW1 build with gw1-mcp
    most PvE-only skills).
 6. **Encode** with encode_template only once validation passes, and give the
    player the code(s) to paste in-game.
+
+Data freshness: skill stats in this server reflect the pre-Reforged baseline
+(see the gw1://meta resource). Structure (ids, professions, attributes,
+elites) is stable, but Guild Wars Reforged balance updates (2025+) may have
+changed energy costs, recharges or effects. When a precise stat matters to a
+decision, verify against the game or the balance notes at
+https://wiki.guildwars.com/wiki/Game_updates.
 `;

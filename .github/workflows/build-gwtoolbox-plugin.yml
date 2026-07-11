@@ -24,7 +24,7 @@ jobs:
       # Keep in sync with GWToolboxpp's own CI pin.
       VCPKG_COMMIT: ce613c41372b23b1f51333815feb3edd87ef8a8b
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Checkout GWToolboxpp (master)
         shell: bash
@@ -39,7 +39,7 @@ jobs:
 
       - name: Cache vcpkg toolchain
         id: cache-vcpkg-tool
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/vcpkg
           key: vcpkg-tool-${{ runner.os }}-${{ env.VCPKG_COMMIT }}
@@ -58,7 +58,7 @@ jobs:
         run: echo "VCPKG_ROOT=${{ github.workspace }}\vcpkg" >> $env:GITHUB_ENV
 
       - name: Restore vcpkg binary cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/vcpkg-bincache
           key: vcpkg-bin-${{ runner.os }}-${{ hashFiles('GWToolboxpp/vcpkg.json', 'GWToolboxpp/vcpkg-configuration.json', 'GWToolboxpp/vcpkg-overlays/**') }}
@@ -66,7 +66,7 @@ jobs:
             vcpkg-bin-${{ runner.os }}-
 
       - name: Restore FetchContent cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/GWToolboxpp/build/_deps
           key: deps-${{ runner.os }}-${{ hashFiles('GWToolboxpp/cmake/*.cmake') }}
@@ -94,7 +94,7 @@ jobs:
           Get-ChildItem out
 
       - name: Upload AccountExport.dll
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: AccountExport
           path: out/

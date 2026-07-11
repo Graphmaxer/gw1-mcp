@@ -21,7 +21,6 @@ pnpm monorepo, TypeScript everywhere.
 ```
 gw1-mcp/
 ├── CLAUDE.md              ← you are here
-├── reference/             ← original Python codec (source of truth for the port, read-only)
 ├── packages/
 │   ├── gw-data/           ← game data (JSON from build-wars/gw1-database) + repository layer
 │   ├── gw-template/       ← template code codec (encode/decode) — ZERO dependencies, pure functions
@@ -66,7 +65,12 @@ Distinguish `errors` (build cannot exist / template cannot be generated) from `w
 The codec in `packages/gw-template` is implemented and round-trip tested. Do **not** change the bitstream layout from memory. The authoritative references are, in order:
 
 1. The golden test fixtures (below) — real codes; extend them, never edit them.
-2. `reference/` — the original Python implementation (battle-tested against real in-game codes).
+2. The verification corpus itself — 18 golden fixtures from four independent
+   encoders (the pre-2007 game client, PvXCode, @buildwars/gw-templates, a
+   GWW player page), differential + fuzz + malformed-input tests. Maxime's
+   historical Python codec, once planned as a reference oracle under
+   reference/, is no longer needed for correctness; welcome as an optional
+   extra cross-check if it ever surfaces.
 3. Guild Wars Wiki: https://wiki.guildwars.com/wiki/Skill_template_format
 
 The codec must be perfectly **round-trip stable**: `encode(decode(code)) === code` for every fixture, and `decode(encode(build))` deep-equals `build`.
@@ -283,6 +287,6 @@ Tool design rules:
 ## Working style for Claude Code sessions
 
 - Small, reviewable increments; one milestone per session.
-- Before touching the codec, read `reference/` and the fixtures.
+- Before touching the codec, read the fixtures and the verification layers above.
 - Never modify golden fixtures to make tests pass — fixtures are ground truth from the game.
 - If a game rule seems ambiguous, check the Guild Wars Wiki and leave a link in a comment rather than assuming.

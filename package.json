@@ -2,7 +2,7 @@
   "name": "gw1-mcp",
   "version": "0.1.0",
   "private": true,
-  "description": "Kormir — a Guild Wars 1 build compiler for LLMs (MCP server)",
+  "description": "A Guild Wars 1 build compiler for LLMs (MCP server)",
   "license": "MIT",
   "scripts": {
     "test": "pnpm -r test",

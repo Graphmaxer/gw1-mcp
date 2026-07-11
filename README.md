@@ -34,6 +34,13 @@ pnpm --filter @gw1-mcp/gw-mcp dev   # stdio server
 
 - `packages/gw-template` — template code codec (zero dependencies; round-trip tested against in-game/PvX codes and differentially fuzzed against [@buildwars/gw-templates](https://github.com/build-wars/gw-templates))
 - `packages/gw-data` — game data (1485 skills, Reforged-current) imported from [build-wars/gw-skilldata](https://github.com/build-wars/gw-skilldata) (MIT)
+
+The codec is verified four ways: 18 golden fixtures covering all 10 primary
+professions and all 5 campaigns (sourced from PvXwiki, gw1builds.com, the
+official wiki and the pre-2007 in-game format, several verified down to the
+skill-id level), fuzzed round-trips, differential testing against an
+independent implementation, and malformed-input rejection tests. Validation
+rules are table-tested one by one. `pnpm test:coverage` for the numbers.
 - `packages/gw-mcp` — the MCP server (transport-agnostic core + stdio entry)
 - `packages/gw-worker` — Streamable HTTP wrapper (Hono), runs on Cloudflare Workers and Node
 

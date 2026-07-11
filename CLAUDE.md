@@ -126,6 +126,16 @@ justification comment. Before adding an option, probe whether the default
 already covers it; before removing one, know which file relies on it (e.g.
 `module: ESNext` exists for the single `with { type: "json" }` import).
 
+## Linting and formatting stance
+
+No ESLint/Prettier/Biome on purpose: TypeScript strict-plus (see the
+tsconfig philosophy) plus the test suite catches the bug classes linters
+target here, the codebase is small and single-author, and a formatter now
+would add a giant diff plus a config surface for zero behavior change. The
+style is consistent by convention (2-space, double quotes, trailing
+commas). REVISIT if the project gains outside contributors — then add
+Biome (one dep, one config) rather than the ESLint+Prettier stack.
+
 ## Coverage expectations
 
 `pnpm test:coverage` (provider @vitest/coverage-v8, version-locked to the

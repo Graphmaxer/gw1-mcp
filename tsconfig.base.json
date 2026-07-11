@@ -1,16 +1,19 @@
 {
+  // Minimal on top of TypeScript >= 7 defaults, where strict, ES2022+ targets
+  // and consistent-casing checks are already on. Each remaining option is
+  // here because probing tsc 7.0.2 showed it is still off by default and the
+  // codebase relies on it:
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "strict": true,
+    // Hardening beyond `strict` (all verified off by default in TS 7.0.2).
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-    "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true,
-    "declaration": true,
-    "sourceMap": true,
-    "resolveJsonModule": true,
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+    // Modern module semantics: required by `import ... with { type: "json" }`
+    // and by workspace `exports` maps pointing at .ts sources.
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    // Dependency .d.ts files are not ours to fix (the MCP SDK's reference
+    // node:stream without pulling @types/node into every consumer).
+    "skipLibCheck": true
   }
 }

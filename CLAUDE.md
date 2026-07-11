@@ -116,6 +116,16 @@ attribute ids < 16 (4-vs-5-bit attribute width), and ANY bar at all (exact
 trailing-padding convention: we pad to 6 bits; the Catbus source emits one
 extra zero group; compare code LENGTH char-for-char).
 
+## TypeScript configuration philosophy
+
+tsconfig.base.json is intentionally minimal on top of TypeScript >= 7
+defaults (strict, modern targets and consistent casing are now built in —
+verified by probing tsc 7.0.2 with a bare config). Only options that
+provably change behavior for this codebase remain, each with a
+justification comment. Before adding an option, probe whether the default
+already covers it; before removing one, know which file relies on it (e.g.
+`module: ESNext` exists for the single `with { type: "json" }` import).
+
 ## Coverage expectations
 
 `pnpm test:coverage` (provider @vitest/coverage-v8, version-locked to the

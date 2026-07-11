@@ -74,3 +74,20 @@ describe("streamable HTTP endpoint", () => {
     expect(payload.secondary).toBe("Dervish");
   });
 });
+describe("directory-readiness routes", () => {
+  it("serves a privacy policy", async () => {
+    const res = await createApp().request("/privacy");
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain("does not collect");
+  });
+  it("serves the OpenAI apps challenge only when configured", async () => {
+    const app = createApp();
+    expect((await app.request("/.well-known/openai-apps-challenge")).status).toBe(404);
+    const res = await app.request(
+      "/.well-known/openai-apps-challenge",
+      {},
+      { OPENAI_APPS_CHALLENGE: "tok123" },
+    );
+    expect(await res.text()).toBe("tok123");
+  });
+});

@@ -45,6 +45,14 @@ const namedBuildSchema = {
     ),
 };
 
+/** Every tool here is a pure, read-only computation over bundled game data. */
+const READ_ONLY = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: false,
+} as const;
+
 function json(data: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
 }
@@ -78,6 +86,7 @@ export function createServer(): McpServer {
       title: "Get a Guild Wars 1 skill",
       description:
         "Look up a single GW1 skill by exact English name or by template skill id. Returns full stats (energy, activation, recharge, adrenaline, sacrifice), profession, attribute, campaign, elite flag and description. If the name is not found, returns the closest matches so you can correct spelling.",
+      annotations: READ_ONLY,
       inputSchema: {
         name: z
           .string()
@@ -113,6 +122,7 @@ export function createServer(): McpServer {
       title: "Search Guild Wars 1 skills",
       description:
         "Search the full GW1 skill database with filters. professionName: Warrior, Ranger, Monk, Necromancer, Mesmer, Elementalist, Assassin, Ritualist, Paragon, Dervish, or None (common/PvE-only skills). campaignName: Core, Prophecies, Factions, Nightfall, Eye of the North. Returns compact records; use get_skill for full details.",
+      annotations: READ_ONLY,
       inputSchema: {
         professionName: z.string().optional(),
         attributeName: z.string().optional(),
@@ -190,6 +200,7 @@ export function createServer(): McpServer {
       title: "Decode a skill template code",
       description:
         'Decode an in-game GW1 skill template code (e.g. "OwpiMypMBg1cxcBAMBdmtIKAA") into professions, attribute allocations and the 8 skills with their stats and descriptions.',
+      annotations: READ_ONLY,
       inputSchema: {
         code: z.string().describe("The template code string"),
       },
@@ -212,6 +223,7 @@ export function createServer(): McpServer {
       title: "Decode a paw-ned2 team template",
       description:
         "Decode a paw-ned2 team build blob (the 'pwnd0001...>...<' format shared on PvXwiki team pages and by the paw-ned2 tool) into its individual builds: player/hero label, description, and each skill bar fully decoded. Whitespace and line wraps in the pasted blob are tolerated.",
+      annotations: READ_ONLY,
       inputSchema: {
         pwnd: z.string().describe("The full pwnd blob, starting with 'pwnd000'"),
       },
@@ -269,6 +281,7 @@ export function createServer(): McpServer {
       title: "Encode a build into a template code",
       description:
         "Compile a build (professions, attributes, 8 skills by exact English name) into an official in-game template code. The build is validated first; on rule violations the errors are returned instead of a code. Unknown skill names return closest-match suggestions. IMPORTANT: template codes MUST come from this tool — never write or guess a code by hand, hand-written codes are invalid in-game. If unsure, verify any code with decode_template.",
+      annotations: READ_ONLY,
       inputSchema: {
         ...namedBuildSchema,
         forHero: z
@@ -313,6 +326,7 @@ export function createServer(): McpServer {
       title: "Validate a build against GW1 rules",
       description:
         "Check a build (professions, attributes, 8 skills by exact English name) against Guild Wars 1 rules: one elite max, profession/attribute ownership, primary attributes, duplicates, rank ranges. Returns { valid, errors, warnings } without encoding.",
+      annotations: READ_ONLY,
       inputSchema: {
         ...namedBuildSchema,
         forHero: z.boolean().default(false),
@@ -344,6 +358,7 @@ export function createServer(): McpServer {
       title: "Get a Guild Wars 1 hero",
       description:
         "Look up a GW1 hero by name or by id (GWCA HeroID, matching the AccountExport plugin output). Returns profession, campaign and how the hero is unlocked. Remember: heroes can equip any skill unlocked at ACCOUNT level, but not most PvE-only skills.",
+      annotations: READ_ONLY,
       inputSchema: {
         name: z.string().optional().describe('Hero name, e.g. "Master of Whispers"'),
         id: z.number().int().optional().describe("GWCA HeroID value"),
@@ -374,6 +389,7 @@ export function createServer(): McpServer {
       title: "List Guild Wars 1 heroes",
       description:
         "List all GW1 heroes, optionally filtered by profession or campaign name. Useful for team-building: shows which professions are coverable by heroes and how each hero is unlocked.",
+      annotations: READ_ONLY,
       inputSchema: {
         professionName: z.string().optional(),
         campaignName: z.string().optional(),

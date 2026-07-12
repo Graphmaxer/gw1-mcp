@@ -201,7 +201,12 @@ UNLESS the DATA_BOT_PAT secret exists (fine-grained PAT, this repo only,
 Contents RW + Pull requests RW): then the PR is authored by a real
 identity, CI and CodeQL trigger normally, and the workflow enables
 auto-merge for a fully zero-touch weekly update. This PAT is the repo's
-single accepted long-lived secret; rotate it on expiry. Each release also
+single accepted long-lived secret; rotate it on expiry. The same secret is
+handed to release-please, so release PRs are authored by the maintainer's
+identity too — their CI/CodeQL runs start unattended, and the tags and
+releases it creates DO emit events (unlike GITHUB_TOKEN ones); the
+release-time jobs are wired via needs/if in the same run precisely so this
+changes nothing. Each release also
 rebuilds AccountExport.dll on a Windows runner and attaches it to the
 GitHub release (job attach-plugin-to-release in release-please.yml).
 

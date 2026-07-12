@@ -82,7 +82,10 @@ None needed — no authentication. Reviewer test script:
 
 ## Branding
 
-- Logo (SVG): https://gw1-mcp.graphmaxer.workers.dev/logo.svg
+- Logo (upload): assets/brand/logo-1024.png (1024x1024 PNG — the scythe +
+  8-slot skill-bar badge; directory forms prefer a raster logo). A 512px
+  copy sits beside it. The worker also serves a lightweight geometric SVG at
+  /logo.svg for the favicon, but upload the PNG on the form.
 - Favicon: /favicon.ico on the MCP hostname (301 to /logo.svg)
 - Screenshots: N/A — not an MCP App (no interactive UI); the directory
   requires carousel screenshots only for MCP Apps

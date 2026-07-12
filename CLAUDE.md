@@ -174,7 +174,10 @@ the MCP isError flag via the jsonError helper — keep new tools consistent.
 
 ## Logo and favicon (single source)
 
-assets/logo.svg is the ONLY logo asset — imported directly by the worker
+assets/brand/logo-1024.png (+512) is the rich raster logo (scythe + 8-slot
+skill-bar in a golden ring, generated via image model) used for the directory
+submission forms, which prefer PNG. Separately, assets/logo.svg is the ONLY
+logo asset served by the worker — imported directly by the worker
 and served at /logo.svg; /favicon.ico 301-redirects to it (modern
 browsers/crawlers rasterize SVG; legacy fetchers losing the tab icon is a
 cosmetic, accepted trade-off). The import uses the ?raw

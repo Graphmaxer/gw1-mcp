@@ -26,6 +26,8 @@ redeploy needed).
   before a code is produced. All tools are read-only; no account or
   authentication needed.
 - Category: Entertainment (or Gaming if available)
+- Logo: upload assets/brand/logo-1024.png (1024x1024 PNG). ChatGPT accepts a
+  raster logo directly — no need to vectorize.
 - Website / support: https://github.com/Graphmaxer/gw1-mcp
 - Privacy policy: https://gw1-mcp.graphmaxer.workers.dev/privacy
 - Terms: repository MIT license page

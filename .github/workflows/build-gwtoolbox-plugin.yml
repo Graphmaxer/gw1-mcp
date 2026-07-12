@@ -1,13 +1,13 @@
 name: Build GWToolbox plugin
 
-# Builds AccountExport.dll on a GitHub-hosted Windows runner (VS toolchain
-# preinstalled) — no local Visual Studio needed. Trigger it from the Actions
-# tab (Run workflow) and download the DLL from the run's artifacts.
-#
-# Mirrors the upstream GWToolboxpp CI (.github/workflows/cmake.yml): vcpkg
-# pinned to the same commit they use, configure via their `vcpkg` CMake
-# preset (Win32 arch and toolchain are baked into the preset), binaries land
-# in <source>/bin/RelWithDebInfo/.
+# Single source of truth for compiling AccountExport.dll on a Windows runner.
+# Three entry points, one build:
+#   - workflow_dispatch: manual build, DLL published as a run artifact
+#   - push on the plugin path: CI check that it still compiles
+#   - workflow_call (release_tag input): the release run calls this and the
+#     DLL is uploaded straight onto the GitHub release
+# Mirrors upstream GWToolboxpp CI: vcpkg pinned to their commit, `vcpkg`
+# CMake preset (Win32 baked in), binaries in <src>/bin/RelWithDebInfo/.
 
 on:
   workflow_dispatch:
@@ -16,6 +16,12 @@ on:
     paths:
       - "gwtoolbox-plugin/**"
       - ".github/workflows/build-gwtoolbox-plugin.yml"
+  workflow_call:
+    inputs:
+      release_tag:
+        description: "If set, upload the built DLL onto this GitHub release."
+        type: string
+        required: false
 
 permissions:
   contents: read
@@ -24,8 +30,9 @@ jobs:
   build:
     runs-on: windows-latest
     timeout-minutes: 45
+    permissions:
+      contents: ${{ inputs.release_tag && 'write' || 'read' }}
     env:
-      # Keep in sync with GWToolboxpp's own CI pin.
       VCPKG_COMMIT: ce613c41372b23b1f51333815feb3edd87ef8a8b
     steps:
       - uses: actions/checkout@v7
@@ -39,7 +46,6 @@ jobs:
         run: |
           Copy-Item -Recurse gwtoolbox-plugin/AccountExport GWToolboxpp/plugins/AccountExport
           Add-Content GWToolboxpp/cmake/gwtoolboxdll_plugins.cmake "`nadd_tb_plugin(AccountExport)"
-          Get-Content GWToolboxpp/cmake/gwtoolboxdll_plugins.cmake -Tail 3
 
       - name: Cache vcpkg toolchain
         id: cache-vcpkg-tool
@@ -97,9 +103,17 @@ jobs:
             Copy-Item -Destination out
           Get-ChildItem out
 
-      - name: Upload AccountExport.dll
+      - name: Upload AccountExport.dll (run artifact)
+        if: ${{ !inputs.release_tag }}
         uses: actions/upload-artifact@v7
         with:
           name: AccountExport
           path: out/
           if-no-files-found: error
+
+      - name: Attach AccountExport.dll to the release
+        if: ${{ inputs.release_tag }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ inputs.release_tag }}" out/AccountExport.dll --clobber

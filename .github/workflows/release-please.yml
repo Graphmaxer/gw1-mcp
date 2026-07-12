@@ -1,16 +1,17 @@
 name: Release Please
 # Maintains the release PR from conventional commits; when the merge of that
-# PR creates a release, the SAME run publishes the new metadata to the MCP
-# Registry. The publish must live here: events created with GITHUB_TOKEN
-# (the release, the tag) never trigger other workflows, so a separate
-# on-release workflow would stay silent forever.
+# PR creates a release, sibling jobs in THIS run publish to the MCP Registry
+# and attach the plugin DLL — via reusable workflows (uses:). They must be
+# chained here by needs/if: events created by release-please (the release,
+# the tag) never trigger separate on-release workflows.
 on:
   push:
     branches: [main]
+# release-please job only needs to open PRs / push tags; the reusable
+# publish-registry and plugin jobs declare their own (id-token, contents).
 permissions:
   contents: write
   pull-requests: write
-  id-token: write # MCP Registry OIDC login
 jobs:
   release-please:
     runs-on: ubuntu-latest
@@ -27,88 +28,28 @@ jobs:
           token: ${{ secrets.DATA_BOT_PAT || github.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
-      - uses: actions/checkout@v7
-        if: ${{ steps.release.outputs.release_created }}
-      - name: Install mcp-publisher
-        if: ${{ steps.release.outputs.release_created }}
-        run: |
-          curl -sL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_amd64.tar.gz" | tar xz
-          sudo mv mcp-publisher /usr/local/bin/
-      - name: Publish to MCP Registry (OIDC)
-        if: ${{ steps.release.outputs.release_created }}
-        run: |
-          mcp-publisher login github-oidc
-          mcp-publisher publish server.json
 
   # User-facing DLL: rebuilt and attached to every release so players
   # download it from the Releases page (Actions artifacts expire after 90
   # days and require a GitHub login). Runs here because release-please
   # creates releases with GITHUB_TOKEN, whose events cannot trigger the
   # standalone plugin workflow.
+  # Reuses the plugin build workflow (single source for the vcpkg toolchain)
+  # and asks it to upload the DLL straight onto the freshly created release.
   attach-plugin-to-release:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created }}
-    runs-on: windows-latest
-    timeout-minutes: 45
+    uses: ./.github/workflows/build-gwtoolbox-plugin.yml
     permissions:
       contents: write
-    env:
-      VCPKG_COMMIT: ce613c41372b23b1f51333815feb3edd87ef8a8b
-    steps:
-      - uses: actions/checkout@v7
-      - name: Checkout GWToolboxpp (master)
-        shell: bash
-        run: git clone --depth 1 https://github.com/gwdevhub/GWToolboxpp.git GWToolboxpp
-      - name: Inject AccountExport plugin
-        shell: pwsh
-        run: |
-          Copy-Item -Recurse gwtoolbox-plugin/AccountExport GWToolboxpp/plugins/AccountExport
-          Add-Content GWToolboxpp/cmake/gwtoolboxdll_plugins.cmake "`nadd_tb_plugin(AccountExport)"
-      - name: Cache vcpkg toolchain
-        id: cache-vcpkg-tool
-        uses: actions/cache@v6
-        with:
-          path: ${{ github.workspace }}/vcpkg
-          key: vcpkg-tool-${{ runner.os }}-${{ env.VCPKG_COMMIT }}
-      - name: Install vcpkg
-        if: steps.cache-vcpkg-tool.outputs.cache-hit != 'true'
-        shell: bash
-        run: |
-          git clone https://github.com/microsoft/vcpkg.git
-          cd vcpkg
-          git checkout "$VCPKG_COMMIT"
-          ./bootstrap-vcpkg.bat
-      - name: Set VCPKG_ROOT
-        shell: powershell
-        run: echo "VCPKG_ROOT=${{ github.workspace }}\vcpkg" >> $env:GITHUB_ENV
-      - name: Restore vcpkg binary cache
-        uses: actions/cache@v6
-        with:
-          path: ${{ github.workspace }}/vcpkg-bincache
-          key: vcpkg-bin-${{ runner.os }}-${{ hashFiles('GWToolboxpp/vcpkg.json', 'GWToolboxpp/vcpkg-configuration.json', 'GWToolboxpp/vcpkg-overlays/**') }}
-          restore-keys: |
-            vcpkg-bin-${{ runner.os }}-
-      - name: Restore FetchContent cache
-        uses: actions/cache@v6
-        with:
-          path: ${{ github.workspace }}/GWToolboxpp/build/_deps
-          key: deps-${{ runner.os }}-${{ hashFiles('GWToolboxpp/cmake/*.cmake') }}
-          restore-keys: |
-            deps-${{ runner.os }}-
-      - name: Configure CMake (vcpkg preset, Win32)
-        shell: bash
-        working-directory: GWToolboxpp
-        run: cmake . --preset=vcpkg
-        env:
-          VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg-bincache,readwrite"
-      - name: Build AccountExport
-        shell: bash
-        working-directory: GWToolboxpp
-        run: cmake --build build --config RelWithDebInfo --target AccountExport
-      - name: Attach DLL to the release
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          dll=$(find GWToolboxpp/bin -name AccountExport.dll | head -1)
-          gh release upload "${{ needs.release-please.outputs.tag_name }}" "$dll" --clobber
+    with:
+      release_tag: ${{ needs.release-please.outputs.tag_name }}
+
+  # Reuses the registry publish workflow (single source; best-effort inside).
+  publish-registry:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    uses: ./.github/workflows/publish-registry.yml
+    permissions:
+      id-token: write
+      contents: read

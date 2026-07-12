@@ -193,7 +193,11 @@ GitHub release and the CHANGELOG entry → the SAME release-please run then
 publishes the new version to the MCP Registry via OIDC (gated on its
 release_created output — GITHUB_TOKEN-created events cannot trigger other
 workflows, so an on-release workflow would never fire).
-publish-registry.yml remains as a manual, dispatch-only backup. Nothing
+Both the registry publish and the plugin DLL build are REUSABLE workflows
+(workflow_call): publish-registry.yml and build-gwtoolbox-plugin.yml are the
+single source for each, invoked by release-please.yml via uses: on release,
+and runnable standalone (dispatch / plugin-path push). No build or publish
+logic is duplicated across workflows. Nothing
 manual beyond merging the PR. Same GITHUB_TOKEN rule hits the weekly data
 PR (update-data.yml): CI never auto-starts on it — close and reopen the PR
 to trigger the required `test` check (the PR body carries this reminder) —

@@ -1,26 +1,34 @@
 name: Publish to MCP Registry
-# Publishes server.json metadata to the official MCP Registry
-# (registry.modelcontextprotocol.io). Auth is GitHub OIDC — no secret needed;
-# it grants publish rights on the io.github.Graphmaxer/* (case matches the GitHub username; OIDC is case-sensitive) namespace.
-# Run manually after bumping the version in server.json, or cut a release.
-# Manual backup path (e.g. after a registry preview data reset). The
-# automatic path lives in release-please.yml — a release trigger here would
-# never fire, because release-please creates releases with GITHUB_TOKEN.
+
+# Single source of truth for publishing server.json to the official MCP
+# Registry (registry.modelcontextprotocol.io) via GitHub OIDC — no secret.
+# Two entry points, one implementation:
+#   - workflow_dispatch: manual (re)publish, e.g. after a registry preview
+#     data reset, or to publish a release whose auto-run predates a fix
+#   - workflow_call: the release run invokes this after creating a release
+# The namespace io.github.Graphmaxer/* is case-sensitive and must match the
+# GitHub username exactly (see server.json "name").
 on:
   workflow_dispatch:
+  workflow_call:
+
 permissions:
-  id-token: write
+  id-token: write # OIDC
   contents: read
+
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # Best-effort: the registry is in preview; an outage must not fail a release.
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v7
       - name: Install mcp-publisher
         run: |
-          curl -sL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_amd64.tar.gz" | tar xz
-          sudo mv mcp-publisher /usr/local/bin/
-      - name: Login (GitHub OIDC)
-        run: mcp-publisher login github-oidc
-      - name: Publish
-        run: mcp-publisher publish server.json
+          arch=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+          os=$(uname -s | tr '[:upper:]' '[:lower:]')
+          curl -sL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_${os}_${arch}.tar.gz" | tar xz mcp-publisher
+      - name: Login (GitHub OIDC) and publish
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish server.json

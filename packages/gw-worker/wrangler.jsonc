@@ -5,4 +5,8 @@
   "compatibility_date": "2026-06-01",
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
+  "rules": [
+    { "type": "Text", "globs": ["**/*.svg"], "fallthrough": true },
+    { "type": "Data", "globs": ["**/*.ico"], "fallthrough": true },
+  ],
 }

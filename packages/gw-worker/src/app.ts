@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { StreamableHTTPTransport } from "@hono/mcp";
-import { FAVICON_ICO_B64, LOGO_SVG } from "./logo.generated.js";
+import FAVICON_ICO_BUF from "../../../assets/favicon.ico";
+import LOGO_SVG from "../../../assets/logo.svg";
 import { createServer } from "@gw1-mcp/gw-mcp";
 
 /**
@@ -26,8 +27,7 @@ export function createApp(): Hono {
     }),
   );
 
-  // Generated from the single-source motif (scripts/generate-logo-assets.mjs).
-  const FAVICON_ICO = Uint8Array.from(atob(FAVICON_ICO_B64), (ch) => ch.charCodeAt(0));
+  const FAVICON_ICO = new Uint8Array(FAVICON_ICO_BUF);
   app.get("/favicon.ico", (c) => {
     c.header("Content-Type", "image/x-icon");
     c.header("Cache-Control", "public, max-age=86400");

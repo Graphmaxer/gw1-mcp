@@ -160,13 +160,15 @@ the MCP isError flag via the jsonError helper — keep new tools consistent.
 
 ## Logo and favicon (single source)
 
-assets/logo.svg is the single source of truth — edit it freely (any SVG).
-Then run node scripts/generate-logo-assets.mjs: it embeds the SVG into
-packages/gw-worker/src/logo.generated.ts and rasterizes the 16x16 favicon
-from it (resvg, devDependency, script-time only). The generated module is
-the only derived artifact; never edit it by hand. A literal bundler import
-of the .svg was rejected on purpose: wrangler (esbuild) and vitest (vite)
-would each need their own raw-import config, two things to keep in sync.
+assets/logo.svg is the single source of truth, imported directly by the
+worker (no scripts, no generated module). The import is configured in TWO
+places that MUST stay in sync — wrangler.jsonc "rules" (svg as Text, ico
+as Data) for the deployed bundle, and the wrangler-asset-rules plugin in
+packages/gw-worker/vitest.config.ts (enforce: "pre", or vite serves its
+own asset data-URLs instead) for tests — plus the ambient declarations in
+types/assets.d.ts. assets/favicon.ico is the one derived artifact: a 16px
+export of the logo, regenerated with any SVG-to-ICO tool when the logo
+changes (drift risk accepted and documented here).
 
 ## Releasing
 

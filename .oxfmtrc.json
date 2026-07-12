@@ -5,7 +5,6 @@
     "packages/gw-template/test/fixtures/**",
     "pnpm-lock.yaml",
     ".release-please-manifest.json",
-    "CHANGELOG.md",
-    "packages/gw-worker/src/logo.generated.ts"
+    "CHANGELOG.md"
   ]
 }

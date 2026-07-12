@@ -179,13 +179,15 @@ badge, from an image model; a 512px copy sits beside it, used in the README head
 Everything derives from it:
 
 - Directory submission forms: upload logo-1024.png directly (forms prefer PNG).
-- Worker favicon: packages/gw-worker/src/favicon.ts holds a 32x32 PNG
-  (base64) committed as a static asset; the Worker serves it at /favicon.ico,
-  /favicon.png and /logo.png. No build step, no image lib at runtime, and the
-  full-res PNG is never bundled (bundle ~2 MB, favicon ~2 KB). To refresh after
-  a logo change, regenerate the 32px base64 from logo-1024.png with any image
-  tool (e.g. an ad-hoc `npx sharp` one-liner) and paste it into favicon.ts.
-  sharp is NOT a project dependency. No SVG logo anymore.
+- Worker favicon: assets/brand/favicon-32.png (a 32x32 export of
+  logo-1024.png) is imported by the Worker as binary (ArrayBuffer) and served
+  at /favicon.ico, /favicon.png and /logo.png. The import is configured in TWO
+  places that MUST stay in sync — wrangler.jsonc "rules" (png as Data) and the
+  wrangler-png-rule plugin in packages/gw-worker/vitest.config.ts
+  (enforce:"pre") — plus the ambient declaration in types/assets.d.ts. The
+  full-res PNG is never bundled (bundle ~2 MB, favicon ~2.5 KB). To refresh the
+  favicon after a logo change, re-export favicon-32.png from logo-1024.png with
+  any image tool. No SVG logo, no base64 module, no build script.
 
 ## Releasing
 

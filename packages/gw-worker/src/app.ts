@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { StreamableHTTPTransport } from "@hono/mcp";
-import { FAVICON_PNG_B64 } from "./favicon.js";
+import FAVICON_PNG_BUF from "../../../assets/brand/favicon-32.png";
 import { createServer } from "@gw1-mcp/gw-mcp";
 
 /**
@@ -27,11 +27,11 @@ export function createApp(): Hono {
   );
 
   // Favicon: a 32x32 PNG derived at build time from the single source logo
-  // (derived from assets/brand/logo-1024.png, committed in favicon.ts). Served here
+  // (assets/brand/favicon-32.png, a 32px export of logo-1024.png). Served here
   // and also at /favicon.ico via the conventional path. The full-resolution
   // logo is never shipped in the Worker bundle; directory listings upload the
   // 1024px PNG from assets/brand/ directly on their forms.
-  const FAVICON_PNG = Uint8Array.from(atob(FAVICON_PNG_B64), (ch) => ch.charCodeAt(0));
+  const FAVICON_PNG = new Uint8Array(FAVICON_PNG_BUF);
   const serveFavicon = (c: { body: (b: BodyInit, init?: ResponseInit) => Response }) =>
     c.body(FAVICON_PNG as unknown as BodyInit, {
       headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" },

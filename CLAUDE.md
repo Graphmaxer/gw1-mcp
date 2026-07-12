@@ -177,11 +177,11 @@ the MCP isError flag via the jsonError helper — keep new tools consistent.
 assets/logo.svg is the ONLY logo asset — imported directly by the worker
 and served at /logo.svg; /favicon.ico 301-redirects to it (modern
 browsers/crawlers rasterize SVG; legacy fetchers losing the tab icon is a
-cosmetic, accepted trade-off). The import is configured in TWO places that
-MUST stay in sync — wrangler.jsonc "rules" (svg as Text) and the
-wrangler-asset-rules plugin in packages/gw-worker/vitest.config.ts
-(enforce: "pre", or vite serves its own asset data-URLs) — plus the
-ambient declaration in types/assets.d.ts. Zero derived artifacts.
+cosmetic, accepted trade-off). The import uses the ?raw
+suffix: vite/vitest handles it natively (zero config), and the wrangler
+Text rule uses a suffix-tolerant glob (**/_.svg_ — plain **/_.svg does
+NOT match a ?raw specifier). Ambient declaration: types/assets.d.ts
+declares module "_.svg?raw". Zero derived artifacts.
 
 ## Releasing
 

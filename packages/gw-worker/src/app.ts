@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { StreamableHTTPTransport } from "@hono/mcp";
-import LOGO_SVG from "../../../assets/logo.svg";
+import LOGO_SVG from "../../../assets/logo.svg?raw";
 import { createServer } from "@gw1-mcp/gw-mcp";
 
 /**

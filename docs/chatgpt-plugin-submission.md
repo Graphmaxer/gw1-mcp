@@ -17,7 +17,7 @@ redeploy needed).
 - Long description: A deterministic build compiler for the original Guild
   Wars. Unofficial fan-made tool — Guild Wars is a registered trademark of
   NCSoft Corporation; not affiliated with or endorsed by NCSoft or
-  ArenaNet. Look up any of the game's 1485 skills with current
+  ArenaNet. Look up any of the game's 1484 skills with current
   Guild Wars Reforged stats, search by profession/attribute/campaign,
   browse the full hero roster, decode any in-game template code or
   paw-ned2 team blob, and compile builds into official template codes —

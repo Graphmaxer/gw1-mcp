@@ -39,7 +39,7 @@ pnpm --filter @gw1-mcp/gw-mcp dev   # stdio server
 ## Packages
 
 - `packages/gw-template` — template code codec (zero dependencies; round-trip tested against in-game/PvX codes and differentially fuzzed against [@buildwars/gw-templates](https://github.com/build-wars/gw-templates))
-- `packages/gw-data` — game data (1485 skills, Reforged-current) imported from [build-wars/gw-skilldata](https://github.com/build-wars/gw-skilldata) (MIT)
+- `packages/gw-data` — game data (1484 skills, Reforged-current) imported from [build-wars/gw-skilldata](https://github.com/build-wars/gw-skilldata) (MIT)
 
 The codec is verified four ways: 18 golden fixtures covering all 10 primary
 professions and all 5 campaigns (sourced from PvXwiki, gw1builds.com, the
@@ -75,9 +75,9 @@ secrets. Free plan is plenty.
 
 ```bash
 pnpm --filter @gw1-mcp/gw-data update @buildwars/gw-skilldata --latest
-pnpm --filter @gw1-mcp/gw-data import
+pnpm --filter @gw1-mcp/gw-data run import:data
 # or, to import the upstream's published release files (what the weekly workflow does):
-pnpm --filter @gw1-mcp/gw-data import https://build-wars.github.io/gw-skilldata
+pnpm --filter @gw1-mcp/gw-data run import:data -- https://build-wars.github.io/gw-skilldata
 ```
 
 ## GWToolbox integration

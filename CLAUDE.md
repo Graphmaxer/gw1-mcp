@@ -343,7 +343,7 @@ Source: https://github.com/build-wars/gw1-database (MIT — keep the license not
 
 Milestones 0-4 are DONE: monorepo builds, codec implemented (round-trip,
 golden-fixture, and differentially tested — see Codec verification layers),
-gw-skilldata imported (1485 skills, Reforged-current),
+gw-skilldata imported (1484 skills, Reforged-current),
 MCP server with 8 tools passing end-to-end tests over InMemoryTransport,
 and a stateless Streamable HTTP transport (packages/gw-worker, Hono) that
 runs identically on Node and Cloudflare Workers (wrangler dry-run: 234 KB gzip).

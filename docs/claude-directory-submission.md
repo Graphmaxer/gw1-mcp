@@ -12,7 +12,7 @@ the form's "What you'll need" list.
 - Tagline: Design, validate and encode Guild Wars 1 builds with live
   Reforged data.
 - Description: A deterministic build compiler for the original Guild
-  Wars. Look up any of the game's 1485 skills with current Guild Wars
+  Wars. Look up any of the game's 1484 skills with current Guild Wars
   Reforged stats, search by profession/attribute/campaign, browse the
   hero roster, decode any in-game template code or paw-ned2 team blob,
   and compile builds into official template codes — validated against

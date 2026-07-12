@@ -13,10 +13,6 @@ export default defineConfig({
         if (id.endsWith(".svg")) {
           return `export default ${JSON.stringify(readFileSync(id, "utf8"))};`;
         }
-        if (id.endsWith(".ico")) {
-          const bytes = [...readFileSync(id)];
-          return `export default new Uint8Array([${bytes}]).buffer;`;
-        }
         return null;
       },
     },

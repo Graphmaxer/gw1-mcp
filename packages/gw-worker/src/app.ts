@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { StreamableHTTPTransport } from "@hono/mcp";
-import FAVICON_ICO_BUF from "../../../assets/favicon.ico";
 import LOGO_SVG from "../../../assets/logo.svg";
 import { createServer } from "@gw1-mcp/gw-mcp";
 
@@ -27,12 +26,10 @@ export function createApp(): Hono {
     }),
   );
 
-  const FAVICON_ICO = new Uint8Array(FAVICON_ICO_BUF);
-  app.get("/favicon.ico", (c) => {
-    c.header("Content-Type", "image/x-icon");
-    c.header("Cache-Control", "public, max-age=86400");
-    return c.body(FAVICON_ICO);
-  });
+  // Browsers and crawlers discover favicons at this conventional path;
+  // modern ones rasterize SVG fine. Legacy fetchers that can't are a
+  // cosmetic-only loss (directory listings take a separate logo field).
+  app.get("/favicon.ico", (c) => c.redirect("/logo.svg", 301));
 
   app.get("/privacy", (c) =>
     c.text(

@@ -83,7 +83,7 @@ None needed — no authentication. Reviewer test script:
 ## Branding
 
 - Logo (SVG): https://gw1-mcp.graphmaxer.workers.dev/logo.svg
-- Favicon: served at /favicon.ico on the MCP hostname
+- Favicon: /favicon.ico on the MCP hostname (301 to /logo.svg)
 - Screenshots: N/A — not an MCP App (no interactive UI); the directory
   requires carousel screenshots only for MCP Apps
 

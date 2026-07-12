@@ -93,12 +93,10 @@ describe("directory-readiness routes", () => {
 });
 
 describe("favicon", () => {
-  it("serves a valid ICO", async () => {
+  it("redirects the conventional path to the svg logo", async () => {
     const res = await createApp().request("/favicon.ico");
-    expect(res.status).toBe(200);
-    expect(res.headers.get("Content-Type")).toBe("image/x-icon");
-    const bytes = new Uint8Array(await res.arrayBuffer());
-    expect([bytes[0], bytes[1], bytes[2], bytes[3]]).toEqual([0, 0, 1, 0]); // ICO magic
+    expect(res.status).toBe(301);
+    expect(res.headers.get("Location")).toBe("/logo.svg");
   });
 });
 

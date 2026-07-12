@@ -160,15 +160,14 @@ the MCP isError flag via the jsonError helper — keep new tools consistent.
 
 ## Logo and favicon (single source)
 
-assets/logo.svg is the single source of truth, imported directly by the
-worker (no scripts, no generated module). The import is configured in TWO
-places that MUST stay in sync — wrangler.jsonc "rules" (svg as Text, ico
-as Data) for the deployed bundle, and the wrangler-asset-rules plugin in
-packages/gw-worker/vitest.config.ts (enforce: "pre", or vite serves its
-own asset data-URLs instead) for tests — plus the ambient declarations in
-types/assets.d.ts. assets/favicon.ico is the one derived artifact: a 16px
-export of the logo, regenerated with any SVG-to-ICO tool when the logo
-changes (drift risk accepted and documented here).
+assets/logo.svg is the ONLY logo asset — imported directly by the worker
+and served at /logo.svg; /favicon.ico 301-redirects to it (modern
+browsers/crawlers rasterize SVG; legacy fetchers losing the tab icon is a
+cosmetic, accepted trade-off). The import is configured in TWO places that
+MUST stay in sync — wrangler.jsonc "rules" (svg as Text) and the
+wrangler-asset-rules plugin in packages/gw-worker/vitest.config.ts
+(enforce: "pre", or vite serves its own asset data-URLs) — plus the
+ambient declaration in types/assets.d.ts. Zero derived artifacts.
 
 ## Releasing
 

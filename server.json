@@ -3,7 +3,7 @@
   "name": "io.github.graphmaxer/gw1-mcp",
   "title": "Guild Wars 1 Build Compiler",
   "description": "Deterministic Guild Wars 1 build tooling for LLMs: skill data lookup (1485 skills, Reforged-current), official template code encoding/decoding, build validation against game rules, and hero roster data. All tools are read-only; no authentication required.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "repository": {
     "url": "https://github.com/Graphmaxer/gw1-mcp",
     "source": "github"

@@ -158,6 +158,14 @@ the src for `code: "..."` declarations and fails if any code never appears
 in the test corpus. Tool failures use
 the MCP isError flag via the jsonError helper — keep new tools consistent.
 
+## Logo and favicon (single source)
+
+The logo motif (golden scythe-blade crescent on a dark disc) is defined
+ONCE as geometric parameters in scripts/generate-logo-assets.mjs. Running
+it rewrites assets/logo.svg and packages/gw-worker/src/logo.generated.ts
+(SVG string + a 16x16 ICO rasterized in pure JS from the same geometry).
+Never edit the generated files; edit the MOTIF and regenerate.
+
 ## Releasing
 
 Single SemVer version for the whole repo (root package.json + server.json,

@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { StreamableHTTPTransport } from "@hono/mcp";
+import { FAVICON_ICO_B64, LOGO_SVG } from "./logo.generated.js";
 import { createServer } from "@gw1-mcp/gw-mcp";
 
 /**
@@ -25,13 +26,8 @@ export function createApp(): Hono {
     }),
   );
 
-  // 16x16 favicon (required by app directories that fetch domain favicons).
-  const FAVICON_ICO = Uint8Array.from(
-    atob(
-      "AAABAAEAEBAAAAAAIADFAAAAFgAAAIlQTkcNChoKAAAADUlIRFIAAAAQAAAAEAgGAAAAH/P/YQAAAIxJREFUeJxjZMAC5KSV/mMTf/T0HiO6GBOxmnHJMeKTxAdgrsFwAamAiRjbt00RZdg2RRRFDKaHkVinwwzwynmN6QJ0RdgATCO6GowwwGcINkBWICJbQnEsYAQirsDCJc7IwIAZjbjCAV3zo6f3GJlgDHwKcWmGuwCbKwgBDAOINQjdtRixgC3L4pMDABsCP+uu0YCqAAAAAElFTkSuQmCC",
-    ),
-    (ch) => ch.charCodeAt(0),
-  );
+  // Generated from the single-source motif (scripts/generate-logo-assets.mjs).
+  const FAVICON_ICO = Uint8Array.from(atob(FAVICON_ICO_B64), (ch) => ch.charCodeAt(0));
   app.get("/favicon.ico", (c) => {
     c.header("Content-Type", "image/x-icon");
     c.header("Cache-Control", "public, max-age=86400");
@@ -82,17 +78,10 @@ export function createApp(): Hono {
     await next();
   });
 
-  // Scalable logo (directory listing asset), same motif as the favicon.
   app.get("/logo.svg", (c) => {
     c.header("Content-Type", "image/svg+xml");
     c.header("Cache-Control", "public, max-age=86400");
-    return c.body(
-      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">` +
-        `<circle cx="32" cy="32" r="32" fill="#1e1b22"/>` +
-        `<path d="M 47 20 A 19 19 0 1 0 51 32" fill="none" stroke="#d4af37" stroke-width="7" stroke-linecap="round"/>` +
-        `<path d="M 40 32 L 52 32" stroke="#d4af37" stroke-width="7" stroke-linecap="round"/>` +
-        `</svg>`,
-    );
+    return c.body(LOGO_SVG);
   });
 
   app.all("/mcp", async (c) => {

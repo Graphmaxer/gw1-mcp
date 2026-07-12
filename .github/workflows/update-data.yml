@@ -12,6 +12,9 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
+    env:
+      # secrets.* is not allowed inside a step-level if:; expose presence here.
+      HAS_PAT: ${{ secrets.DATA_BOT_PAT != '' }}
     permissions:
       contents: write
       pull-requests: write
@@ -58,15 +61,13 @@ jobs:
             Automated re-import from build-wars/gw-skilldata (Reforged-tracking upstream) detected changes.
             Review the diff in `packages/gw-data/data/`.
 
-            **Maintainer note — CI will NOT start by itself on this PR.**
-            Bot-created PRs (GITHUB_TOKEN) never trigger `pull_request`
-            workflows, and the branch ruleset requires the `test` check.
-            **Close and reopen this PR** — the reopen event comes from you
-            and starts CI, which runs the full golden-fixture suite against
-            the new data.
+            CI runs the full golden-fixture suite against the new data.
+            If checks do NOT start (only happens when the DATA_BOT_PAT
+            secret is absent and the PR fell back to the Actions token),
+            close and reopen this PR to trigger them.
 
       - name: Enable auto-merge (zero-touch when CI passes)
-        if: ${{ steps.data-pr.outputs.pull-request-number && secrets.DATA_BOT_PAT != '' }}
+        if: ${{ steps.data-pr.outputs.pull-request-number && env.HAS_PAT == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.DATA_BOT_PAT }}
         run: gh pr merge ${{ steps.data-pr.outputs.pull-request-number }} --auto --squash

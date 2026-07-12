@@ -137,7 +137,7 @@ already covers it; before removing one, know which file relies on it (e.g.
 the Rust toolchain made the cost negligible — adoption found exactly one
 real finding (an ambiguous `new Array(n)`), confirming the code was clean
 but the guard is free. CRITICAL: .oxfmtrc.json ignores generated files
-(packages/gw-data/data/**, gw-template test fixtures, .release-please-manifest.json which release-please rewrites compacted) — formatting them
+(packages/gw-data/data/**, gw-template test fixtures, .release-please-manifest.json and CHANGELOG.md, both rewritten by release-please in its own style) — formatting them
 would fight the scripts that emit them and pollute every weekly data PR.
 Keep that list in sync when adding generated outputs.
 

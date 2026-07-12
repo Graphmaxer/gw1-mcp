@@ -4,6 +4,7 @@
     "packages/gw-data/data/**",
     "packages/gw-template/test/fixtures/**",
     "pnpm-lock.yaml",
-    ".release-please-manifest.json"
+    ".release-please-manifest.json",
+    "CHANGELOG.md"
   ]
 }

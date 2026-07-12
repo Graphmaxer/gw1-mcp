@@ -3,7 +3,7 @@
   "name": "io.github.Graphmaxer/gw1-mcp",
   "title": "Guild Wars 1 Build Compiler",
   "description": "GW1 build compiler: skill data, template code encode/decode, validation, hero roster. Read-only.",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "repository": {
     "url": "https://github.com/Graphmaxer/gw1-mcp",
     "source": "github"

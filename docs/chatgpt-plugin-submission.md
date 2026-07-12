@@ -106,6 +106,27 @@ Initial submission. MCP-backed app (8 read-only tools, no auth) plus one
 bundled skill (build-design workflow and code-integrity rules). Server is
 open source (MIT): https://github.com/Graphmaxer/gw1-mcp
 
+## Pre-submission decisions and traps (from the official submission doc)
+
+- HOSTNAME IS FOREVER: the MCP server origin (scheme/hostname/port) can
+  never change across versions — changing it means a brand-new app and a
+  fresh review, losing existing users. Decide BEFORE first submission
+  whether to publish under gw1-mcp.graphmaxer.workers.dev or under a
+  custom domain (bought and attached to the Worker first).
+- EU DATA RESIDENCY: projects with EU data residency cannot submit; use
+  (or create) a project with global data residency in the OpenAI
+  dashboard.
+- No screenshots: this app has no UI, and the doc says not to provide
+  screenshots for UI-less apps.
+- After publication, tool names/schemas become a versioned contract:
+  renaming or removing a tool breaks the published snapshot immediately.
+  Additive changes only; every metadata change goes through scan → review
+  → publish again. Server-side data/bugfixes that preserve the contract
+  deploy freely.
+- The Scan Tools step also imports the MCP server-level `instructions`
+  (now set: code-integrity hard rules) and all annotations directly from
+  the server — justifications explain them, they never override them.
+
 ## Remaining human steps
 
 1. Verify individual developer identity (platform.openai.com organization

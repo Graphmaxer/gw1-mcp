@@ -94,10 +94,23 @@ function fullSkill(id: number) {
 }
 
 export function createServer(): McpServer {
-  const server = new McpServer({
-    name: "gw1-mcp",
-    version: "0.1.0",
-  });
+  const server = new McpServer(
+    {
+      name: "gw1-mcp",
+      version: "0.1.0",
+    },
+    {
+      // Imported by clients (including the ChatGPT plugin scan) as server-level
+      // guidance — the protocol-level counterpart of the bundled skill.
+      instructions: [
+        "Guild Wars 1 build compiler over live Reforged game data.",
+        "Template codes MUST come from encode_template; never hand-write or guess a code, and verify every produced code with decode_template before presenting it.",
+        "Trust this server's skill data over model memory: stats and descriptions follow the current balance patch.",
+        "Error responses include closest-match suggestions for misspelled names — use them and retry.",
+        "When exploring an attribute line with search_skills, do not filter by campaign.",
+      ].join(" "),
+    },
+  );
 
   server.registerTool(
     "get_skill",

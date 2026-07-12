@@ -1,19 +1,34 @@
 name: Release Please
-# Watches main for conventional commits, maintains a running release PR
-# (version bump in package.json + server.json, CHANGELOG update). Merging
-# that PR tags and publishes the GitHub release — which in turn triggers
-# publish-registry.yml, so the MCP Registry metadata follows automatically.
+# Maintains the release PR from conventional commits; when the merge of that
+# PR creates a release, the SAME run publishes the new metadata to the MCP
+# Registry. The publish must live here: events created with GITHUB_TOKEN
+# (the release, the tag) never trigger other workflows, so a separate
+# on-release workflow would stay silent forever.
 on:
   push:
     branches: [main]
 permissions:
   contents: write
   pull-requests: write
+  id-token: write # MCP Registry OIDC login
 jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
       - uses: googleapis/release-please-action@v4
+        id: release
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+      - uses: actions/checkout@v7
+        if: ${{ steps.release.outputs.release_created }}
+      - name: Install mcp-publisher
+        if: ${{ steps.release.outputs.release_created }}
+        run: |
+          curl -sL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_amd64.tar.gz" | tar xz
+          sudo mv mcp-publisher /usr/local/bin/
+      - name: Publish to MCP Registry (OIDC)
+        if: ${{ steps.release.outputs.release_created }}
+        run: |
+          mcp-publisher login github-oidc
+          mcp-publisher publish server.json

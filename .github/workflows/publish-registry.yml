@@ -3,10 +3,11 @@ name: Publish to MCP Registry
 # (registry.modelcontextprotocol.io). Auth is GitHub OIDC — no secret needed;
 # it grants publish rights on the io.github.graphmaxer/* namespace.
 # Run manually after bumping the version in server.json, or cut a release.
+# Manual backup path (e.g. after a registry preview data reset). The
+# automatic path lives in release-please.yml — a release trigger here would
+# never fire, because release-please creates releases with GITHUB_TOKEN.
 on:
   workflow_dispatch:
-  release:
-    types: [published]
 permissions:
   id-token: write
   contents: read

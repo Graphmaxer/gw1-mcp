@@ -189,9 +189,12 @@ Single SemVer version for the whole repo (root package.json + server.json,
 kept in sync by release-please's extra-files updater; sub-packages are
 private and unversioned in practice). Flow: conventional commits on main →
 release-please maintains a release PR → merging it creates the tag, the
-GitHub release and the CHANGELOG entry → the release event triggers
-publish-registry.yml which pushes the new version to the MCP Registry via
-OIDC. Nothing manual beyond merging the PR.
+GitHub release and the CHANGELOG entry → the SAME release-please run then
+publishes the new version to the MCP Registry via OIDC (gated on its
+release_created output — GITHUB_TOKEN-created events cannot trigger other
+workflows, so an on-release workflow would never fire).
+publish-registry.yml remains as a manual, dispatch-only backup. Nothing
+manual beyond merging the PR.
 
 ## Internal conventions (uniform on purpose)
 

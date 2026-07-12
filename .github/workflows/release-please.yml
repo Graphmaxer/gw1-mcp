@@ -14,6 +14,9 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -32,3 +35,76 @@ jobs:
         run: |
           mcp-publisher login github-oidc
           mcp-publisher publish server.json
+
+  # User-facing DLL: rebuilt and attached to every release so players
+  # download it from the Releases page (Actions artifacts expire after 90
+  # days and require a GitHub login). Runs here because release-please
+  # creates releases with GITHUB_TOKEN, whose events cannot trigger the
+  # standalone plugin workflow.
+  attach-plugin-to-release:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: windows-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    env:
+      VCPKG_COMMIT: ce613c41372b23b1f51333815feb3edd87ef8a8b
+    steps:
+      - uses: actions/checkout@v7
+      - name: Checkout GWToolboxpp (master)
+        shell: bash
+        run: git clone --depth 1 https://github.com/gwdevhub/GWToolboxpp.git GWToolboxpp
+      - name: Inject AccountExport plugin
+        shell: pwsh
+        run: |
+          Copy-Item -Recurse gwtoolbox-plugin/AccountExport GWToolboxpp/plugins/AccountExport
+          Add-Content GWToolboxpp/cmake/gwtoolboxdll_plugins.cmake "`nadd_tb_plugin(AccountExport)"
+      - name: Cache vcpkg toolchain
+        id: cache-vcpkg-tool
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}/vcpkg
+          key: vcpkg-tool-${{ runner.os }}-${{ env.VCPKG_COMMIT }}
+      - name: Install vcpkg
+        if: steps.cache-vcpkg-tool.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git
+          cd vcpkg
+          git checkout "$VCPKG_COMMIT"
+          ./bootstrap-vcpkg.bat
+      - name: Set VCPKG_ROOT
+        shell: powershell
+        run: echo "VCPKG_ROOT=${{ github.workspace }}\vcpkg" >> $env:GITHUB_ENV
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}/vcpkg-bincache
+          key: vcpkg-bin-${{ runner.os }}-${{ hashFiles('GWToolboxpp/vcpkg.json', 'GWToolboxpp/vcpkg-configuration.json', 'GWToolboxpp/vcpkg-overlays/**') }}
+          restore-keys: |
+            vcpkg-bin-${{ runner.os }}-
+      - name: Restore FetchContent cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}/GWToolboxpp/build/_deps
+          key: deps-${{ runner.os }}-${{ hashFiles('GWToolboxpp/cmake/*.cmake') }}
+          restore-keys: |
+            deps-${{ runner.os }}-
+      - name: Configure CMake (vcpkg preset, Win32)
+        shell: bash
+        working-directory: GWToolboxpp
+        run: cmake . --preset=vcpkg
+        env:
+          VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg-bincache,readwrite"
+      - name: Build AccountExport
+        shell: bash
+        working-directory: GWToolboxpp
+        run: cmake --build build --config RelWithDebInfo --target AccountExport
+      - name: Attach DLL to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          dll=$(find GWToolboxpp/bin -name AccountExport.dll | head -1)
+          gh release upload "${{ needs.release-please.outputs.tag_name }}" "$dll" --clobber

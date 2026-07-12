@@ -36,8 +36,15 @@ jobs:
         if: steps.diff.outputs.changed == 'true'
       - name: Open pull request
         if: steps.diff.outputs.changed == 'true'
+        id: data-pr
         uses: peter-evans/create-pull-request@v8
         with:
+          # With DATA_BOT_PAT (fine-grained PAT: this repo, Contents RW +
+          # Pull requests RW), the PR is authored by a real identity, so CI
+          # and CodeQL trigger normally and auto-merge below completes the
+          # zero-touch flow. Without it, falls back to GITHUB_TOKEN and the
+          # close/reopen note in the PR body applies.
+          token: ${{ secrets.DATA_BOT_PAT || github.token }}
           branch: chore/update-game-data
           title: "chore: update game data from upstream"
           commit-message: "chore: update game data from build-wars/gw1-database"
@@ -51,3 +58,9 @@ jobs:
             **Close and reopen this PR** — the reopen event comes from you
             and starts CI, which runs the full golden-fixture suite against
             the new data.
+
+      - name: Enable auto-merge (zero-touch when CI passes)
+        if: ${{ steps.data-pr.outputs.pull-request-number && secrets.DATA_BOT_PAT != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.DATA_BOT_PAT }}
+        run: gh pr merge ${{ steps.data-pr.outputs.pull-request-number }} --auto --squash

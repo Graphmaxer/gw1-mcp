@@ -196,7 +196,14 @@ workflows, so an on-release workflow would never fire).
 publish-registry.yml remains as a manual, dispatch-only backup. Nothing
 manual beyond merging the PR. Same GITHUB_TOKEN rule hits the weekly data
 PR (update-data.yml): CI never auto-starts on it — close and reopen the PR
-to trigger the required `test` check (the PR body carries this reminder).
+to trigger the required `test` check (the PR body carries this reminder) —
+UNLESS the DATA_BOT_PAT secret exists (fine-grained PAT, this repo only,
+Contents RW + Pull requests RW): then the PR is authored by a real
+identity, CI and CodeQL trigger normally, and the workflow enables
+auto-merge for a fully zero-touch weekly update. This PAT is the repo's
+single accepted long-lived secret; rotate it on expiry. Each release also
+rebuilds AccountExport.dll on a Windows runner and attaches it to the
+GitHub release (job attach-plugin-to-release in release-please.yml).
 
 ## Internal conventions (uniform on purpose)
 

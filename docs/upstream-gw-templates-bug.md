@@ -1,4 +1,4 @@
-# Issue à remonter à build-wars/gw-templates
+# Upstream issue to file against build-wars/gw-templates
 
 **Title: `SkillTemplate.encode()` truncates a lone high skill id (getPadSize increments at most once per element)**
 

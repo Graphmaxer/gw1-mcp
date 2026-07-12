@@ -276,8 +276,9 @@ for action. Nothing else in the repo is knowingly imperfect.
 ```
 
 <!-- TODO(maintainer): paste here 10-15 real codes from live Nightfall builds (player + heroes),
-     dont au moins : un build avec slot vide, un build sans élite, un build sans secondaire,
-     un build de héros avec skills de plusieurs campagnes. -->
+     including at least: one build with an empty slot, one without an elite,
+     one without a secondary profession, and one hero build mixing skills
+     from several campaigns. -->
 
 Any change to the codec must keep every fixture green. When a bug is found, add the failing code as a new fixture _first_, then fix.
 

@@ -27,3 +27,7 @@ jobs:
       - run: pnpm -r test
       - run: pnpm --filter @gw1-mcp/gw-worker check
       - run: node scripts/check-server-json.mjs # MCP Registry schema constraints
+      - name: Lint workflows (actionlint)
+        # Catches invalid workflow expressions (e.g. inputs.* in a job-level
+        # permissions block) before they reach main.
+        uses: raven-actions/actionlint@v2

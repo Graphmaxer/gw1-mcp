@@ -30,8 +30,11 @@ jobs:
   build:
     runs-on: windows-latest
     timeout-minutes: 45
+    # contents:write is needed only on the release path (gh release upload).
+    # inputs.* is not available in a job-level permissions block, so this is
+    # unconditional — harmless on the push/dispatch paths, which write nothing.
     permissions:
-      contents: ${{ inputs.release_tag && 'write' || 'read' }}
+      contents: write
     env:
       VCPKG_COMMIT: ce613c41372b23b1f51333815feb3edd87ef8a8b
     steps:

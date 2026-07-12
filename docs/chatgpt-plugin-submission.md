@@ -4,7 +4,7 @@ Copy-paste material for the plugin submission portal
 (platform.openai.com/plugins). Server-side prerequisites are all live:
 tool annotations (readOnly true / openWorld false / destructive false on
 all 8 tools — accurate: every tool is a pure read-only computation),
-privacy policy at /privacy, favicon (/favicon.ico redirects to the SVG logo), domain challenge
+privacy policy at /privacy, favicon (/favicon.ico serves a 32px PNG derived from the logo), domain challenge
 route at /.well-known/openai-apps-challenge (set the portal's token as the
 OPENAI_APPS_CHALLENGE variable on the Worker in the Cloudflare dash, no
 redeploy needed).

@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { StreamableHTTPTransport } from "@hono/mcp";
-import LOGO_SVG from "../../../assets/logo.svg?raw";
+import { FAVICON_PNG_B64 } from "./favicon.generated.js";
 import { createServer } from "@gw1-mcp/gw-mcp";
 
 /**
@@ -26,10 +26,19 @@ export function createApp(): Hono {
     }),
   );
 
-  // Browsers and crawlers discover favicons at this conventional path;
-  // modern ones rasterize SVG fine. Legacy fetchers that can't are a
-  // cosmetic-only loss (directory listings take a separate logo field).
-  app.get("/favicon.ico", (c) => c.redirect("/logo.svg", 301));
+  // Favicon: a 32x32 PNG derived at build time from the single source logo
+  // (assets/brand/logo-1024.png → scripts/generate-favicon.mjs). Served here
+  // and also at /favicon.ico via the conventional path. The full-resolution
+  // logo is never shipped in the Worker bundle; directory listings upload the
+  // 1024px PNG from assets/brand/ directly on their forms.
+  const FAVICON_PNG = Uint8Array.from(atob(FAVICON_PNG_B64), (ch) => ch.charCodeAt(0));
+  const serveFavicon = (c: { body: (b: BodyInit, init?: ResponseInit) => Response }) =>
+    c.body(FAVICON_PNG as unknown as BodyInit, {
+      headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" },
+    });
+  app.get("/favicon.ico", (c) => serveFavicon(c));
+  app.get("/favicon.png", (c) => serveFavicon(c));
+  app.get("/logo.png", (c) => serveFavicon(c));
 
   app.get("/privacy", (c) =>
     c.text(
@@ -73,12 +82,6 @@ export function createApp(): Hono {
       return c.json({ error: "forbidden origin" }, 403);
     }
     await next();
-  });
-
-  app.get("/logo.svg", (c) => {
-    c.header("Content-Type", "image/svg+xml");
-    c.header("Cache-Control", "public, max-age=86400");
-    return c.body(LOGO_SVG);
   });
 
   app.all("/mcp", async (c) => {

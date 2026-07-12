@@ -174,17 +174,21 @@ the MCP isError flag via the jsonError helper — keep new tools consistent.
 
 ## Logo and favicon (single source)
 
-assets/brand/logo-1024.png (+512) is the rich raster logo (scythe + 8-slot
-skill-bar in a golden ring, generated via image model) used for the directory
-submission forms, which prefer PNG. Separately, assets/logo.svg is the ONLY
-logo asset served by the worker — imported directly by the worker
-and served at /logo.svg; /favicon.ico 301-redirects to it (modern
-browsers/crawlers rasterize SVG; legacy fetchers losing the tab icon is a
-cosmetic, accepted trade-off). The import uses the ?raw
-suffix: vite/vitest handles it natively (zero config), and the wrangler
-Text rule uses a suffix-tolerant glob (**/_.svg_ — plain **/_.svg does
-NOT match a ?raw specifier). Ambient declaration: types/assets.d.ts
-declares module "_.svg?raw". Zero derived artifacts.
+SINGLE logo source: assets/brand/logo-1024.png (the scythe + 8-slot skill-bar
+badge, from an image model; a 512px copy sits beside it for convenience).
+Everything derives from it:
+
+- Directory submission forms: upload logo-1024.png directly (forms prefer PNG).
+- Worker favicon: a 32x32 PNG is derived at BUILD time by
+  scripts/generate-favicon.mjs (uses sharp, a devDependency) into
+  packages/gw-worker/src/favicon.generated.ts (base64). The Worker serves it
+  at /favicon.ico, /favicon.png and /logo.png. The full-res PNG is NEVER
+  bundled into the Worker (bundle stays ~2 MB, the favicon adds ~2 KB).
+  The generated file is committed as a baseline and regenerated with
+  `node scripts/generate-favicon.mjs` whenever the logo changes; never edit it by
+  hand (it is in the oxfmt ignore list). sharp runs locally/at build only — the
+  Worker runtime has no image libs, which is why the favicon is pre-derived, not
+  resized on the fly. No SVG logo anymore.
 
 ## Releasing
 

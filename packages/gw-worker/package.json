@@ -10,7 +10,8 @@
     "deploy": "wrangler deploy",
     "check": "wrangler deploy --dry-run --outdir dist",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "gen:favicon": "node ../../scripts/generate-favicon.mjs"
   },
   "dependencies": {
     "@gw1-mcp/gw-mcp": "workspace:*",

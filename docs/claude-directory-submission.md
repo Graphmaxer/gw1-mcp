@@ -84,9 +84,9 @@ None needed — no authentication. Reviewer test script:
 
 - Logo (upload): assets/brand/logo-1024.png (1024x1024 PNG — the scythe +
   8-slot skill-bar badge; directory forms prefer a raster logo). A 512px
-  copy sits beside it. The worker also serves a lightweight geometric SVG at
-  /logo.svg for the favicon, but upload the PNG on the form.
-- Favicon: /favicon.ico on the MCP hostname (301 to /logo.svg)
+  copy sits beside it. The worker also serves a 32px PNG favicon derived from this same logo at
+  /favicon.ico and /logo.png, but upload the 1024px PNG on the form.
+- Favicon: /favicon.ico on the MCP hostname (32px PNG derived from the logo)
 - Screenshots: N/A — not an MCP App (no interactive UI); the directory
   requires carousel screenshots only for MCP Apps
 

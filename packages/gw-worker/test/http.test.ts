@@ -93,10 +93,13 @@ describe("directory-readiness routes", () => {
 });
 
 describe("favicon", () => {
-  it("redirects the conventional path to the svg logo", async () => {
+  it("serves a PNG favicon at the conventional path", async () => {
     const res = await createApp().request("/favicon.ico");
-    expect(res.status).toBe(301);
-    expect(res.headers.get("Location")).toBe("/logo.svg");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("image/png");
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    // PNG magic number
+    expect([bytes[0], bytes[1], bytes[2], bytes[3]]).toEqual([137, 80, 78, 71]);
   });
 });
 
@@ -116,9 +119,9 @@ describe("origin validation and logo", () => {
     });
     expect(res.status).not.toBe(403);
   });
-  it("serves a scalable svg logo", async () => {
-    const res = await createApp().request("/logo.svg");
+  it("serves the PNG logo at /logo.png", async () => {
+    const res = await createApp().request("/logo.png");
     expect(res.status).toBe(200);
-    expect(await res.text()).toContain("<svg");
+    expect(res.headers.get("Content-Type")).toBe("image/png");
   });
 });

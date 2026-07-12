@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { StreamableHTTPTransport } from "@hono/mcp";
-import { FAVICON_PNG_B64 } from "./favicon.generated.js";
+import { FAVICON_PNG_B64 } from "./favicon.js";
 import { createServer } from "@gw1-mcp/gw-mcp";
 
 /**
@@ -27,7 +27,7 @@ export function createApp(): Hono {
   );
 
   // Favicon: a 32x32 PNG derived at build time from the single source logo
-  // (assets/brand/logo-1024.png → scripts/generate-favicon.mjs). Served here
+  // (derived from assets/brand/logo-1024.png, committed in favicon.ts). Served here
   // and also at /favicon.ico via the conventional path. The full-resolution
   // logo is never shipped in the Worker bundle; directory listings upload the
   // 1024px PNG from assets/brand/ directly on their forms.

@@ -179,16 +179,13 @@ badge, from an image model; a 512px copy sits beside it, used in the README head
 Everything derives from it:
 
 - Directory submission forms: upload logo-1024.png directly (forms prefer PNG).
-- Worker favicon: a 32x32 PNG is derived at BUILD time by
-  scripts/generate-favicon.mjs (uses sharp, a devDependency) into
-  packages/gw-worker/src/favicon.generated.ts (base64). The Worker serves it
-  at /favicon.ico, /favicon.png and /logo.png. The full-res PNG is NEVER
-  bundled into the Worker (bundle stays ~2 MB, the favicon adds ~2 KB).
-  The generated file is committed as a baseline and regenerated with
-  `node scripts/generate-favicon.mjs` whenever the logo changes; never edit it by
-  hand (it is in the oxfmt ignore list). sharp runs locally/at build only — the
-  Worker runtime has no image libs, which is why the favicon is pre-derived, not
-  resized on the fly. No SVG logo anymore.
+- Worker favicon: packages/gw-worker/src/favicon.ts holds a 32x32 PNG
+  (base64) committed as a static asset; the Worker serves it at /favicon.ico,
+  /favicon.png and /logo.png. No build step, no image lib at runtime, and the
+  full-res PNG is never bundled (bundle ~2 MB, favicon ~2 KB). To refresh after
+  a logo change, regenerate the 32px base64 from logo-1024.png with any image
+  tool (e.g. an ad-hoc `npx sharp` one-liner) and paste it into favicon.ts.
+  sharp is NOT a project dependency. No SVG logo anymore.
 
 ## Releasing
 

@@ -1,7 +1,7 @@
 [
  {
   "id": 0,
-  "name": "No Skill"
+  "name": "Not a Skill"
  },
  {
   "id": 1,
@@ -73,11 +73,11 @@
  },
  {
   "id": 18,
-  "name": "Binding Ritual"
+  "name": "Binding ritual"
  },
  {
   "id": 19,
-  "name": "Nature Ritual"
+  "name": "Nature ritual"
  },
  {
   "id": 20,
@@ -93,7 +93,7 @@
  },
  {
   "id": 23,
-  "name": "Enchantment Spell"
+  "name": "Enchantment spell"
  },
  {
   "id": 24,
@@ -125,7 +125,7 @@
  },
  {
   "id": 31,
-  "name": "Ranged Attack"
+  "name": "Ranged attack"
  },
  {
   "id": 32,
@@ -137,38 +137,6 @@
  },
  {
   "id": 34,
-  "name": "Attack Skill"
- },
- {
-  "id": 35,
-  "name": "Dagger Attack"
- },
- {
-  "id": 36,
-  "name": "Ritual"
- },
- {
-  "id": 37,
   "name": "Double Enchantment"
- },
- {
-  "id": 38,
-  "name": "Touch Skill"
- },
- {
-  "id": 39,
-  "name": "Touch Spell"
- },
- {
-  "id": 40,
-  "name": "Touch Enchantment Spell"
- },
- {
-  "id": 41,
-  "name": "Touch Hex Spell"
- },
- {
-  "id": 42,
-  "name": "Touch Signet"
  }
 ]

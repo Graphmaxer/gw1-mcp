@@ -9,8 +9,8 @@
  * workflow uses), or a local git clone (a path — offline use). Examples:
  *
  *   pnpm --filter @gw1-mcp/gw-data update @buildwars/gw-skilldata --latest
- *   pnpm --filter @gw1-mcp/gw-data import
- *   pnpm --filter @gw1-mcp/gw-data import https://build-wars.github.io/gw-skilldata
+ *   pnpm --filter @gw1-mcp/gw-data run import:data
+ *   pnpm --filter @gw1-mcp/gw-data run import:data -- https://build-wars.github.io/gw-skilldata
  *
  * The generated JSON is committed: the MCP server never fetches at runtime.
  */

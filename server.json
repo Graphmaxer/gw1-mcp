@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.graphmaxer/gw1-mcp",
+  "name": "io.github.Graphmaxer/gw1-mcp",
   "title": "Guild Wars 1 Build Compiler",
   "description": "GW1 build compiler: skill data, template code encode/decode, validation, hero roster. Read-only.",
   "version": "0.3.1",

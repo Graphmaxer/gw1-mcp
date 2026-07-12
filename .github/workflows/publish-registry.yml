@@ -1,7 +1,7 @@
 name: Publish to MCP Registry
 # Publishes server.json metadata to the official MCP Registry
 # (registry.modelcontextprotocol.io). Auth is GitHub OIDC — no secret needed;
-# it grants publish rights on the io.github.graphmaxer/* namespace.
+# it grants publish rights on the io.github.Graphmaxer/* (case matches the GitHub username; OIDC is case-sensitive) namespace.
 # Run manually after bumping the version in server.json, or cut a release.
 # Manual backup path (e.g. after a registry preview data reset). The
 # automatic path lives in release-please.yml — a release trigger here would

@@ -9,7 +9,7 @@
     "./data/_meta.json": "./data/_meta.json"
   },
   "scripts": {
-    "import": "tsx scripts/import.ts",
+    "import:data": "tsx scripts/import.ts",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "import:heroes": "tsx scripts/import-heroes.ts"

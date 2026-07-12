@@ -28,8 +28,15 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Import latest upstream data (published GitHub Pages release files)
-        run: pnpm --filter @gw1-mcp/gw-data import https://build-wars.github.io/gw-skilldata
+      - name: Import latest upstream data
+        # `pnpm import` is a pnpm builtin (lockfile import); our script must be
+        # invoked with `run`. URL after `--` so it reaches the script, not pnpm.
+        # Try tip-fresh Pages; on any failure fall back to the pinned npm
+        # package so the weekly job never breaks on a fragile external surface.
+        run: |
+          pnpm --filter @gw1-mcp/gw-data run import:data -- https://build-wars.github.io/gw-skilldata \
+            || { echo "::warning::Pages import failed; importing from the pinned npm package"; \
+                 pnpm --filter @gw1-mcp/gw-data run import:data; }
       - name: Regenerate heroes.json from the GWCA HeroID enum + curated overlay
         run: pnpm --filter @gw1-mcp/gw-data import:heroes
       - name: Check for meaningful changes (ignore import date)

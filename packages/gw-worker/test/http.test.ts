@@ -93,12 +93,13 @@ describe("directory-readiness routes", () => {
 });
 
 describe("favicon", () => {
-  it("serves a PNG favicon at the conventional path", async () => {
-    const res = await createApp().request("/favicon.ico");
+  it("serves the injected favicon bytes as image/png", async () => {
+    // Inject fake PNG-magic bytes; the real PNG is wired in index.ts, not here.
+    const fakePng = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    const res = await createApp(fakePng).request("/favicon.ico");
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toBe("image/png");
     const bytes = new Uint8Array(await res.arrayBuffer());
-    // PNG magic number
     expect([bytes[0], bytes[1], bytes[2], bytes[3]]).toEqual([137, 80, 78, 71]);
   });
 });
@@ -120,7 +121,7 @@ describe("origin validation and logo", () => {
     expect(res.status).not.toBe(403);
   });
   it("serves the PNG logo at /logo.png", async () => {
-    const res = await createApp().request("/logo.png");
+    const res = await createApp(new Uint8Array([137, 80, 78, 71])).request("/logo.png");
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toBe("image/png");
   });

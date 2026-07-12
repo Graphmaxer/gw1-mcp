@@ -180,14 +180,15 @@ Everything derives from it:
 
 - Directory submission forms: upload logo-1024.png directly (forms prefer PNG).
 - Worker favicon: assets/brand/favicon-32.png (a 32x32 export of
-  logo-1024.png) is imported by the Worker as binary (ArrayBuffer) and served
-  at /favicon.ico, /favicon.png and /logo.png. The import is configured in TWO
-  places that MUST stay in sync — wrangler.jsonc "rules" (png as Data) and the
-  wrangler-png-rule plugin in packages/gw-worker/vitest.config.ts
-  (enforce:"pre") — plus the ambient declaration in types/assets.d.ts. The
-  full-res PNG is never bundled (bundle ~2 MB, favicon ~2.5 KB). To refresh the
-  favicon after a logo change, re-export favicon-32.png from logo-1024.png with
-  any image tool. No SVG logo, no base64 module, no build script.
+  logo-1024.png). The PNG is imported ONLY in src/index.ts (the real Worker
+  entry point, the sole file wrangler bundles), which passes the bytes to
+  createApp(faviconPng). Config lives in two spots: wrangler.jsonc "rules"
+  (png as Data) and the ambient declaration types/assets.d.ts. NO vitest
+  config is needed: tests call createApp() with no favicon (or fake bytes), so
+  the test path never imports a binary. Served at /favicon.ico, /favicon.png,
+  /logo.png; the full-res logo is never bundled (~2 MB bundle, ~2.5 KB
+  favicon). Refresh by re-exporting favicon-32.png from logo-1024.png with any
+  image tool. No SVG logo, no base64 module, no build script.
 
 ## Releasing
 

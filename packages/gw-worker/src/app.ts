@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { StreamableHTTPTransport } from "@hono/mcp";
-import FAVICON_PNG_BUF from "../../../assets/brand/favicon-32.png";
 import { createServer } from "@gw1-mcp/gw-mcp";
 
 /**
@@ -11,7 +10,13 @@ import { createServer } from "@gw1-mcp/gw-mcp";
  * lookups over bundled data, so there is no session state to keep,
  * which is exactly what a Workers deployment wants.
  */
-export function createApp(): Hono {
+/**
+ * @param faviconPng raw bytes of the 32x32 PNG favicon. The real entry point
+ * (index.ts, the only file wrangler bundles) imports the PNG and passes it;
+ * tests call createApp() with no argument, so the test path never imports a
+ * binary asset — that's why no vitest asset config is needed.
+ */
+export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array()): Hono {
   const app = new Hono();
 
   app.get("/", (c) =>
@@ -26,12 +31,9 @@ export function createApp(): Hono {
     }),
   );
 
-  // Favicon: a 32x32 PNG derived at build time from the single source logo
-  // (assets/brand/favicon-32.png, a 32px export of logo-1024.png). Served here
-  // and also at /favicon.ico via the conventional path. The full-resolution
-  // logo is never shipped in the Worker bundle; directory listings upload the
-  // 1024px PNG from assets/brand/ directly on their forms.
-  const FAVICON_PNG = new Uint8Array(FAVICON_PNG_BUF);
+  // Favicon: 32x32 PNG (assets/brand/favicon-32.png, a 32px export of
+  // logo-1024.png), passed in by index.ts. Served here and at /favicon.ico.
+  const FAVICON_PNG = new Uint8Array(faviconPng);
   const serveFavicon = (c: { body: (b: BodyInit, init?: ResponseInit) => Response }) =>
     c.body(FAVICON_PNG as unknown as BodyInit, {
       headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" },

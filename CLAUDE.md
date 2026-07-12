@@ -175,7 +175,7 @@ the MCP isError flag via the jsonError helper — keep new tools consistent.
 ## Logo and favicon (single source)
 
 SINGLE logo source: assets/brand/logo-1024.png (the scythe + 8-slot skill-bar
-badge, from an image model; a 512px copy sits beside it for convenience).
+badge, from an image model; a 512px copy sits beside it, used in the README header).
 Everything derives from it:
 
 - Directory submission forms: upload logo-1024.png directly (forms prefer PNG).

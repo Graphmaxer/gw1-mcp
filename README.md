@@ -1,4 +1,10 @@
-# gw1-mcp — a Guild Wars 1 build compiler for LLMs
+<p align="center">
+  <img src="assets/brand/logo-512.png" alt="gw1-mcp logo — a golden scythe and an eight-slot skill bar" width="180" height="180">
+</p>
+
+<h1 align="center">gw1-mcp</h1>
+
+<p align="center"><em>A Guild Wars 1 build compiler for LLMs</em></p>
 
 An MCP (Model Context Protocol) server that gives any compatible LLM client
 (Claude, ChatGPT, Cursor…) reliable, deterministic knowledge of **Guild Wars 1**

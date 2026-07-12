@@ -26,3 +26,4 @@ jobs:
       - run: pnpm -r typecheck
       - run: pnpm -r test
       - run: pnpm --filter @gw1-mcp/gw-worker check
+      - run: node scripts/check-server-json.mjs # MCP Registry schema constraints

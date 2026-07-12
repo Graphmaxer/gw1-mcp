@@ -194,7 +194,9 @@ publishes the new version to the MCP Registry via OIDC (gated on its
 release_created output — GITHUB_TOKEN-created events cannot trigger other
 workflows, so an on-release workflow would never fire).
 publish-registry.yml remains as a manual, dispatch-only backup. Nothing
-manual beyond merging the PR.
+manual beyond merging the PR. Same GITHUB_TOKEN rule hits the weekly data
+PR (update-data.yml): CI never auto-starts on it — close and reopen the PR
+to trigger the required `test` check (the PR body carries this reminder).
 
 ## Internal conventions (uniform on purpose)
 

@@ -43,5 +43,11 @@ jobs:
           commit-message: "chore: update game data from build-wars/gw1-database"
           body: |
             Automated re-import from build-wars/gw-skilldata (Reforged-tracking upstream) detected changes.
-            Review the diff in `packages/gw-data/data/` — CI runs the full
-            golden-fixture suite against the new data.
+            Review the diff in `packages/gw-data/data/`.
+
+            **Maintainer note — CI will NOT start by itself on this PR.**
+            Bot-created PRs (GITHUB_TOKEN) never trigger `pull_request`
+            workflows, and the branch ruleset requires the `test` check.
+            **Close and reopen this PR** — the reopen event comes from you
+            and starts CI, which runs the full golden-fixture suite against
+            the new data.

@@ -101,3 +101,26 @@ describe("favicon", () => {
     expect([bytes[0], bytes[1], bytes[2], bytes[3]]).toEqual([0, 0, 1, 0]); // ICO magic
   });
 });
+
+describe("origin validation and logo", () => {
+  it("rejects non-https browser origins on /mcp", async () => {
+    const res = await createApp().request("/mcp", {
+      method: "POST",
+      headers: { Origin: "http://evil.test" },
+    });
+    expect(res.status).toBe(403);
+  });
+  it("accepts requests without an Origin header", async () => {
+    const res = await createApp().request("/mcp", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    expect(res.status).not.toBe(403);
+  });
+  it("serves a scalable svg logo", async () => {
+    const res = await createApp().request("/logo.svg");
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain("<svg");
+  });
+});

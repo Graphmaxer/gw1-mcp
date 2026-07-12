@@ -69,6 +69,32 @@ export function createApp(): Hono {
     return token ? c.text(token) : c.notFound();
   });
 
+  // Origin-header validation (directory technical requirement): when a
+  // browser context sends an Origin, require https. Non-browser MCP clients
+  // send no Origin and are unaffected. This is the proportionate control for
+  // a public, read-only, credential-free server (DNS-rebinding protection
+  // targets local servers; there is no session or state here to ride).
+  app.use("/mcp", async (c, next) => {
+    const origin = c.req.header("Origin");
+    if (origin !== undefined && !origin.startsWith("https://")) {
+      return c.json({ error: "forbidden origin" }, 403);
+    }
+    await next();
+  });
+
+  // Scalable logo (directory listing asset), same motif as the favicon.
+  app.get("/logo.svg", (c) => {
+    c.header("Content-Type", "image/svg+xml");
+    c.header("Cache-Control", "public, max-age=86400");
+    return c.body(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">` +
+        `<circle cx="32" cy="32" r="32" fill="#1e1b22"/>` +
+        `<path d="M 47 20 A 19 19 0 1 0 51 32" fill="none" stroke="#d4af37" stroke-width="7" stroke-linecap="round"/>` +
+        `<path d="M 40 32 L 52 32" stroke="#d4af37" stroke-width="7" stroke-linecap="round"/>` +
+        `</svg>`,
+    );
+  });
+
   app.all("/mcp", async (c) => {
     const server = createServer();
     const transport = new StreamableHTTPTransport();

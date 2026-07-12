@@ -14,6 +14,20 @@ The LLM does all strategic reasoning (which skills to pick, team composition, me
 
 Never add a tool that "reasons" or "generates" a build from vague intent. If a tool needs intelligence to work, it belongs in the LLM, not here.
 
+## Commands
+
+```bash
+pnpm install                      # Node >= 22, pnpm 11
+pnpm -r typecheck && pnpm -r test # must pass from a clean clone
+pnpm lint && pnpm fmt             # oxlint / oxfmt (CI runs fmt:check)
+pnpm test:coverage                # reference levels: see Coverage section
+pnpm --filter @gw1-mcp/gw-worker dev        # local worker
+npx wrangler deploy --dry-run               # bundle check (in gw-worker)
+```
+
+Nothing is ever built to dist: exports point at .ts sources; the worker
+bundles via wrangler.
+
 ## Architecture
 
 pnpm monorepo, TypeScript everywhere.
@@ -181,6 +195,9 @@ OIDC. Nothing manual beyond merging the PR.
 
 ## Internal conventions (uniform on purpose)
 
+- Conventional commits (`feat:`, `fix:`, `test:`, `chore:`…) — release-please reads them.
+- Public functions get TSDoc; comments explain _why_, not _what_.
+- Language: code, identifiers, docs and commits in **English** (public OSS repo); French is fine in issue/PR discussions.
 - Sub-packages are all `"private": true` — @gw1-mcp/* must never reach npm.
 - ONE script archetype, and it covers entry shims too (stdio.ts, worker
   node.ts): every executable wraps its flow in main() behind an
@@ -294,7 +311,7 @@ Source: https://github.com/build-wars/gw1-database (MIT — keep the license not
 - Repository layer exposes typed lookups: `getSkillById`, `getSkillByName` (exact + case/diacritics-insensitive), `searchSkills({ profession?, attribute?, elite?, campaign?, nameContains? })`, `getHero`, `listHeroes`, `getProfession`, `listAttributes(profession)`.
 - Skill names: canonical English names are the primary key; keep French localized names as an alias field if available in the source data (users will often ask in French).
 
-## Current status (updated 2026-07-11)
+## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-07-11)
 
 Milestones 0-4 are DONE: monorepo builds, codec implemented (round-trip,
 golden-fixture, and differentially tested — see Codec verification layers),
@@ -381,14 +398,6 @@ Tool design rules:
 - Skill ids/names/professions/attributes/elite flags are stable across
   balance patches — the codec and validator never go stale; only stats and
   descriptions move, and the upstream now keeps those fresh too.
-
-## Conventions
-
-- Conventional commits (`feat:`, `fix:`, `test:`, `chore:`…).
-- Every package typechecks and tests independently: `pnpm -r typecheck && pnpm -r test` must pass from a clean clone (nothing is ever built to dist; exports point at .ts sources, and the worker bundles via wrangler).
-- Public functions get TSDoc; keep comments about _why_, not _what_.
-- CI: GitHub Actions running lint + build + tests on every PR.
-- Language: code, identifiers, docs and commits in **English** (public OSS repo); it's fine to discuss in French in issues/PRs.
 
 ## Working style for Claude Code sessions
 

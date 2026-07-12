@@ -160,11 +160,13 @@ the MCP isError flag via the jsonError helper — keep new tools consistent.
 
 ## Logo and favicon (single source)
 
-The logo motif (golden scythe-blade crescent on a dark disc) is defined
-ONCE as geometric parameters in scripts/generate-logo-assets.mjs. Running
-it rewrites assets/logo.svg and packages/gw-worker/src/logo.generated.ts
-(SVG string + a 16x16 ICO rasterized in pure JS from the same geometry).
-Never edit the generated files; edit the MOTIF and regenerate.
+assets/logo.svg is the single source of truth — edit it freely (any SVG).
+Then run node scripts/generate-logo-assets.mjs: it embeds the SVG into
+packages/gw-worker/src/logo.generated.ts and rasterizes the 16x16 favicon
+from it (resvg, devDependency, script-time only). The generated module is
+the only derived artifact; never edit it by hand. A literal bundler import
+of the .svg was rejected on purpose: wrangler (esbuild) and vitest (vite)
+would each need their own raw-import config, two things to keep in sync.
 
 ## Releasing
 

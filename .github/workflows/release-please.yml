@@ -21,6 +21,10 @@ jobs:
       - uses: googleapis/release-please-action@v4
         id: release
         with:
+          # With DATA_BOT_PAT the release PR is authored by a real identity:
+          # no bot-approval gate, and CI/CodeQL trigger on it normally.
+          # Falls back to the workflow token if the secret is absent.
+          token: ${{ secrets.DATA_BOT_PAT || github.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
       - uses: actions/checkout@v7

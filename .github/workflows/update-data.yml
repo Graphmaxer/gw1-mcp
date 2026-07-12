@@ -3,6 +3,12 @@ on:
   schedule:
     - cron: "17 6 * * 1" # weekly (Mondays) — upstream tracks Reforged balance patches
   workflow_dispatch:
+# create-pull-request needs to push a branch and open the PR when running
+# on the fallback GITHUB_TOKEN (with DATA_BOT_PAT, the PAT carries these).
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   update:
     runs-on: ubuntu-latest

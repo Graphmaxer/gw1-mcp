@@ -14,6 +14,22 @@ validation.
 **The MCP is a compiler, not a brain.** The LLM does the strategic reasoning;
 this server does the things that must be exact.
 
+## Why not just ask the LLM?
+
+Ask an AI assistant for a Guild Wars build without this server and you
+typically get: a plausible-sounding bar with a skill that does not exist, an
+attribute spread that exceeds the point budget, stats quoted from a
+decade-old balance patch — and a template code that decodes to garbage when
+you paste it in-game, because codes are bit-packed and cannot be
+hallucinated character-by-character.
+
+With gw1-mcp connected, the same assistant looks up the 1484 real skills
+(current with Reforged balance, refreshed weekly), validates the build
+against the actual game rules, and hands you an **official template code
+produced by an encoder — not predicted by a language model**. The strategic
+conversation stays exactly as good as your assistant; the facts stop being
+wrong.
+
 ## Tools
 
 | Tool                       | Purpose                                                                                           |

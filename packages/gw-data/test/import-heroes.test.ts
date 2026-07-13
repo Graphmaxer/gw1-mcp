@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { generateHeroes, identifierToName, parseHeroEnum } from "../scripts/import-heroes.js";
 import type { HeroMeta } from "../scripts/import-heroes.js";
 import heroes from "../data/heroes.json";
-import overlay from "../data/heroes-meta.json";
+import overlay from "../data/heroes-overlay.json";
 
 const header = readFileSync(
   new URL("./fixtures/gwca-heroid-2026-07-11.h", import.meta.url),

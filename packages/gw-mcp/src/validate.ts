@@ -2,8 +2,8 @@ import {
   MAX_TEMPLATE_ATTRIBUTE_ID,
   NO_ATTRIBUTE_ID,
   TITLE_TRACK_MIN_ID,
-  getAttribute,
-  getProfession,
+  getAttributeById,
+  getProfessionById,
   getSkillById,
   type Skill,
 } from "@gw1-mcp/gw-data";
@@ -55,8 +55,8 @@ export function validateBuild(
     });
   }
 
-  const primary = getProfession(template.primary);
-  const secondary = getProfession(template.secondary);
+  const primary = getProfessionById(template.primary);
+  const secondary = getProfessionById(template.secondary);
   if (!primary) {
     errors.push({
       code: "UNKNOWN_PRIMARY",
@@ -134,7 +134,7 @@ export function validateBuild(
       skill.professionId !== template.primary &&
       skill.professionId !== template.secondary
     ) {
-      const prof = getProfession(skill.professionId);
+      const prof = getProfessionById(skill.professionId);
       errors.push({
         code: "PROFESSION_MISMATCH",
         message: `Slot ${slot + 1}: "${skill.name}" is a ${prof?.name ?? "?"} skill, not available to ${primary?.abbr ?? "?"}/${secondary?.abbr ?? "?"}`,
@@ -161,7 +161,7 @@ export function validateBuild(
   // --- attributes -----------------------------------------------------------
   const seenAttributes = new Set<number>();
   for (const { attributeId, rank } of template.attributes) {
-    const attribute = getAttribute(attributeId);
+    const attribute = getAttributeById(attributeId);
     if (!attribute) {
       errors.push({
         code: "UNKNOWN_ATTRIBUTE",
@@ -205,7 +205,7 @@ export function validateBuild(
       } else if (attribute.isPrimary && attribute.professionId !== template.primary) {
         errors.push({
           code: "PRIMARY_ATTRIBUTE_ON_SECONDARY",
-          message: `"${attribute.name}" is a primary attribute of ${getProfession(attribute.professionId)?.name ?? "?"} and requires it as primary profession`,
+          message: `"${attribute.name}" is a primary attribute of ${getProfessionById(attribute.professionId)?.name ?? "?"} and requires it as primary profession`,
         });
       }
     }
@@ -214,7 +214,7 @@ export function validateBuild(
   // Skills whose attribute has no allocation: legal, but worth flagging.
   for (const { slot, skill } of resolved) {
     if (skill.attributeId <= MAX_TEMPLATE_ATTRIBUTE_ID && !seenAttributes.has(skill.attributeId)) {
-      const attribute = getAttribute(skill.attributeId);
+      const attribute = getAttributeById(skill.attributeId);
       warnings.push({
         code: "UNALLOCATED_ATTRIBUTE",
         message: `Slot ${slot + 1}: "${skill.name}" scales with ${attribute?.name ?? "?"}, which has no points allocated`,

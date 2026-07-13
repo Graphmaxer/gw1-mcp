@@ -9,9 +9,9 @@ import {
   getSkillByName,
   heroes,
   getSkillById,
-  getAttribute,
-  getCampaign,
-  getProfession,
+  getAttributeById,
+  getCampaignById,
+  getProfessionById,
   getSkillType,
   searchSkills,
   suggestSkillNames,
@@ -93,8 +93,8 @@ function jsonError(code: string, message: string, extra?: Record<string, unknown
 function fullHero(hero: Hero) {
   return {
     ...hero,
-    profession: getProfession(hero.professionId)?.name ?? null,
-    campaign: getCampaign(hero.campaignId)?.name ?? null,
+    profession: getProfessionById(hero.professionId)?.name ?? null,
+    campaign: getCampaignById(hero.campaignId)?.name ?? null,
   };
 }
 
@@ -103,9 +103,9 @@ function fullSkill(id: number) {
   if (!skill) return null;
   return {
     ...skill,
-    profession: getProfession(skill.professionId)?.name ?? null,
-    attribute: getAttribute(skill.attributeId)?.name ?? null,
-    campaign: getCampaign(skill.campaignId)?.name ?? null,
+    profession: getProfessionById(skill.professionId)?.name ?? null,
+    attribute: getAttributeById(skill.attributeId)?.name ?? null,
+    campaign: getCampaignById(skill.campaignId)?.name ?? null,
     type: getSkillType(skill.typeId)?.name ?? null,
   };
 }
@@ -228,9 +228,9 @@ export function createServer(): McpServer {
           id: s.id,
           name: s.name,
           elite: s.elite,
-          profession: getProfession(s.professionId)?.name ?? null,
-          attribute: getAttribute(s.attributeId)?.name ?? null,
-          campaign: getCampaign(s.campaignId)?.name ?? null,
+          profession: getProfessionById(s.professionId)?.name ?? null,
+          attribute: getAttributeById(s.attributeId)?.name ?? null,
+          campaign: getCampaignById(s.campaignId)?.name ?? null,
           energy: s.energy,
           activation: s.activation,
           recharge: s.recharge,

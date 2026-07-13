@@ -259,7 +259,7 @@ per pipeline (skills <- @buildwars/gw-skilldata import, heroes <- GWCA enum
   new generated artifact MUST add its key there — "no unmanaged copies":
   every derived byte in the repo has a generator, a provenance record, and a
   refresh path (the weekly workflow); everything else committed is either
-  curated original knowledge (heroes-meta.json) or a deliberately dated test
+  curated original knowledge (heroes-overlay.json) or a deliberately dated test
   snapshot (fixtures).
 
 ## Known debts and risks (the honest register)
@@ -291,7 +291,7 @@ for action. Nothing else in the repo is knowingly imperfect.
    — the standalone gwdevhub/GWCA repo 404s since ~2026, the vendored copy
    IS the living source, and it gains new Reforged heroes within days).
    Never edit heroes.json by hand. The only curated file is
-   data/heroes-meta.json (professionId/campaignId/unlock — knowledge that
+   data/heroes-overlay.json (professionId/campaignId/unlock — knowledge that
    exists in no machine-readable source). The weekly workflow regenerates;
    a new upstream hero makes the run fail listing the identifiers to add to
    the overlay, then the regenerated hero rides the weekly PR. Trigger:
@@ -428,6 +428,21 @@ Tool design rules:
 - Skill ids/names/professions/attributes/elite flags are stable across
   balance patches — the codec and validator never go stale; only stats and
   descriptions move, and the upstream now keeps those fresh too.
+
+## Naming conventions (decided 2026-07-13, after an external naming review)
+
+- Lookups: `getXById` / `getXByName` — both suffixes, always, since both
+  siblings exist for every entity (the bare `getX` forms were renamed).
+- Boolean fields: NEW fields take the `is`/`has` prefix unless the bare name
+  reads as an adjective (`elite`). The existing mixed trio (`elite`,
+  `pvpSplit`, `isPvpVersion`) is FROZEN: these ship in public tool output and
+  the server is live on the registry — renaming them is a breaking change
+  with zero upside.
+- Error-code taxonomy (also frozen, rule now explicit): `UNKNOWN_X` = an
+  input the server failed to RESOLVE while interpreting a request (bad name,
+  bad filter value — usually carries suggestions); `NOT_FOUND` = a direct
+  entity lookup that missed. Same LLM-visible outcome, two codes on purpose:
+  the first names WHICH input was bad, which matters on multi-input tools.
 
 ## Tool error policy (isError)
 

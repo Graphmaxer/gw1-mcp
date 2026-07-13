@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-  getAttribute,
+  getAttributeById,
   getHeroByName,
   heroes,
-  getCampaign,
-  getProfession,
+  getCampaignById,
+  getProfessionById,
   getSkillById,
   getSkillByName,
   searchSkills,
@@ -18,19 +18,19 @@ describe("data integrity", () => {
   });
 
   it("resolves the template profession index", () => {
-    expect(getProfession(10)?.name).toBe("Dervish");
-    expect(getProfession(1)?.name).toBe("Warrior");
+    expect(getProfessionById(10)?.name).toBe("Dervish");
+    expect(getProfessionById(1)?.name).toBe("Warrior");
   });
 
   it("resolves the template attribute index", () => {
-    expect(getAttribute(44)?.name).toBe("Mysticism");
-    expect(getAttribute(16)?.name).toBe("Divine Favor");
-    expect(getAttribute(44)?.isPrimary).toBe(true);
+    expect(getAttributeById(44)?.name).toBe("Mysticism");
+    expect(getAttributeById(16)?.name).toBe("Divine Favor");
+    expect(getAttributeById(44)?.isPrimary).toBe(true);
   });
 
   it("uses skilldata campaign indexing (0 = Core)", () => {
-    expect(getCampaign(0)?.name).toBe("Core");
-    expect(getCampaign(3)?.name).toBe("Nightfall");
+    expect(getCampaignById(0)?.name).toBe("Core");
+    expect(getCampaignById(3)?.name).toBe("Nightfall");
     const balthazar = getSkillByName("Avatar of Balthazar");
     expect(balthazar?.campaignId).toBe(3);
     expect(balthazar?.elite).toBe(true);

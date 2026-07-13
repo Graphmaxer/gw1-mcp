@@ -10,7 +10,7 @@
  *
  *   pnpm --filter @gw1-mcp/gw-data import:heroes
  *
- * The only human knowledge lives in data/heroes-meta.json (professionId,
+ * The only human knowledge lives in data/heroes-overlay.json (professionId,
  * campaignId, unlock note — none of which exists in any machine-readable
  * source; the enum does not carry them and the wiki is fragile wikitext).
  * When the enum gains a hero the overlay lacks, this script exits 1 listing
@@ -84,7 +84,7 @@ export function generateHeroes(header: string, overlay: Record<string, HeroMeta>
   const missing = [...upstream.values()].filter((identifier) => !(identifier in overlay));
   if (missing.length > 0) {
     throw new Error(
-      `data/heroes-meta.json lacks ${missing.length} hero(es) from the GWCA enum: ${missing.join(", ")} — curate professionId/campaignId/unlock (from GWW) to unblock`,
+      `data/heroes-overlay.json lacks ${missing.length} hero(es) from the GWCA enum: ${missing.join(", ")} — curate professionId/campaignId/unlock (from GWW) to unblock`,
     );
   }
   const known = new Set(upstream.values());
@@ -109,7 +109,7 @@ export function generateHeroes(header: string, overlay: Record<string, HeroMeta>
 async function main(): Promise<void> {
   const here = dirname(fileURLToPath(import.meta.url));
   const dataDir = join(here, "..", "data");
-  const overlay = JSON.parse(readFileSync(join(dataDir, "heroes-meta.json"), "utf8")) as Record<
+  const overlay = JSON.parse(readFileSync(join(dataDir, "heroes-overlay.json"), "utf8")) as Record<
     string,
     HeroMeta
   >;
@@ -137,7 +137,7 @@ async function main(): Promise<void> {
     source: `${ENUM_URL} (GWCA HeroID enum, vendored in GWToolboxpp — the living source; standalone gwdevhub/GWCA is gone)`,
     generatedAt: new Date().toISOString().slice(0, 10),
     curatedOverlay:
-      "data/heroes-meta.json (professionId/campaignId/unlock — human knowledge, no machine-readable source exists)",
+      "data/heroes-overlay.json (professionId/campaignId/unlock — human knowledge, no machine-readable source exists)",
   };
   writeFileSync(metaPath, `${JSON.stringify(existingMeta, null, 1)}\n`);
   console.log(

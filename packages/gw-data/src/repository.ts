@@ -41,15 +41,15 @@ const attributeByNormalizedName = new Map(attributes.map((a) => [normalizeName(a
 export const getSkillById = (id: number): Skill | undefined => skillById.get(id);
 export const getSkillByName = (name: string): Skill | undefined =>
   skillByNormalizedName.get(normalizeName(name));
-export const getProfession = (id: number): Profession | undefined => professionById.get(id);
+export const getProfessionById = (id: number): Profession | undefined => professionById.get(id);
 export const getProfessionByName = (name: string): Profession | undefined =>
   professionByNormalizedName.get(normalizeName(name));
 export const getCampaignByName = (name: string): Campaign | undefined =>
   campaignByNormalizedName.get(normalizeName(name));
-export const getAttribute = (id: number): Attribute | undefined => attributeById.get(id);
+export const getAttributeById = (id: number): Attribute | undefined => attributeById.get(id);
 export const getAttributeByName = (name: string): Attribute | undefined =>
   attributeByNormalizedName.get(normalizeName(name));
-export const getCampaign = (id: number): Campaign | undefined => campaignById.get(id);
+export const getCampaignById = (id: number): Campaign | undefined => campaignById.get(id);
 export const getSkillType = (id: number): SkillType | undefined => skillTypeById.get(id);
 export const getHeroById = (id: number): Hero | undefined => heroById.get(id);
 export const getHeroByName = (name: string): Hero | undefined =>

@@ -2,8 +2,8 @@ import {
   getAttributeByName,
   getProfessionByName,
   getSkillByName,
-  getAttribute,
-  getProfession,
+  getAttributeById,
+  getProfessionById,
   getSkillById,
   suggestSkillNames,
 } from "@gw1-mcp/gw-data";
@@ -101,13 +101,13 @@ export function resolveNamedBuild(
 /** Enriched, human/LLM-readable view of a decoded template. */
 export function describeTemplate(template: SkillTemplate) {
   return {
-    primary: getProfession(template.primary)?.name ?? `Unknown (${template.primary})`,
+    primary: getProfessionById(template.primary)?.name ?? `Unknown (${template.primary})`,
     secondary:
       template.secondary === 0
         ? null
-        : (getProfession(template.secondary)?.name ?? `Unknown (${template.secondary})`),
+        : (getProfessionById(template.secondary)?.name ?? `Unknown (${template.secondary})`),
     attributes: template.attributes.map(({ attributeId, rank }) => ({
-      attribute: getAttribute(attributeId)?.name ?? `Unknown (${attributeId})`,
+      attribute: getAttributeById(attributeId)?.name ?? `Unknown (${attributeId})`,
       rank,
     })),
     skills: template.skills.map((id, index) => {
@@ -118,7 +118,7 @@ export function describeTemplate(template: SkillTemplate) {
             slot: index + 1,
             name: skill.name,
             elite: skill.elite,
-            attribute: getAttribute(skill.attributeId)?.name ?? null,
+            attribute: getAttributeById(skill.attributeId)?.name ?? null,
             energy: skill.energy,
             activation: skill.activation,
             recharge: skill.recharge,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { decodeTemplate, encodeTemplate, type SkillTemplate } from "../src/index.js";
+import { mulberry32 } from "./prng.js";
 
 /**
  * Pure round-trip fuzz: decode(encode(x)) must equal canonical(x) for
@@ -18,16 +19,7 @@ import { decodeTemplate, encodeTemplate, type SkillTemplate } from "../src/index
  */
 describe("round-trip fuzz", () => {
   it("decode(encode(x)) === canonical(x) for 2000 random unconstrained builds", () => {
-    // mulberry32: overflow-safe seeded PRNG (naive LCG in JS loses float
-    // precision above 2^53 and can get stuck on a fixed point).
-    let seed = 1337 >>> 0;
-    const rand = (n: number): number => {
-      seed = (seed + 0x6d2b79f5) >>> 0;
-      let t = seed;
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      return ((t ^ (t >>> 14)) >>> 0) % n;
-    };
+    const rand = mulberry32(1337);
 
     for (let i = 0; i < 2000; i++) {
       const attributeCount = rand(16);

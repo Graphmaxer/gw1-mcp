@@ -1,7 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import {
-  campaigns,
   getAttributeByName,
   suggestAttributeNames,
   getHeroById,
@@ -17,6 +16,7 @@ import {
   searchSkills,
   suggestSkillNames,
   type Hero,
+  getCampaignByName,
 } from "@gw1-mcp/gw-data";
 import { decodeTemplate, encodeTemplate, TemplateError } from "@gw1-mcp/gw-template";
 import { PwndTemplate } from "@buildwars/gw-templates";
@@ -213,7 +213,7 @@ export function createServer(): McpServer {
         filters.attributeId = attribute.id;
       }
       if (campaignName !== undefined) {
-        const campaign = campaigns.find((c) => c.name.toLowerCase() === campaignName.toLowerCase());
+        const campaign = getCampaignByName(campaignName);
         if (!campaign)
           return jsonError("UNKNOWN_CAMPAIGN", `Unknown campaign ${JSON.stringify(campaignName)}`);
         filters.campaignId = campaign.id;
@@ -440,7 +440,7 @@ export function createServer(): McpServer {
         results = results.filter((h) => h.professionId === profession.id);
       }
       if (campaignName !== undefined) {
-        const campaign = campaigns.find((c) => c.name.toLowerCase() === campaignName.toLowerCase());
+        const campaign = getCampaignByName(campaignName);
         if (!campaign)
           return jsonError("UNKNOWN_CAMPAIGN", `Unknown campaign ${JSON.stringify(campaignName)}`);
         results = results.filter((h) => h.campaignId === campaign.id);

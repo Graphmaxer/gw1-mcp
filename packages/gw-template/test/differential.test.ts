@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SkillTemplate } from "@buildwars/gw-templates";
+import { mulberry32 } from "./prng.js";
 import { decodeTemplate, encodeTemplate } from "../src/index.js";
 import fixtureFile from "./fixtures/templates.json";
 
@@ -88,16 +89,7 @@ describe("upstream bug sentinel", () => {
 
 describe("differential: fuzz", () => {
   it("agrees with @buildwars/gw-templates on 500 random legal builds", () => {
-    // mulberry32: overflow-safe seeded PRNG (naive LCG in JS loses float
-    // precision above 2^53 and can get stuck on a fixed point).
-    let seed = 1337 >>> 0;
-    const rand = (n: number): number => {
-      seed = (seed + 0x6d2b79f5) >>> 0;
-      let t = seed;
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      return ((t ^ (t >>> 14)) >>> 0) % n;
-    };
+    const rand = mulberry32(1337);
 
     for (let i = 0; i < 500; i++) {
       const primary = 1 + rand(10);

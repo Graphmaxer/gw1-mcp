@@ -21,11 +21,11 @@ jobs:
     outputs:
       changed: ${{ steps.diff.outputs.changed }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       # No version here: pnpm/action-setup reads the packageManager field
       # from package.json (specifying both makes the action fail).
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 24
           cache: pnpm
@@ -55,7 +55,7 @@ jobs:
       - name: Upload the data diff as an artifact
         if: steps.diff.outputs.changed == 'true'
         run: git diff -- packages/gw-data/data > /tmp/data-update.patch
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: steps.diff.outputs.changed == 'true'
         with:
           name: data-update
@@ -73,8 +73,8 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         with:
           name: data-update
           path: /tmp
@@ -82,7 +82,7 @@ jobs:
         run: git apply /tmp/data-update.patch
       - name: Open pull request
         id: data-pr
-        uses: peter-evans/create-pull-request@v8
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
         with:
           # With DATA_BOT_PAT (fine-grained PAT: this repo, Contents RW +
           # Pull requests RW), the PR is authored by a real identity, so CI

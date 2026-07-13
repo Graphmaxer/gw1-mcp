@@ -1,2 +1,3 @@
 export * from "./repository.js";
-export type * from "./types.js";
+// Types AND the domain constants (attribute id landmarks) live in types.ts.
+export * from "./types.js";

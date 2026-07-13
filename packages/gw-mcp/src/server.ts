@@ -16,6 +16,7 @@ import {
   getSkillType,
   searchSkills,
   suggestSkillNames,
+  type Hero,
 } from "@gw1-mcp/gw-data";
 import { decodeTemplate, encodeTemplate, TemplateError } from "@gw1-mcp/gw-template";
 import { PwndTemplate } from "@buildwars/gw-templates";
@@ -86,6 +87,15 @@ function jsonStructured(data: object) {
  */
 function jsonError(code: string, message: string, extra?: Record<string, unknown>) {
   return { ...json({ error: { code, message, ...extra } }), isError: true };
+}
+
+/** Enrich a hero with resolved profession/campaign names (single source). */
+function fullHero(hero: Hero) {
+  return {
+    ...hero,
+    profession: getProfession(hero.professionId)?.name ?? null,
+    campaign: getCampaign(hero.campaignId)?.name ?? null,
+  };
 }
 
 function fullSkill(id: number) {
@@ -402,11 +412,7 @@ export function createServer(): McpServer {
       if (!hero) {
         return jsonError("NOT_FOUND", `No hero matching ${JSON.stringify(name ?? id)}`);
       }
-      return json({
-        ...hero,
-        profession: getProfession(hero.professionId)?.name ?? null,
-        campaign: getCampaign(hero.campaignId)?.name ?? null,
-      });
+      return json(fullHero(hero));
     },
   );
 
@@ -441,11 +447,7 @@ export function createServer(): McpServer {
       }
       return json({
         total: results.length,
-        heroes: results.map((h) => ({
-          ...h,
-          profession: getProfession(h.professionId)?.name ?? null,
-          campaign: getCampaign(h.campaignId)?.name ?? null,
-        })),
+        heroes: results.map(fullHero),
       });
     },
   );
@@ -494,15 +496,7 @@ export function createServer(): McpServer {
       contents: [
         {
           uri: uri.href,
-          text: JSON.stringify(
-            heroes.map((h) => ({
-              ...h,
-              profession: getProfession(h.professionId)?.name ?? null,
-              campaign: getCampaign(h.campaignId)?.name ?? null,
-            })),
-            null,
-            2,
-          ),
+          text: JSON.stringify(heroes.map(fullHero), null, 2),
         },
       ],
     }),

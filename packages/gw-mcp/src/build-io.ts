@@ -82,11 +82,15 @@ export function resolveNamedBuild(
     skills.push(skill.id);
   }
 
-  if (errors.length > 0) return { template: null, errors };
+  // Early return on any resolution failure; past this point the compiler
+  // can prove primary and secondary are resolved (no ! or cast needed).
+  if (errors.length > 0 || !primary || !secondary) {
+    return { template: null, errors };
+  }
   return {
     template: {
-      primary: primary!.id,
-      secondary: (secondary as { id: number }).id,
+      primary: primary.id,
+      secondary: secondary.id,
       attributes,
       skills,
     },

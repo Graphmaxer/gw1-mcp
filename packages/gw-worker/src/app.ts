@@ -16,8 +16,10 @@ import { createServer } from "@gw1-mcp/gw-mcp";
  * tests call createApp() with no argument, so the test path never imports a
  * binary asset — that's why no vitest asset config is needed.
  */
-export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array()): Hono {
-  const app = new Hono();
+type AppEnv = { Bindings: { OPENAI_APPS_CHALLENGE?: string } };
+
+export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array()): Hono<AppEnv> {
+  const app = new Hono<AppEnv>();
 
   app.get("/", (c) =>
     c.json({
@@ -67,9 +69,7 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
   // OpenAI Apps domain-verification challenge: the token is revealed during
   // submission; set it as a Worker variable (dash or wrangler.jsonc "vars").
   app.get("/.well-known/openai-apps-challenge", (c) => {
-    const token = (c.env as Record<string, string | undefined> | undefined)?.[
-      "OPENAI_APPS_CHALLENGE"
-    ];
+    const token = c.env?.["OPENAI_APPS_CHALLENGE"];
     return token ? c.text(token) : c.notFound();
   });
 

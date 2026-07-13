@@ -93,7 +93,9 @@ The codec must be perfectly **round-trip stable**: `encode(decode(code)) === cod
 ## Codec verification layers
 
 1. Golden fixtures (below) — game/PvX-generated codes, character-exact.
-2. Round-trip fuzz (2000 random builds).
+2. Round-trip fuzz (2000 random UNCONSTRAINED builds — roundtrip-fuzz.test.ts:
+   equal professions, duplicate attribute ids, ranks 13-15, skill ids to
+   65535 crossing every bit-width class; legality is out of scope here).
 3. Differential fuzz vs @buildwars/gw-templates (independent implementation,
    production-tested on gw1builds.com): their decoder must reproduce our
    encoder's input on every legal build. Known upstream deviations are

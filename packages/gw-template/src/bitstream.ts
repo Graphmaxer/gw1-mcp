@@ -35,12 +35,6 @@ export class BitReader {
   }
 
   /** Read n bits without consuming them. */
-  peek(n: number): number {
-    const saved = this.pos;
-    const v = this.read(n);
-    this.pos = saved;
-    return v;
-  }
 }
 
 /** Writes unsigned integers lowest-bit-first and packs them into 6-bit values. */

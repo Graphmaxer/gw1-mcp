@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   getAttribute,
+  getHeroByName,
+  heroes,
   getCampaign,
   getProfession,
   getSkillById,
@@ -50,5 +52,22 @@ describe("lookups", () => {
 
   it("suggests close names for typos", () => {
     expect(suggestSkillNames("Mystic Regenration")[0]).toBe("Mystic Regeneration");
+  });
+});
+
+describe("name uniqueness invariant", () => {
+  it("normalized skill names are bijective (a collision would silently shadow a skill)", () => {
+    // The name Maps overwrite on collision; nothing else would fail loudly if
+    // the weekly upstream import ever introduced two names that normalize to
+    // the same key. This makes that invariant a test failure instead.
+    for (const skill of skills) {
+      expect(getSkillByName(skill.name)?.id, `"${skill.name}"`).toBe(skill.id);
+    }
+  });
+
+  it("normalized hero names are bijective", () => {
+    for (const hero of heroes) {
+      expect(getHeroByName(hero.name)?.id, `"${hero.name}"`).toBe(hero.id);
+    }
   });
 });

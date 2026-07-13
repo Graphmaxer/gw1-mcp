@@ -70,3 +70,14 @@ export interface Hero {
   /** Curated, coarse-grained unlock description. Verify against the wiki before relying on specifics. */
   unlock: string;
 }
+
+/**
+ * Attribute id landmarks (see the Attribute doc above). These are game
+ * constants, owned here so consumers never hardcode them.
+ */
+/** Highest attribute id storable in a template code (44 = Mysticism). */
+export const MAX_TEMPLATE_ATTRIBUTE_ID = 44;
+/** The "No Attribute" pseudo-attribute carried by attribute-less skills. */
+export const NO_ATTRIBUTE_ID = 101;
+/** First PvE title-track id (102 = Sunspear; ranks come from account progress). */
+export const TITLE_TRACK_MIN_ID = 102;

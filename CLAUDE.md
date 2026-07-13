@@ -341,7 +341,7 @@ Source: https://github.com/build-wars/gw-skilldata (MIT — keep the license not
 - Repository layer exposes typed lookups: `getSkillById`, `getSkillByName` (exact + case/diacritics-insensitive), `searchSkills({ profession?, attribute?, elite?, campaign?, nameContains? })`, `getHero`, `listHeroes`, `getProfession`, `listAttributes(profession)`.
 - Skill names: canonical English names are the primary key; keep French localized names as an alias field if available in the source data (users will often ask in French).
 
-## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-07-11)
+## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-07-13)
 
 Everything through distribution is DONE and live: codec (four verification
 layers), 1484 skills Reforged-current, 8 MCP tools + 3 resources, worker

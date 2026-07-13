@@ -37,7 +37,7 @@ describe("attribute point budget", () => {
     expect(report.errors.map((e) => e.code)).not.toContain("ATTRIBUTE_POINTS_EXCEEDED");
   });
 
-  it("flags impossible ranks (13-15 fit in 4 bits but not in-game) without an Infinity budget", () => {
+  it("reports a decoded rank 13-15 once (RANK_OUT_OF_RANGE), never as an Infinity budget", () => {
     const report = validateBuild(
       {
         primary: 10,
@@ -48,7 +48,10 @@ describe("attribute point budget", () => {
       {},
     );
     expect(report.valid).toBe(false);
-    expect(report.errors.map((e) => e.code)).toContain("ATTRIBUTE_RANK_IMPOSSIBLE");
+    const codes = report.errors.map((e) => e.code);
+    expect(codes).toContain("RANK_OUT_OF_RANGE");
+    // single flag for a single cause: the budget error must stay silent
+    expect(codes).not.toContain("ATTRIBUTE_POINTS_EXCEEDED");
     expect(report.errors.map((e) => e.message).join(" ")).not.toContain("Infinity");
   });
 });

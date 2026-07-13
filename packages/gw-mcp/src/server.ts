@@ -534,9 +534,4 @@ const BUILD_WORKFLOW_GUIDE = `# Composing a GW1 build with gw1-mcp
 Data freshness: skill stats follow the CURRENT Reforged balance patch (the
 data source tracks official updates). Check gw1://meta for the import date;
 only cross-check the wiki if that date looks stale.
-(see the gw1://meta resource). Structure (ids, professions, attributes,
-elites) is stable, but Guild Wars Reforged balance updates (2025+) may have
-changed energy costs, recharges or effects. When a precise stat matters to a
-decision, verify against the game or the balance notes at
-https://wiki.guildwars.com/wiki/Game_updates.
 `;

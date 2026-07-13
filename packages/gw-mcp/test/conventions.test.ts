@@ -21,3 +21,11 @@ describe("conventions: every error code has a triggering test", () => {
     });
   }
 });
+
+describe("release versioning", () => {
+  it("keeps the MCP serverInfo version in lockstep with server.json (release-please updates both)", () => {
+    const serverJson = JSON.parse(read("../../../server.json")) as { version: string };
+    const source = read("../src/server.ts");
+    expect(source).toContain(`version: "${serverJson.version}", // x-release-please-version`);
+  });
+});

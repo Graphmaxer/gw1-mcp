@@ -77,8 +77,15 @@ function jsonStructured(data: object) {
 }
 
 /** Tool-level failure: same JSON body, plus the MCP isError flag so clients can react. */
-function jsonError(code: string, message: string) {
-  return { ...json({ error: { code, message } }), isError: true };
+/**
+ * Total-call failure (MCP isError). Policy: use for failures where nothing
+ * usable was produced — bad request, unparseable input, requested entity not
+ * found. Per-item errors inside a larger result (e.g. one hero of a decoded
+ * team) and requested reports (validate_build, encode rule violations) are
+ * normal content WITHOUT isError. extra carries e.g. suggestions.
+ */
+function jsonError(code: string, message: string, extra?: Record<string, unknown>) {
+  return { ...json({ error: { code, message, ...extra } }), isError: true };
 }
 
 function fullSkill(id: number) {
@@ -97,7 +104,7 @@ export function createServer(): McpServer {
   const server = new McpServer(
     {
       name: "gw1-mcp",
-      version: "0.1.0",
+      version: "0.3.3", // x-release-please-version
     },
     {
       // Imported by clients (including the ChatGPT plugin scan) as server-level
@@ -136,12 +143,8 @@ export function createServer(): McpServer {
         const skill = getSkillByName(name);
         return skill
           ? json(fullSkill(skill.id))
-          : json({
-              error: {
-                code: "NOT_FOUND",
-                message: `No skill named ${JSON.stringify(name)}`,
-                suggestions: suggestSkillNames(name),
-              },
+          : jsonError("NOT_FOUND", `No skill named ${JSON.stringify(name)}`, {
+              suggestions: suggestSkillNames(name),
             });
       }
       return jsonError("BAD_REQUEST", "Provide name or id");
@@ -271,12 +274,7 @@ export function createServer(): McpServer {
       try {
         entries = new PwndTemplate().decode(cleaned);
       } catch (error) {
-        return json({
-          error: {
-            code: "INVALID_PWND",
-            message: error instanceof Error ? error.message : String(error),
-          },
-        });
+        return jsonError("INVALID_PWND", error instanceof Error ? error.message : String(error));
       }
       return json({
         builds: entries.map((entry, index) => {
@@ -402,12 +400,7 @@ export function createServer(): McpServer {
       const hero =
         id !== undefined ? getHeroById(id) : name !== undefined ? getHeroByName(name) : undefined;
       if (!hero) {
-        return json({
-          error: {
-            code: "NOT_FOUND",
-            message: `No hero matching ${JSON.stringify(name ?? id)}`,
-          },
-        });
+        return jsonError("NOT_FOUND", `No hero matching ${JSON.stringify(name ?? id)}`);
       }
       return json({
         ...hero,
@@ -538,7 +531,9 @@ const BUILD_WORKFLOW_GUIDE = `# Composing a GW1 build with gw1-mcp
 6. **Encode** with encode_template only once validation passes, and give the
    player the code(s) to paste in-game.
 
-Data freshness: skill stats in this server reflect the pre-Reforged baseline
+Data freshness: skill stats follow the CURRENT Reforged balance patch (the
+data source tracks official updates). Check gw1://meta for the import date;
+only cross-check the wiki if that date looks stale.
 (see the gw1://meta resource). Structure (ids, professions, attributes,
 elites) is stable, but Guild Wars Reforged balance updates (2025+) may have
 changed energy costs, recharges or effects. When a precise stat matters to a

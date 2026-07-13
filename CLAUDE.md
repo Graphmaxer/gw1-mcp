@@ -36,10 +36,11 @@ pnpm monorepo, TypeScript everywhere.
 gw1-mcp/
 ├── CLAUDE.md              ← you are here
 ├── packages/
-│   ├── gw-data/           ← game data (JSON from build-wars/gw1-database) + repository layer
+│   ├── gw-data/           ← game data (JSON from build-wars/gw-skilldata) + repository layer
 │   ├── gw-template/       ← template code codec (encode/decode) — ZERO dependencies, pure functions
-│   └── gw-mcp/            ← MCP server exposing tools; depends on gw-data + gw-template
-└── (later, separate repo) gwtoolbox-plugin (C++, out of scope here)
+│   ├── gw-mcp/            ← MCP server exposing tools; depends on gw-data + gw-template
+│   └── gw-worker/         ← Hono transport: Cloudflare Workers + Node (same app)
+└── gwtoolbox-plugin/      ← AccountExport C++ plugin (built in CI on a GWToolboxpp checkout)
 ```
 
 Dependency direction is strict: `gw-mcp → gw-data, gw-template`. Neither `gw-data` nor `gw-template` may import from `gw-mcp` or make network calls. Everything must work fully offline.
@@ -223,7 +224,7 @@ GitHub release (job attach-plugin-to-release in release-please.yml).
 
 ## Internal conventions (uniform on purpose)
 
-- Conventional commits (`feat:`, `fix:`, `test:`, `chore:`…) — release-please reads them.
+- Conventional commits (`feat:`, `fix:`, `test:`, `chore:`, `docs:`, `ci:`…) — release-please reads them; any other type (e.g. `assets:`) silently vanishes from the changelog, so do not invent types.
 - Public functions get TSDoc; comments explain _why_, not _what_.
 - Language: code, identifiers, docs and commits in **English** (public OSS repo); French is fine in issue/PR discussions.
 - Sub-packages are all `"private": true` — @gw1-mcp/* must never reach npm.
@@ -323,16 +324,17 @@ for action. Nothing else in the repo is knowingly imperfect.
 ]
 ```
 
-<!-- TODO(maintainer): paste here 10-15 real codes from live Nightfall builds (player + heroes),
-     including at least: one build with an empty slot, one without an elite,
-     one without a secondary profession, and one hero build mixing skills
-     from several campaigns. -->
+<!-- TODO(maintainer): 18 fixtures exist (all professions/campaigns covered).
+     What is still WANTED from in-game codes: samples that settle the three
+     open codec questions (trailing padding, zero-attribute filler,
+     4-vs-5-bit attribute width) — i.e. paste a code, re-copy it from the
+     game unchanged, and add both if they differ. -->
 
 Any change to the codec must keep every fixture green. When a bug is found, add the failing code as a new fixture _first_, then fix.
 
 ## Game data
 
-Source: https://github.com/build-wars/gw1-database (MIT — keep the license notice, credit in README).
+Source: https://github.com/build-wars/gw-skilldata (MIT — keep the license notice, credit in README). (The older build-wars/gw1-database SQL dumps are dead since 2019; see Data maintenance.)
 
 - Imported by a script into `packages/gw-data/data/*.json` (skills, professions, attributes, heroes, campaigns).
 - The import script is committed and re-runnable; the generated JSON is committed too (the server must not fetch anything at runtime).
@@ -341,24 +343,16 @@ Source: https://github.com/build-wars/gw1-database (MIT — keep the license not
 
 ## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-07-11)
 
-Milestones 0-4 are DONE: monorepo builds, codec implemented (round-trip,
-golden-fixture, and differentially tested — see Codec verification layers),
-gw-skilldata imported (1484 skills, Reforged-current),
-MCP server with 8 tools passing end-to-end tests over InMemoryTransport,
-and a stateless Streamable HTTP transport (packages/gw-worker, Hono) that
-runs identically on Node and Cloudflare Workers (wrangler dry-run: 234 KB gzip).
-The GWToolbox export plugin (gwtoolbox-plugin/AccountExport, C++/Win32) is WRITTEN
-against the real GWCA headers but NOT YET COMPILED — it must be built on
-Windows inside a GWToolboxpp checkout (see gwtoolbox-plugin/README.md).
-validate_build/encode_template accept `unlockedSkillIds` from its export.
-Fixture set now includes two PvXwiki codes independently verified against the
-pages' declared professions/attributes/skills (character-exact round-trips,
-including '+' charset chars and EotN skill ids). the maintainer's in-game codes remain
-wanted as the final confirmation layer.
-NEXT: golden fixtures from real gameplay (needs the maintainer's in-game codes),
-first real deployment (`wrangler login && pnpm --filter @gw1-mcp/gw-worker deploy`),
-first Windows build of the AccountExport plugin, then MCP resources (gw1://roles,
-hero constraints) and heroes_from_progression.
+Everything through distribution is DONE and live: codec (four verification
+layers), 1484 skills Reforged-current, 8 MCP tools + 3 resources, worker
+deployed on Cloudflare (auto-deploy per push), published on the official MCP
+Registry, releases automated (changelog + DLL + registry in cascade), plugin
+compiled clean in CI (/W4 /WX). Bundle size: whatever
+`pnpm --filter @gw1-mcp/gw-worker check` prints — do not hardcode it here.
+NEXT (maintainer-gated only): load the DLL in-game (/exportaccount, debt #2),
+paste in-game codes to settle the three open codec questions (debt #3), file
+the upstream bug report (debt #4), submit to the ChatGPT and Claude
+directories (kits in docs/).
 
 ## MCP tools (MVP scope — do not add more without discussion)
 
@@ -426,6 +420,15 @@ Tool design rules:
 - Skill ids/names/professions/attributes/elite flags are stable across
   balance patches — the codec and validator never go stale; only stats and
   descriptions move, and the upstream now keeps those fresh too.
+
+## Tool error policy (isError)
+
+isError marks a TOTAL call failure — nothing usable was produced: bad
+request, unparseable input, requested entity not found (jsonError, which
+carries suggestions when available). Per-item errors inside a larger result
+(e.g. one hero of a decoded team) and requested reports (validate_build
+verdicts, encode_template rule violations) are normal content WITHOUT
+isError. All five error sites follow this; keep new tools aligned.
 
 ## Working style for Claude Code sessions
 

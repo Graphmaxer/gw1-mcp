@@ -3,21 +3,23 @@ on:
   schedule:
     - cron: "17 6 * * 1" # weekly (Mondays) — upstream tracks Reforged balance patches
   workflow_dispatch:
-# create-pull-request needs to push a branch and open the PR when running
-# on the fallback GITHUB_TOKEN (with DATA_BOT_PAT, the PAT carries these).
+
+# SUPPLY-CHAIN ISOLATION (two jobs on purpose): the import step executes an
+# UNPINNED remote bundle from the upstream's GitHub Pages (see import.ts).
+# That code must never run in a job that can see DATA_BOT_PAT — a compromised
+# upstream could exfiltrate the job's secrets. So: `import` runs with zero
+# secrets and a read-only token, and hands the data diff to `open-pr` as an
+# artifact; only `open-pr` (which runs no remote code) touches the PAT.
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
-  update:
+  import:
     runs-on: ubuntu-latest
-    env:
-      # secrets.* is not allowed inside a step-level if:; expose presence here.
-      HAS_PAT: ${{ secrets.DATA_BOT_PAT != '' }}
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -50,8 +52,35 @@ jobs:
           fi
       - run: pnpm -r test
         if: steps.diff.outputs.changed == 'true'
-      - name: Open pull request
+      - name: Upload the data diff as an artifact
         if: steps.diff.outputs.changed == 'true'
+        run: git diff -- packages/gw-data/data > /tmp/data-update.patch
+      - uses: actions/upload-artifact@v7
+        if: steps.diff.outputs.changed == 'true'
+        with:
+          name: data-update
+          path: /tmp/data-update.patch
+          retention-days: 3
+
+  open-pr:
+    needs: import
+    if: needs.import.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    env:
+      # secrets.* is not allowed inside a step-level if:; expose presence here.
+      HAS_PAT: ${{ secrets.DATA_BOT_PAT != '' }}
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v7
+        with:
+          name: data-update
+          path: /tmp
+      - name: Apply the imported data
+        run: git apply /tmp/data-update.patch
+      - name: Open pull request
         id: data-pr
         uses: peter-evans/create-pull-request@v8
         with:
@@ -63,7 +92,7 @@ jobs:
           token: ${{ secrets.DATA_BOT_PAT || github.token }}
           branch: chore/update-game-data
           title: "chore: update game data from upstream"
-          commit-message: "chore: update game data from build-wars/gw1-database"
+          commit-message: "chore: update game data from build-wars/gw-skilldata"
           body: |
             Automated re-import from build-wars/gw-skilldata (Reforged-tracking upstream) detected changes.
             Review the diff in `packages/gw-data/data/`.

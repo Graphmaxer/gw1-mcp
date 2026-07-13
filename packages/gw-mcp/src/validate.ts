@@ -31,12 +31,21 @@ export function validateBuild(
 
   // Attribute point budget: level 20 grants at most 200 points (170 base
   // + 30 from quests). The in-game panel physically prevents exceeding it,
-  // so a build over budget cannot exist.
+  // so a build over budget cannot exist. Ranks 13-15 fit in the template's
+  // 4-bit field but are impossible in-game (base ranks cap at 12): report
+  // them explicitly rather than letting the budget sum degrade to Infinity.
+  const impossibleRanks = template.attributes.filter(({ rank }) => RANK_COST[rank] === undefined);
+  for (const { attributeId, rank } of impossibleRanks) {
+    errors.push({
+      code: "ATTRIBUTE_RANK_IMPOSSIBLE",
+      message: `Attribute ${attributeId} has rank ${rank}; base ranks cap at 12 in-game (runes/headgear are not stored in template codes).`,
+    });
+  }
   const spentPoints = template.attributes.reduce(
-    (total, { rank }) => total + (RANK_COST[rank] ?? Number.POSITIVE_INFINITY),
+    (total, { rank }) => total + (RANK_COST[rank] ?? 0),
     0,
   );
-  if (spentPoints > MAX_ATTRIBUTE_POINTS) {
+  if (impossibleRanks.length === 0 && spentPoints > MAX_ATTRIBUTE_POINTS) {
     errors.push({
       code: "ATTRIBUTE_POINTS_EXCEEDED",
       message: `This attribute spread costs ${spentPoints} points; a level 20 character has at most ${MAX_ATTRIBUTE_POINTS} (170 base + 30 from quests). Lower some ranks.`,

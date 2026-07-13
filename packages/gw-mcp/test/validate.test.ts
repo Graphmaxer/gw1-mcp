@@ -36,6 +36,21 @@ describe("attribute point budget", () => {
     );
     expect(report.errors.map((e) => e.code)).not.toContain("ATTRIBUTE_POINTS_EXCEEDED");
   });
+
+  it("flags impossible ranks (13-15 fit in 4 bits but not in-game) without an Infinity budget", () => {
+    const report = validateBuild(
+      {
+        primary: 10,
+        secondary: 0,
+        attributes: [{ attributeId: 44, rank: 13 }],
+        skills: [1518, 0, 0, 0, 0, 0, 0, 0],
+      },
+      {},
+    );
+    expect(report.valid).toBe(false);
+    expect(report.errors.map((e) => e.code)).toContain("ATTRIBUTE_RANK_IMPOSSIBLE");
+    expect(report.errors.map((e) => e.message).join(" ")).not.toContain("Infinity");
+  });
 });
 
 // Table-driven coverage of every remaining validator rule. Base bar: Dervish

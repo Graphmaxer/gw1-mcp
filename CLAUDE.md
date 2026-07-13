@@ -236,8 +236,14 @@ expressions fail a PR check instead of breaking main.
 
 CodeQL runs via GitHub DEFAULT SETUP: its configuration lives OUTSIDE the
 repo (Settings -> Code security), the same out-of-repo category as the
-Cloudflare dash settings (debt #1). The dynamic CodeQL runs in the Actions
-tab are the proof it is active; do not look for a codeql.yml here.
+Cloudflare dash settings (debt #1). Verified via the API (2026-07-13):
+state configured, default query suite, weekly schedule, and the language
+list is broader than one might assume — actions, c-cpp, javascript,
+javascript-typescript, typescript — so the C++ plugin AND the workflow
+files are scanned, not just the TS. The dynamic CodeQL runs in the Actions
+tab are the proof it is active; do not look for a codeql.yml here. If the
+default setup is ever disabled by mistake, re-enable it with those same
+five languages.
 
 ## Internal conventions (uniform on purpose)
 

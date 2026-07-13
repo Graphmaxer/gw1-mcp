@@ -1,27 +1,22 @@
 [
  {
   "id": 0,
-  "name": "Core",
-  "nameDe": "Basis"
+  "name": "Core"
  },
  {
   "id": 1,
-  "name": "Prophecies",
-  "nameDe": "Prophecies"
+  "name": "Prophecies"
  },
  {
   "id": 2,
-  "name": "Factions",
-  "nameDe": "Factions"
+  "name": "Factions"
  },
  {
   "id": 3,
-  "name": "Nightfall",
-  "nameDe": "Nightfall"
+  "name": "Nightfall"
  },
  {
   "id": 4,
-  "name": "Eye of the North",
-  "nameDe": "Eye of the North"
+  "name": "Eye of the North"
  }
 ]

@@ -210,13 +210,11 @@ async function main(): Promise<void> {
   const campaigns = (CAMPAIGNS as unknown as UpstreamCampaign[]).map((c, id) => ({
     id,
     name: c.name.en,
-    nameDe: c.name.de,
   }));
 
   const professions = (PROFESSIONS as unknown as UpstreamProfession[]).map((p, id) => ({
     id,
     name: p.name.en,
-    nameDe: p.name.de,
     abbr: p.abbr.en,
   }));
 
@@ -224,7 +222,6 @@ async function main(): Promise<void> {
     ([id, a]) => ({
       id: Number(id),
       name: a.name.en,
-      nameDe: a.name.de,
       isPrimary: a.pri,
       professionId: a.prof,
       /** Maximum achievable rank incl. bonuses (21 for regular attributes, title cap otherwise). */

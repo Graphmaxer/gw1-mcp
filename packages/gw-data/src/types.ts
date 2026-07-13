@@ -2,14 +2,12 @@ export interface Campaign {
   /** 0 = Core, 1 = Prophecies, 2 = Factions, 3 = Nightfall, 4 = Eye of the North. */
   id: number;
   name: string;
-  nameDe: string;
 }
 
 export interface Profession {
   /** Template profession index: 0 = None, 1 = Warrior … 10 = Dervish. */
   id: number;
   name: string;
-  nameDe: string;
   abbr: string;
 }
 
@@ -21,7 +19,6 @@ export interface Attribute {
    */
   id: number;
   name: string;
-  nameDe: string;
   /** Primary attributes are only available on the primary profession. */
   isPrimary: boolean;
   /** 0 for common / title-track attributes. */

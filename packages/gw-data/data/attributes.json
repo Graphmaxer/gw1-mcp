@@ -2,7 +2,6 @@
  {
   "id": 0,
   "name": "Fast Casting",
-  "nameDe": "Schnellwirkung",
   "isPrimary": true,
   "professionId": 5,
   "max": 21
@@ -10,7 +9,6 @@
  {
   "id": 1,
   "name": "Illusion Magic",
-  "nameDe": "Illusionsmagie",
   "isPrimary": false,
   "professionId": 5,
   "max": 21
@@ -18,7 +16,6 @@
  {
   "id": 2,
   "name": "Domination Magic",
-  "nameDe": "Beherrschungsmagie",
   "isPrimary": false,
   "professionId": 5,
   "max": 21
@@ -26,7 +23,6 @@
  {
   "id": 3,
   "name": "Inspiration Magic",
-  "nameDe": "Inspirationsmagie",
   "isPrimary": false,
   "professionId": 5,
   "max": 21
@@ -34,7 +30,6 @@
  {
   "id": 4,
   "name": "Blood Magic",
-  "nameDe": "Blutmagie",
   "isPrimary": false,
   "professionId": 4,
   "max": 21
@@ -42,7 +37,6 @@
  {
   "id": 5,
   "name": "Death Magic",
-  "nameDe": "Todesmagie",
   "isPrimary": false,
   "professionId": 4,
   "max": 21
@@ -50,7 +44,6 @@
  {
   "id": 6,
   "name": "Soul Reaping",
-  "nameDe": "Seelensammlung",
   "isPrimary": true,
   "professionId": 4,
   "max": 21
@@ -58,7 +51,6 @@
  {
   "id": 7,
   "name": "Curses",
-  "nameDe": "Flüche",
   "isPrimary": false,
   "professionId": 4,
   "max": 21
@@ -66,7 +58,6 @@
  {
   "id": 8,
   "name": "Air Magic",
-  "nameDe": "Luftmagie",
   "isPrimary": false,
   "professionId": 6,
   "max": 21
@@ -74,7 +65,6 @@
  {
   "id": 9,
   "name": "Earth Magic",
-  "nameDe": "Erdmagie",
   "isPrimary": false,
   "professionId": 6,
   "max": 21
@@ -82,7 +72,6 @@
  {
   "id": 10,
   "name": "Fire Magic",
-  "nameDe": "Feuermagie",
   "isPrimary": false,
   "professionId": 6,
   "max": 21
@@ -90,7 +79,6 @@
  {
   "id": 11,
   "name": "Water Magic",
-  "nameDe": "Wassermagie",
   "isPrimary": false,
   "professionId": 6,
   "max": 21
@@ -98,7 +86,6 @@
  {
   "id": 12,
   "name": "Energy Storage",
-  "nameDe": "Energiespeicherung",
   "isPrimary": true,
   "professionId": 6,
   "max": 21
@@ -106,7 +93,6 @@
  {
   "id": 13,
   "name": "Healing Prayers",
-  "nameDe": "Heilgebete",
   "isPrimary": false,
   "professionId": 3,
   "max": 21
@@ -114,7 +100,6 @@
  {
   "id": 14,
   "name": "Smiting Prayers",
-  "nameDe": "Peinigungsgebete",
   "isPrimary": false,
   "professionId": 3,
   "max": 21
@@ -122,7 +107,6 @@
  {
   "id": 15,
   "name": "Protection Prayers",
-  "nameDe": "Schutzgebete",
   "isPrimary": false,
   "professionId": 3,
   "max": 21
@@ -130,7 +114,6 @@
  {
   "id": 16,
   "name": "Divine Favor",
-  "nameDe": "Gunst der Götter",
   "isPrimary": true,
   "professionId": 3,
   "max": 21
@@ -138,7 +121,6 @@
  {
   "id": 17,
   "name": "Strength",
-  "nameDe": "Stärke",
   "isPrimary": true,
   "professionId": 1,
   "max": 21
@@ -146,7 +128,6 @@
  {
   "id": 18,
   "name": "Axe Mastery",
-  "nameDe": "Axtbeherrschung",
   "isPrimary": false,
   "professionId": 1,
   "max": 21
@@ -154,7 +135,6 @@
  {
   "id": 19,
   "name": "Hammer Mastery",
-  "nameDe": "Hammerbeherrschung",
   "isPrimary": false,
   "professionId": 1,
   "max": 21
@@ -162,7 +142,6 @@
  {
   "id": 20,
   "name": "Swordsmanship",
-  "nameDe": "Schwertkunst",
   "isPrimary": false,
   "professionId": 1,
   "max": 21
@@ -170,7 +149,6 @@
  {
   "id": 21,
   "name": "Tactics",
-  "nameDe": "Taktik",
   "isPrimary": false,
   "professionId": 1,
   "max": 21
@@ -178,7 +156,6 @@
  {
   "id": 22,
   "name": "Beast Mastery",
-  "nameDe": "Tierbeherrschung",
   "isPrimary": false,
   "professionId": 2,
   "max": 20
@@ -186,7 +163,6 @@
  {
   "id": 23,
   "name": "Expertise",
-  "nameDe": "Fachkenntnis",
   "isPrimary": true,
   "professionId": 2,
   "max": 20
@@ -194,7 +170,6 @@
  {
   "id": 24,
   "name": "Wilderness Survival",
-  "nameDe": "Überleben in der Wildnis",
   "isPrimary": false,
   "professionId": 2,
   "max": 20
@@ -202,7 +177,6 @@
  {
   "id": 25,
   "name": "Marksmanship",
-  "nameDe": "Treffsicherheit",
   "isPrimary": false,
   "professionId": 2,
   "max": 21
@@ -210,7 +184,6 @@
  {
   "id": 29,
   "name": "Dagger Mastery",
-  "nameDe": "Dolchbeherrschung",
   "isPrimary": false,
   "professionId": 7,
   "max": 21
@@ -218,7 +191,6 @@
  {
   "id": 30,
   "name": "Deadly Arts",
-  "nameDe": "Tödliche Künste",
   "isPrimary": false,
   "professionId": 7,
   "max": 20
@@ -226,7 +198,6 @@
  {
   "id": 31,
   "name": "Shadow Arts",
-  "nameDe": "Schattenkünste",
   "isPrimary": false,
   "professionId": 7,
   "max": 20
@@ -234,7 +205,6 @@
  {
   "id": 32,
   "name": "Communing",
-  "nameDe": "Zwiesprache",
   "isPrimary": false,
   "professionId": 8,
   "max": 21
@@ -242,7 +212,6 @@
  {
   "id": 33,
   "name": "Restoration Magic",
-  "nameDe": "Wiederherstellungsmagie",
   "isPrimary": false,
   "professionId": 8,
   "max": 21
@@ -250,7 +219,6 @@
  {
   "id": 34,
   "name": "Channeling Magic",
-  "nameDe": "Kanalisierungsmagie",
   "isPrimary": false,
   "professionId": 8,
   "max": 21
@@ -258,7 +226,6 @@
  {
   "id": 35,
   "name": "Critical Strikes",
-  "nameDe": "Kritische Stöße",
   "isPrimary": true,
   "professionId": 7,
   "max": 20
@@ -266,7 +233,6 @@
  {
   "id": 36,
   "name": "Spawning Power",
-  "nameDe": "Macht des Herbeirufens",
   "isPrimary": true,
   "professionId": 8,
   "max": 21
@@ -274,7 +240,6 @@
  {
   "id": 37,
   "name": "Spear Mastery",
-  "nameDe": "Speerbeherrschung",
   "isPrimary": false,
   "professionId": 9,
   "max": 21
@@ -282,7 +247,6 @@
  {
   "id": 38,
   "name": "Command",
-  "nameDe": "Befehlsgewalt",
   "isPrimary": false,
   "professionId": 9,
   "max": 21
@@ -290,7 +254,6 @@
  {
   "id": 39,
   "name": "Motivation",
-  "nameDe": "Motivation",
   "isPrimary": false,
   "professionId": 9,
   "max": 21
@@ -298,7 +261,6 @@
  {
   "id": 40,
   "name": "Leadership",
-  "nameDe": "Führung",
   "isPrimary": true,
   "professionId": 9,
   "max": 20
@@ -306,7 +268,6 @@
  {
   "id": 41,
   "name": "Scythe Mastery",
-  "nameDe": "Sensenbeherrschung",
   "isPrimary": false,
   "professionId": 10,
   "max": 21
@@ -314,7 +275,6 @@
  {
   "id": 42,
   "name": "Wind Prayers",
-  "nameDe": "Windgebete",
   "isPrimary": false,
   "professionId": 10,
   "max": 20
@@ -322,7 +282,6 @@
  {
   "id": 43,
   "name": "Earth Prayers",
-  "nameDe": "Erdgebete",
   "isPrimary": false,
   "professionId": 10,
   "max": 20
@@ -330,7 +289,6 @@
  {
   "id": 44,
   "name": "Mysticism",
-  "nameDe": "Mystik",
   "isPrimary": true,
   "professionId": 10,
   "max": 20
@@ -338,7 +296,6 @@
  {
   "id": 101,
   "name": "No Attribute",
-  "nameDe": "Kein Attribut",
   "isPrimary": false,
   "professionId": 0,
   "max": 0
@@ -346,7 +303,6 @@
  {
   "id": 102,
   "name": "Sunspear Title Track",
-  "nameDe": "Sonnenspeertitel",
   "isPrimary": false,
   "professionId": 0,
   "max": 10
@@ -354,7 +310,6 @@
  {
   "id": 103,
   "name": "Lightbringer Title Track",
-  "nameDe": "Lichtbringertitel",
   "isPrimary": false,
   "professionId": 0,
   "max": 8
@@ -362,7 +317,6 @@
  {
   "id": 104,
   "name": "Friend of the Luxons Title Track",
-  "nameDe": "Freund der Luxon",
   "isPrimary": false,
   "professionId": 0,
   "max": 12
@@ -370,7 +324,6 @@
  {
   "id": 105,
   "name": "Friend of the Kurzicks Title Track",
-  "nameDe": "Freund der Kurzick",
   "isPrimary": false,
   "professionId": 0,
   "max": 12
@@ -378,7 +331,6 @@
  {
   "id": 106,
   "name": "Asura Title Track",
-  "nameDe": "Asuratitel",
   "isPrimary": false,
   "professionId": 0,
   "max": 10
@@ -386,7 +338,6 @@
  {
   "id": 107,
   "name": "Deldrimor Title Track",
-  "nameDe": "Deldrimortitel",
   "isPrimary": false,
   "professionId": 0,
   "max": 10
@@ -394,7 +345,6 @@
  {
   "id": 108,
   "name": "Ebon Vanguard Title Track",
-  "nameDe": "Ebon-Vorhut-Titel",
   "isPrimary": false,
   "professionId": 0,
   "max": 10
@@ -402,7 +352,6 @@
  {
   "id": 109,
   "name": "Norn Title Track",
-  "nameDe": "Norntitel",
   "isPrimary": false,
   "professionId": 0,
   "max": 10

@@ -341,7 +341,13 @@ Source: https://github.com/build-wars/gw-skilldata (MIT — keep the license not
 - Imported by a script into `packages/gw-data/data/*.json` (skills, professions, attributes, heroes, campaigns).
 - The import script is committed and re-runnable; the generated JSON is committed too (the server must not fetch anything at runtime).
 - Repository layer exposes typed lookups: `getSkillById`, `getSkillByName` (exact + case/diacritics-insensitive), `searchSkills({ profession?, attribute?, elite?, campaign?, nameContains? })`, `getHero`, `listHeroes`, `getProfession`, `listAttributes(profession)`.
-- Skill names: canonical English names are the primary key; keep French localized names as an alias field if available in the source data (users will often ask in French).
+- Skill names: canonical English names are the primary key. French aliases
+  were WANTED but DECIDED AGAINST (2026-07-13): @buildwars/gw-skilldata ships
+  English and German only (SkillLangEnglish/SkillLangGerman), and scraping the
+  FR wiki is a non-goal. The passive nameDe fields on the side tables (never
+  consumed by any tool) were cut at import for the same reason — no
+  speculative locale data. Revisit only if a machine-readable FR source
+  appears; LLM callers translate French skill names to English well anyway.
 
 ## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-07-13)
 

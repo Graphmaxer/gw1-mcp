@@ -224,6 +224,21 @@ changes nothing. Each release also
 rebuilds AccountExport.dll on a Windows runner and attaches it to the
 GitHub release (job attach-plugin-to-release in release-please.yml).
 
+Supply-chain posture (2026-07-13): every third-party action is pinned by
+full commit SHA with a trailing # vX comment — a moved tag can no longer
+swap the code CI runs; Dependabot understands this format and bumps the
+SHAs weekly. packageManager carries the pnpm sha512 integrity hash
+(corepack verifies the binary itself). The two remaining unpinned execution
+surfaces are known and bounded: the weekly Pages import (isolated from all
+secrets by the two-job split in update-data.yml) and its npm fallback
+(lockfile-integrity-checked). CI also runs actionlint, so invalid workflow
+expressions fail a PR check instead of breaking main.
+
+CodeQL runs via GitHub DEFAULT SETUP: its configuration lives OUTSIDE the
+repo (Settings -> Code security), the same out-of-repo category as the
+Cloudflare dash settings (debt #1). The dynamic CodeQL runs in the Actions
+tab are the proof it is active; do not look for a codeql.yml here.
+
 ## Internal conventions (uniform on purpose)
 
 - Conventional commits (`feat:`, `fix:`, `test:`, `chore:`, `docs:`, `ci:`…) — release-please reads them; any other type (e.g. `assets:`) silently vanishes from the changelog, so do not invent types.

@@ -431,8 +431,10 @@ Tool design rules:
 
 ## Naming conventions (decided 2026-07-13, after an external naming review)
 
-- Lookups: `getXById` / `getXByName` — both suffixes, always, since both
-  siblings exist for every entity (the bare `getX` forms were renamed).
+- Lookups: `getXById` / `getXByName` — both suffixes WHEN both siblings
+  exist (the bare forms were renamed for the five entities that have a
+  ByName twin). A sole lookup keeps the bare form: `getSkillType` has no
+  ByName sibling, so a suffix would disambiguate nothing.
 - Boolean fields: NEW fields take the `is`/`has` prefix unless the bare name
   reads as an adjective (`elite`). The existing mixed trio (`elite`,
   `pvpSplit`, `isPvpVersion`) is FROZEN: these ship in public tool output and

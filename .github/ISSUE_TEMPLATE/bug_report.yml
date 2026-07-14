@@ -1,0 +1,27 @@
+name: Bug report
+description: Something decodes, encodes, or validates wrong
+labels: [bug]
+body:
+  - type: input
+    id: template-code
+    attributes:
+      label: Template code (if relevant)
+      description: The exact code you fed in or expected out — codes are the best fixtures.
+      placeholder: OgejkmrMLTMWXXXieYNfBTHXqbA
+  - type: input
+    id: tool
+    attributes:
+      label: Tool or entry point
+      placeholder: decode_template / encode_template / validate_build / worker URL / stdio
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened vs what you expected
+      description: Error payloads (code + message) are more useful than screenshots.
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Where does the expected value come from?
+      description: In-game, the wiki, PvXwiki, another tool… (provenance matters here)

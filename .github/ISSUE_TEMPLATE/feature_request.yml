@@ -1,0 +1,18 @@
+name: Feature request
+description: Propose a tool, resource, or data improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What can't you (or your assistant) do today?
+      description: Describe the workflow, not the implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: fit
+    attributes:
+      label: Compiler or brain?
+      description: >
+        This server deliberately verifies and computes; the LLM reasons and
+        advises (see README). Say a word about which side your idea lives on.

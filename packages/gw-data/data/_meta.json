@@ -2,7 +2,7 @@
  "skills": {
   "source": "https://github.com/build-wars/gw-skilldata (npm: @buildwars/gw-skilldata)",
   "sourceVersion": "npm:1.1.0",
-  "importedAt": "2026-07-13",
+  "importedAt": "2026-07-14",
   "freshness": "Upstream is actively maintained and tracks Guild Wars Reforged balance updates (stat changes and newly added skills). Data is only as fresh as the installed package version; run the update workflow or `pnpm update @buildwars/gw-skilldata` to refresh. Recent balance notes: https://wiki.guildwars.com/wiki/Game_updates"
  },
  "heroes": {

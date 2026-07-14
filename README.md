@@ -9,6 +9,9 @@
 <p align="center">
   <a href="https://codecov.io/gh/Graphmaxer/gw1-mcp"><img src="https://codecov.io/gh/Graphmaxer/gw1-mcp/branch/main/graph/badge.svg" alt="coverage"></a>
   <a href="https://github.com/Graphmaxer/gw1-mcp/actions/workflows/ci.yml"><img src="https://github.com/Graphmaxer/gw1-mcp/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/Graphmaxer/gw1-mcp/releases/latest"><img src="https://img.shields.io/github/v/release/Graphmaxer/gw1-mcp" alt="latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Graphmaxer/gw1-mcp" alt="license"></a>
+  <a href="https://github.com/Graphmaxer/gw1-mcp/commits/main"><img src="https://img.shields.io/github/last-commit/Graphmaxer/gw1-mcp" alt="last commit"></a>
 </p>
 
 An MCP (Model Context Protocol) server that gives any compatible LLM client

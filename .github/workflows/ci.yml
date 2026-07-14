@@ -29,10 +29,23 @@ jobs:
         # (debt #2); the pure core (JSON escaping, hero table, skill-unlock
         # bitfield decoding) is tested here on every PR in under a second.
         # The Windows plugin workflow keeps proving MSVC /W4 /WX integration.
-        run: g++ -std=c++20 -Wall -Wextra -Werror -o /tmp/core_tests gwtoolbox-plugin/tests/core_tests.cpp && /tmp/core_tests
+        run: |
+          pip install --quiet gcovr
+          g++ -std=c++20 --coverage -Wall -Wextra -Werror -o core_tests gwtoolbox-plugin/tests/core_tests.cpp
+          ./core_tests
+          gcovr --lcov cpp-coverage.lcov --filter 'gwtoolbox-plugin/'
+          rm -f core_tests *.gcda *.gcno
       - name: Tests (with lcov coverage for Codecov)
         # Also runs the MCP Registry schema validation (registry-schema.test.ts).
         run: pnpm -r run test --coverage.enabled=true --coverage.reporter=lcov --coverage.reporter=text --reporter=default --reporter=junit --outputFile.junit=test-report.junit.xml
+      - name: Prefix lcov paths with their package (vitest emits package-relative SF)
+        # All four packages emit `SF:src/...` — without the prefix, Codecov
+        # cannot map files to `packages/*/src/**` and the component statuses
+        # match nothing (the original cause of failing targets).
+        run: |
+          for p in gw-template gw-data gw-mcp gw-worker; do
+            sed -i "s|^SF:|SF:packages/$p/|" "packages/$p/coverage/lcov.info"
+          done
       - name: Upload coverage to Codecov
         # SHA-pinned like every other action — this is the vendor of the 2021
         # bash-uploader supply-chain incident; the signed action replaced it,
@@ -40,7 +53,7 @@ jobs:
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: packages/gw-template/coverage/lcov.info,packages/gw-data/coverage/lcov.info,packages/gw-mcp/coverage/lcov.info,packages/gw-worker/coverage/lcov.info
+          files: packages/gw-template/coverage/lcov.info,packages/gw-data/coverage/lcov.info,packages/gw-mcp/coverage/lcov.info,packages/gw-worker/coverage/lcov.info,cpp-coverage.lcov
           fail_ci_if_error: false
       - name: Upload test results to Codecov (Test Analytics)
         # !cancelled(): failed test runs must still upload — that IS the point

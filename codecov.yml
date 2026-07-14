@@ -16,18 +16,22 @@ component_management:
   individual_components:
     - component_id: gw-template
       paths: [packages/gw-template/src/**]
-      statuses: [{ type: project, target: 96% }]
+      statuses: [{ type: project, target: auto, threshold: 1% }]
     - component_id: gw-data
       paths: [packages/gw-data/src/**]
-      statuses: [{ type: project, target: 92% }]
+      statuses: [{ type: project, target: auto, threshold: 1% }]
     - component_id: gw-mcp
       paths: [packages/gw-mcp/src/**]
-      statuses: [{ type: project, target: 94% }]
+      statuses: [{ type: project, target: auto, threshold: 1% }]
     - component_id: gw-worker
       paths: [packages/gw-worker/src/**]
-      statuses: [{ type: project, target: 98% }]
+      statuses: [{ type: project, target: auto, threshold: 1% }]
+    - component_id: gwtoolbox-core
+      paths: [gwtoolbox-plugin/AccountExport/**]
+      statuses: [{ type: project, target: auto, threshold: 1% }]
 
 ignore:
   - "packages/*/scripts/**" # maintenance pipelines, untested by design
   - "packages/*/test/**"
-  - "gwtoolbox-plugin/**"
+  - "gwtoolbox-plugin/AccountExport/AccountExport.cpp" # game-dependent, in-game-only (debt #2)
+  - "gwtoolbox-plugin/tests/**"

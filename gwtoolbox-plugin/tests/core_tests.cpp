@@ -32,6 +32,39 @@ struct FakeBitfield {
     uint32_t operator[](const uint32_t i) const { return words[i]; }
 };
 
+// Strips whitespace outside of strings (escape-aware) so the golden file can
+// live pretty-printed (readable, diffable, formatter-friendly) while the
+// builder emits compact JSON. The contract is the content, not the layout.
+std::string CompactJson(const std::string& pretty)
+{
+    std::string out;
+    out.reserve(pretty.size());
+    bool in_string = false;
+    bool escaped = false;
+    for (const char c : pretty) {
+        if (in_string) {
+            out += c;
+            if (escaped) {
+                escaped = false;
+            }
+            else if (c == '\\') {
+                escaped = true;
+            }
+            else if (c == '"') {
+                in_string = false;
+            }
+        }
+        else if (c == '"') {
+            out += c;
+            in_string = true;
+        }
+        else if (c != ' ' && c != '\n' && c != '\r' && c != '\t') {
+            out += c;
+        }
+    }
+    return out;
+}
+
 std::string bits(const FakeBitfield& field)
 {
     std::string out;
@@ -104,11 +137,9 @@ int main()
         assert(golden_file.good() && "run from the repo root");
         std::stringstream golden;
         golden << golden_file.rdbuf();
-        std::string expected = golden.str();
-        while (!expected.empty() && (expected.back() == '\n' || expected.back() == '\r')) {
-            expected.pop_back();
-        }
-        assert(account_export::BuildAccountJson(s) == expected);
+        // sanity-check the canonicalizer itself on the tricky escape case
+        assert(CompactJson("{ \"a b\": \"say \\\"hi\\\" \" }") == "{\"a b\":\"say \\\"hi\\\" \"}");
+        assert(account_export::BuildAccountJson(s) == CompactJson(golden.str()));
     }
 
     return 0;

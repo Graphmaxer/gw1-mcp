@@ -1,14 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
   getAttributeById,
-  getHeroByName,
-  heroes,
+  getAttributeByName,
   getCampaignById,
+  getCampaignByName,
+  getHeroByName,
   getProfessionById,
+  getProfessionByName,
   getSkillById,
   getSkillByName,
+  heroes,
   searchSkills,
   skills,
+  suggestAttributeNames,
   suggestSkillNames,
 } from "../src/index.js";
 
@@ -69,5 +73,19 @@ describe("name uniqueness invariant", () => {
     for (const hero of heroes) {
       expect(getHeroByName(hero.name)?.id, `"${hero.name}"`).toBe(hero.id);
     }
+  });
+});
+
+describe("entity lookups (both twins per entity)", () => {
+  it("resolves professions, campaigns and attributes by name (normalized) and id", () => {
+    expect(getProfessionByName("dervish")?.id).toBe(10);
+    expect(getCampaignByName("NIGHTFALL")?.name).toBe("Nightfall");
+    expect(getAttributeByName("mysticism")?.name).toBe("Mysticism");
+    expect(getProfessionById(10)?.name).toBe("Dervish");
+    expect(getAttributeById(44)?.name).toBe("Mysticism");
+  });
+
+  it("suggests close attribute names on a misspelling (LLM self-correction path)", () => {
+    expect(suggestAttributeNames("Mystiscism")).toContain("Mysticism");
   });
 });

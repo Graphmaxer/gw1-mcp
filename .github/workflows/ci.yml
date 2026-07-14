@@ -7,6 +7,7 @@ on:
 # from GitHub regardless; this makes the same guarantee explicit for pushes.
 permissions:
   contents: read
+  pull-requests: write # coverage comment on PRs (fork PRs get read-only anyway)
 
 jobs:
   test:
@@ -24,10 +25,36 @@ jobs:
       - run: pnpm lint
       - run: pnpm fmt:check
       - run: pnpm -r typecheck
-      - run: pnpm -r test
+      - name: Tests with coverage
+        run: pnpm -r run test --coverage.enabled=true --coverage.reporter=json-summary
+      - name: Coverage summary + regression floors
+        # Aggregates src-only coverage per package, appends the table to the
+        # run summary, and FAILS if any package drops under its floor.
+        run: |
+          node scripts/coverage-summary.mjs | tee /tmp/coverage.md >> "$GITHUB_STEP_SUMMARY"
       - run: pnpm --filter @gw1-mcp/gw-worker check
       - run: node scripts/check-server-json.mjs # MCP Registry schema constraints
       - name: Lint workflows (actionlint)
         # Catches invalid workflow expressions (e.g. inputs.* in a job-level
         # permissions block) before they reach main.
         uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2
+      - name: Coverage comment on the PR (sticky)
+        # Upserts one marker-identified comment instead of stacking new ones.
+        # Fork/dependabot PRs run with a read-only token: never fail CI on it.
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const fs = require("fs");
+            const marker = "<!-- coverage-report -->";
+            const body = marker + "\n" + fs.readFileSync("/tmp/coverage.md", "utf8");
+            const { data: comments } = await github.rest.issues.listComments({
+              ...context.repo, issue_number: context.issue.number, per_page: 100,
+            });
+            const mine = comments.find((c) => c.body.startsWith(marker));
+            if (mine) {
+              await github.rest.issues.updateComment({ ...context.repo, comment_id: mine.id, body });
+            } else {
+              await github.rest.issues.createComment({ ...context.repo, issue_number: context.issue.number, body });
+            }

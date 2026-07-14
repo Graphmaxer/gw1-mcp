@@ -50,7 +50,7 @@ jobs:
         # SHA-pinned like every other action — this is the vendor of the 2021
         # bash-uploader supply-chain incident; the signed action replaced it,
         # the pin removes the moving-tag risk. Token is upload-only (low value).
-        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7 (embeds github-script v8 / Node 24; v5 line still ships v7.0.1)
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: packages/gw-template/coverage/lcov.info,packages/gw-data/coverage/lcov.info,packages/gw-mcp/coverage/lcov.info,packages/gw-worker/coverage/lcov.info,cpp-coverage.lcov
@@ -60,7 +60,7 @@ jobs:
         # (failed-test annotations in PR comments, flaky detection). Our only
         # network-dependent test (registry-schema) is the one worth watching.
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7 (embeds github-script v8 / Node 24; v5 line still ships v7.0.1)
         with:
           report_type: test_results
           token: ${{ secrets.CODECOV_TOKEN }}

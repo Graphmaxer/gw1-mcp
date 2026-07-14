@@ -6,7 +6,7 @@ on:
 
 # SUPPLY-CHAIN ISOLATION (two jobs on purpose): the import step executes an
 # UNPINNED remote bundle from the upstream's GitHub Pages (see import.ts).
-# That code must never run in a job that can see DATA_BOT_PAT — a compromised
+# That code must never run in a job that can mint the app token — a compromised
 # upstream could exfiltrate the job's secrets. So: `import` runs with zero
 # secrets and a read-only token, and hands the data diff to `open-pr` as an
 # artifact; only `open-pr` (which runs no remote code) touches the PAT.
@@ -66,13 +66,18 @@ jobs:
     needs: import
     if: needs.import.outputs.changed == 'true'
     runs-on: ubuntu-latest
-    env:
-      # secrets.* is not allowed inside a step-level if:; expose presence here.
-      HAS_PAT: ${{ secrets.DATA_BOT_PAT != '' }}
     permissions:
       contents: write
       pull-requests: write
     steps:
+      - name: Mint an ephemeral app token (gw1-mcp-bot)
+        # Same App as release-please; the token lives ~1h. The PR is authored
+        # by gw1-mcp-bot, so CI/CodeQL trigger normally on it.
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ secrets.AUTOMATION_APP_ID }}
+          private-key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -84,12 +89,7 @@ jobs:
         id: data-pr
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
         with:
-          # With DATA_BOT_PAT (fine-grained PAT: this repo, Contents RW +
-          # Pull requests RW), the PR is authored by a real identity, so CI
-          # and CodeQL trigger normally and auto-merge below completes the
-          # zero-touch flow. Without it, falls back to GITHUB_TOKEN and the
-          # close/reopen note in the PR body applies.
-          token: ${{ secrets.DATA_BOT_PAT || github.token }}
+          token: ${{ steps.app-token.outputs.token }}
           branch: chore/update-game-data
           title: "chore: update game data from upstream"
           commit-message: "chore: update game data from build-wars/gw-skilldata"
@@ -98,12 +98,9 @@ jobs:
             Review the diff in `packages/gw-data/data/`.
 
             CI runs the full golden-fixture suite against the new data.
-            If checks do NOT start (only happens when the DATA_BOT_PAT
-            secret is absent and the PR fell back to the Actions token),
-            close and reopen this PR to trigger them.
 
       - name: Enable auto-merge (zero-touch when CI passes)
-        if: ${{ steps.data-pr.outputs.pull-request-number && env.HAS_PAT == 'true' }}
+        if: ${{ steps.data-pr.outputs.pull-request-number }}
         env:
-          GH_TOKEN: ${{ secrets.DATA_BOT_PAT }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: gh pr merge ${{ steps.data-pr.outputs.pull-request-number }} --auto --squash

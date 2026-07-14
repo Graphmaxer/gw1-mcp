@@ -19,13 +19,21 @@ jobs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
+      - name: Mint an ephemeral app token (gw1-mcp-bot)
+        # GitHub App replaces the old long-lived PAT: the installation token
+        # minted here lives ~1h and dies with the run; only the private key
+        # persists (repo secret). App events trigger workflows normally (the
+        # anti-recursion rule only mutes GITHUB_TOKEN), and the bot has no
+        # ruleset bypass — automation goes through the same door as everyone.
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ secrets.AUTOMATION_APP_ID }}
+          private-key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
         id: release
         with:
-          # With DATA_BOT_PAT the release PR is authored by a real identity:
-          # no bot-approval gate, and CI/CodeQL trigger on it normally.
-          # Falls back to the workflow token if the secret is absent.
-          token: ${{ secrets.DATA_BOT_PAT || github.token }}
+          token: ${{ steps.app-token.outputs.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 

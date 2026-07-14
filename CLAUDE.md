@@ -211,7 +211,10 @@ logic is duplicated across workflows. Nothing
 manual beyond merging the PR. Same GITHUB_TOKEN rule hits the weekly data
 PR (update-data.yml): CI never auto-starts on it — close and reopen the PR
 to trigger the required `test` check (the PR body carries this reminder) —
-UNLESS the DATA_BOT_PAT secret exists (fine-grained PAT, this repo only,
+UNLESS the gw1-mcp-bot GitHub App credentials exist (AUTOMATION_APP_ID +
+AUTOMATION_APP_PRIVATE_KEY secrets; ephemeral ~1h installation tokens are
+minted per run via actions/create-github-app-token — no long-lived PAT
+anywhere since 2026-07-15,
 Contents RW + Pull requests RW): then the PR is authored by a real
 identity, CI and CodeQL trigger normally, and the workflow enables
 auto-merge for a fully zero-touch weekly update. This PAT is the repo's

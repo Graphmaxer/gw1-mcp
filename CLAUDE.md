@@ -461,6 +461,14 @@ Tool design rules:
   `pvpSplit`, `isPvpVersion`) is FROZEN: these ship in public tool output and
   the server is live on the registry — renaming them is a breaking change
   with zero upside.
+- Package prefix: `@gw1-mcp/gw-*` stays, DECIDED 2026-07-14. The double
+  prefix looks redundant but is load-bearing: dropping it yields
+  `packages/data/data/skills.json` (the data package contains a data/
+  folder), makes `template` ambiguous (GW1 templates vs code templates),
+  breaks the greppability of gw-* paths, and would break the Cloudflare
+  Workers Builds root-directory setting (dash-side, debt #1) until manually
+  re-pointed — all for three saved characters. Three external audits rated
+  it cost > gain before the data/data collision was even noticed.
 - Error-code taxonomy (also frozen, rule now explicit): `UNKNOWN_X` = an
   input the server failed to RESOLVE while interpreting a request (bad name,
   bad filter value — usually carries suggestions); `NOT_FOUND` = a direct

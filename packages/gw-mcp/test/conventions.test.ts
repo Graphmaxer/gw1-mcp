@@ -29,3 +29,14 @@ describe("release versioning", () => {
     expect(source).toContain(`version: "${serverJson.version}", // x-release-please-version`);
   });
 });
+
+describe("isError policy (mechanical lock)", () => {
+  it("every top-level error object in server.ts goes through jsonError (which sets isError)", () => {
+    const source = read("../src/server.ts");
+    // Strip the jsonError helper itself (the one legitimate `json({ error` site),
+    // then forbid the pattern anywhere else: total-call failures must use the
+    // helper so the isError flag can never be forgotten again.
+    const withoutHelper = source.replace(/function jsonError\([\s\S]*?\n}\n/, "");
+    expect(withoutHelper).not.toMatch(/json\(\{\s*error\s*:/);
+  });
+});

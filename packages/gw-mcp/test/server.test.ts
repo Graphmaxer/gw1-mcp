@@ -391,3 +391,65 @@ describe("LLM-client hardening (from the first production transcript)", () => {
     expect(JSON.stringify(res.content)).toContain("Motivation");
   });
 });
+
+describe("error branches (total failures and reports)", () => {
+  it("decode_template rejects garbage with a TemplateError code and isError", async () => {
+    const client = await connectedClient();
+    const result = await client.callTool({
+      name: "decode_template",
+      arguments: { code: "!!!not-a-template!!!" },
+    });
+    expect(result.isError).toBe(true);
+    expect(payload(result).error.code).toBeDefined();
+  });
+
+  it("validate_build returns a normal report (not isError) when names cannot resolve", async () => {
+    const client = await connectedClient();
+    const result = await client.callTool({
+      name: "validate_build",
+      arguments: {
+        primary: "Dervish",
+        secondary: "Monk",
+        attributes: [{ attribute: "Mysticism", rank: 12 }],
+        skills: ["This Skill Does Not Exist", "", "", "", "", "", "", ""],
+      },
+    });
+    // policy: a requested report is normal content, never isError
+    expect(result.isError ?? false).toBe(false);
+    const body = payload(result);
+    expect(body.valid).toBe(false);
+    expect(body.errors.some((e: { code: string }) => e.code === "UNKNOWN_SKILL")).toBe(true);
+  });
+
+  it("search_skills flags an unknown profession filter with isError and the input named", async () => {
+    const client = await connectedClient();
+    const result = await client.callTool({
+      name: "search_skills",
+      arguments: { professionName: "Necromancy" },
+    });
+    expect(result.isError).toBe(true);
+    expect(payload(result).error.code).toBe("UNKNOWN_PROFESSION");
+  });
+
+  it("decode_pawned_team reports a corrupt member bar per-item, not as a call failure", async () => {
+    const client = await connectedClient();
+    const result = await client.callTool({
+      name: "decode_pawned_team",
+      arguments: { pwnd: "pwnd0001?download pawned2 >XOwBR4Zymc<" },
+    });
+    // policy: partial failures are content — the container parsed, one bar did not
+    expect(result.isError ?? false).toBe(false);
+    const body = payload(result);
+    expect(body.builds[0].error.code).toBeDefined();
+  });
+
+  it("decode_pawned_team fails the whole call (INVALID_PWND) on a blob with no payload", async () => {
+    const client = await connectedClient();
+    const result = await client.callTool({
+      name: "decode_pawned_team",
+      arguments: { pwnd: "pwnd0001 not a valid blob, no payload delimiters" },
+    });
+    expect(result.isError).toBe(true);
+    expect(payload(result).error.code).toBe("INVALID_PWND");
+  });
+});

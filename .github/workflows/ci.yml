@@ -26,7 +26,7 @@ jobs:
       - run: pnpm -r typecheck
       - name: Tests (with lcov coverage for Codecov)
         # Also runs the MCP Registry schema validation (registry-schema.test.ts).
-        run: pnpm -r run test --coverage.enabled=true --coverage.reporter=lcov --coverage.reporter=text
+        run: pnpm -r run test --coverage.enabled=true --coverage.reporter=lcov --coverage.reporter=text --reporter=default --reporter=junit --outputFile.junit=test-report.junit.xml
       - name: Upload coverage to Codecov
         # SHA-pinned like every other action — this is the vendor of the 2021
         # bash-uploader supply-chain incident; the signed action replaced it,
@@ -36,6 +36,15 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: packages/gw-template/coverage/lcov.info,packages/gw-data/coverage/lcov.info,packages/gw-mcp/coverage/lcov.info,packages/gw-worker/coverage/lcov.info
           fail_ci_if_error: false
+      - name: Upload test results to Codecov (Test Analytics)
+        # !cancelled(): failed test runs must still upload — that IS the point
+        # (failed-test annotations in PR comments, flaky detection). Our only
+        # network-dependent test (registry-schema) is the one worth watching.
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3 # v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: packages/gw-template/test-report.junit.xml,packages/gw-data/test-report.junit.xml,packages/gw-mcp/test-report.junit.xml,packages/gw-worker/test-report.junit.xml
       - run: pnpm --filter @gw1-mcp/gw-worker check
       - name: Lint workflows (actionlint)
         # Catches invalid workflow expressions (e.g. inputs.* in a job-level

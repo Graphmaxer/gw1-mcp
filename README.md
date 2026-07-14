@@ -6,6 +6,11 @@
 
 <p align="center"><em>A Guild Wars 1 build compiler for LLMs</em></p>
 
+<p align="center">
+  <a href="https://codecov.io/gh/Graphmaxer/gw1-mcp"><img src="https://codecov.io/gh/Graphmaxer/gw1-mcp/branch/main/graph/badge.svg" alt="coverage"></a>
+  <a href="https://github.com/Graphmaxer/gw1-mcp/actions/workflows/ci.yml"><img src="https://github.com/Graphmaxer/gw1-mcp/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+</p>
+
 An MCP (Model Context Protocol) server that gives any compatible LLM client
 (Claude, ChatGPT, Cursor…) reliable, deterministic knowledge of **Guild Wars 1**
 builds: skill data lookup, official template code encoding/decoding, and build

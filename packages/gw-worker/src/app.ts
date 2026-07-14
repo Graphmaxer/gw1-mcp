@@ -16,7 +16,14 @@ import { createServer } from "@gw1-mcp/gw-mcp";
  * tests call createApp() with no argument, so the test path never imports a
  * binary asset — that's why no vitest asset config is needed.
  */
-type AppEnv = { Bindings: { OPENAI_APPS_CHALLENGE?: string } };
+/** Minimal shape of the Analytics Engine binding (avoids a types package). */
+interface AnalyticsEngineDataset {
+  writeDataPoint(point: { blobs?: string[]; doubles?: number[]; indexes?: string[] }): void;
+}
+
+type AppEnv = {
+  Bindings: { OPENAI_APPS_CHALLENGE?: string; MCP_ANALYTICS?: AnalyticsEngineDataset };
+};
 
 export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array()): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
@@ -52,7 +59,9 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
         "This service is a stateless, read-only compiler for Guild Wars 1 build",
         "data. It has no accounts, no authentication, and it does not collect,",
         "store, or share any personal data. Requests are processed in memory and",
-        "no request content is persisted by the application. The service runs on",
+        "no request content is persisted by the application. Aggregate,",
+        "anonymous usage counters (the invoked tool's name only - never its",
+        "arguments) are recorded for operational purposes. The service runs on",
         "Cloudflare Workers; Cloudflare may process standard operational metadata",
         "(such as IP addresses in transient logs) per its own privacy policy.",
         "",
@@ -87,6 +96,27 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
   });
 
   app.all("/mcp", async (c) => {
+    // Usage analytics: count tool invocations by NAME only — never arguments,
+    // never identities (see /privacy). Fail-soft by design: the binding is
+    // optional (absent in local dev/tests) and any parse error is swallowed;
+    // analytics must never cost a request.
+    const analytics = c.env?.MCP_ANALYTICS;
+    if (analytics && c.req.method === "POST") {
+      try {
+        const rpc = (await c.req.raw.clone().json()) as {
+          method?: string;
+          params?: { name?: string };
+        };
+        const label =
+          rpc.method === "tools/call" && rpc.params?.name
+            ? `tool:${rpc.params.name}`
+            : `rpc:${rpc.method ?? "unknown"}`;
+        analytics.writeDataPoint({ blobs: [label], doubles: [1], indexes: [label] });
+      } catch {
+        // non-JSON or unreadable body: nothing to count
+      }
+    }
+
     const server = createServer();
     const transport = new StreamableHTTPTransport();
     await server.connect(transport);

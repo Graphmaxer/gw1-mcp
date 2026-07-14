@@ -126,3 +126,41 @@ describe("origin validation and logo", () => {
     expect(res.headers.get("Content-Type")).toBe("image/png");
   });
 });
+
+describe("usage analytics hook", () => {
+  it("counts a tools/call by name through the optional binding, fail-soft otherwise", async () => {
+    const points: { blobs?: string[]; indexes?: string[] }[] = [];
+    const env = { MCP_ANALYTICS: { writeDataPoint: (p: (typeof points)[0]) => points.push(p) } };
+    const app = createApp();
+
+    await app.request(
+      "/mcp",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json, text/event-stream",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name: "get_skill", arguments: { id: 1 } },
+        }),
+      },
+      env,
+    );
+    expect(points).toEqual([
+      { blobs: ["tool:get_skill"], doubles: [1], indexes: ["tool:get_skill"] },
+    ]);
+
+    // non-JSON body: swallowed, nothing counted, request not broken
+    const res = await app.request(
+      "/mcp",
+      { method: "POST", headers: { "Content-Type": "text/plain" }, body: "not json" },
+      env,
+    );
+    expect(res.status).toBeLessThan(500);
+    expect(points).toHaveLength(1);
+  });
+});

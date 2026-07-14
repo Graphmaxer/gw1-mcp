@@ -5,5 +5,10 @@
   "compatibility_date": "2026-06-01",
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
+  // Aggregate, anonymous usage counters (tool NAME only, never arguments).
+  // Requires Analytics Engine enabled on the account (dash: Storage &
+  // Databases > Analytics Engine). The binding is optional in code: local
+  // dev and tests run without it.
+  "analytics_engine_datasets": [{ "binding": "MCP_ANALYTICS", "dataset": "gw1_mcp_usage" }],
   "rules": [{ "type": "Data", "globs": ["**/*.png"], "fallthrough": true }],
 }

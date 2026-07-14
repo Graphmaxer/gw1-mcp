@@ -34,7 +34,7 @@ jobs:
           g++ -std=c++20 --coverage -Wall -Wextra -Werror -o core_tests gwtoolbox-plugin/tests/core_tests.cpp
           ./core_tests
           gcovr --lcov cpp-coverage.lcov --filter 'gwtoolbox-plugin/'
-          rm -f core_tests *.gcda *.gcno
+          rm -f core_tests ./*.gcda ./*.gcno
       - name: Tests (with lcov coverage for Codecov)
         # Also runs the MCP Registry schema validation (registry-schema.test.ts).
         run: pnpm -r run test --coverage.enabled=true --coverage.reporter=lcov --coverage.reporter=text --reporter=default --reporter=junit --outputFile.junit=test-report.junit.xml

@@ -1,0 +1,33 @@
+# Coverage policy (took over from the deleted coverage-summary.mjs floors).
+# Component-level targets track src-only coverage per package; scripts are
+# untested by design (see CLAUDE.md). Raise targets as coverage improves;
+# never lower without a written why.
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1% # tolerate noise, block real regressions
+    patch:
+      default:
+        target: 80% # new lines in a PR should arrive mostly covered
+
+component_management:
+  individual_components:
+    - component_id: gw-template
+      paths: [packages/gw-template/src/**]
+      statuses: [{ type: project, target: 96% }]
+    - component_id: gw-data
+      paths: [packages/gw-data/src/**]
+      statuses: [{ type: project, target: 92% }]
+    - component_id: gw-mcp
+      paths: [packages/gw-mcp/src/**]
+      statuses: [{ type: project, target: 94% }]
+    - component_id: gw-worker
+      paths: [packages/gw-worker/src/**]
+      statuses: [{ type: project, target: 98% }]
+
+ignore:
+  - "packages/*/scripts/**" # maintenance pipelines, untested by design
+  - "packages/*/test/**"
+  - "gwtoolbox-plugin/**"

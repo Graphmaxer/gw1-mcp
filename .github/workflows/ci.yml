@@ -24,7 +24,18 @@ jobs:
       - run: pnpm lint
       - run: pnpm fmt:check
       - run: pnpm -r typecheck
-      - run: pnpm -r test # includes the MCP Registry schema validation (registry-schema.test.ts)
+      - name: Tests (with lcov coverage for Codecov)
+        # Also runs the MCP Registry schema validation (registry-schema.test.ts).
+        run: pnpm -r run test --coverage.enabled=true --coverage.reporter=lcov --coverage.reporter=text
+      - name: Upload coverage to Codecov
+        # SHA-pinned like every other action — this is the vendor of the 2021
+        # bash-uploader supply-chain incident; the signed action replaced it,
+        # the pin removes the moving-tag risk. Token is upload-only (low value).
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: packages/gw-template/coverage/lcov.info,packages/gw-data/coverage/lcov.info,packages/gw-mcp/coverage/lcov.info,packages/gw-worker/coverage/lcov.info
+          fail_ci_if_error: false
       - run: pnpm --filter @gw1-mcp/gw-worker check
       - name: Lint workflows (actionlint)
         # Catches invalid workflow expressions (e.g. inputs.* in a job-level

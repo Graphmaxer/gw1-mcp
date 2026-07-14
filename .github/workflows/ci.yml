@@ -60,12 +60,13 @@ jobs:
         # (failed-test annotations in PR comments, flaky detection). Our only
         # network-dependent test (registry-schema) is the one worth watching.
         if: ${{ !cancelled() }}
-        uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3 # v1
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
+          report_type: test_results
           token: ${{ secrets.CODECOV_TOKEN }}
           files: packages/gw-template/test-report.junit.xml,packages/gw-data/test-report.junit.xml,packages/gw-mcp/test-report.junit.xml,packages/gw-worker/test-report.junit.xml
       - run: pnpm --filter @gw1-mcp/gw-worker check
       - name: Lint workflows (actionlint)
         # Catches invalid workflow expressions (e.g. inputs.* in a job-level
         # permissions block) before they reach main.
-        uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2
+        uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2.2.0 (embeds github-script v9 / Node 24)

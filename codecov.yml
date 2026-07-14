@@ -2,6 +2,18 @@
 # Component-level targets track src-only coverage per package; scripts are
 # untested by design (see CLAUDE.md). Raise targets as coverage improves;
 # never lower without a written why.
+# Diagnosis 2026-07-15: commits pushed by gw1-mcp-bot[bot] are processed by
+# Codecov (reports merged, comparison computed) but the NOTIFICATION layer
+# stays silent — no statuses, no PR comment update ('No Status' in their UI,
+# which also links a nonexistent bot user entity). wait_for_ci: false below
+# is the one cheap config hypothesis (their CI-completion detection may
+# stall on bot-pushed events). If the next bot-created release PR still gets
+# no statuses: open a Codecov support ticket (upload IDs in run 29372114225)
+# and consider temporarily un-requiring codecov/* in the ruleset.
+codecov:
+  notify:
+    wait_for_ci: false
+
 coverage:
   status:
     project:

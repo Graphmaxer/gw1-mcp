@@ -209,18 +209,19 @@ single source for each, invoked by release-please.yml via uses: on release,
 and runnable standalone (dispatch / plugin-path push). No build or publish
 logic is duplicated across workflows. Nothing
 manual beyond merging the PR. Same GITHUB_TOKEN rule hits the weekly data
-PR (update-data.yml): CI never auto-starts on it — close and reopen the PR
-to trigger the required `test` check (the PR body carries this reminder) —
+PR (update-data.yml): CI never auto-starts on it —
 UNLESS the gw1-mcp-bot GitHub App credentials exist (AUTOMATION_APP_ID +
 AUTOMATION_APP_PRIVATE_KEY secrets; ephemeral ~1h installation tokens are
 minted per run via actions/create-github-app-token — no long-lived PAT
 anywhere since 2026-07-15,
 Contents RW + Pull requests RW): then the PR is authored by a real
 identity, CI and CodeQL trigger normally, and the workflow enables
-auto-merge for a fully zero-touch weekly update. This PAT is the repo's
-single accepted long-lived secret; rotate it on expiry. The same secret is
-handed to release-please, so release PRs are authored by the maintainer's
-identity too — their CI/CodeQL runs start unattended, and the tags and
+auto-merge for a fully zero-touch weekly update. The only persistent
+credential is the App private key (never expires; a second key of the SAME
+app is held by Grafana Cloud for Git Sync — keys are revocable
+independently on the app page, one per consumer). The same app token is
+handed to release-please, so release PRs are authored by gw1-mcp-bot —
+their CI/CodeQL runs start unattended, and the tags and
 releases it creates DO emit events (unlike GITHUB_TOKEN ones); the
 release-time jobs are wired via needs/if in the same run precisely so this
 changes nothing. Each release also

@@ -24,6 +24,12 @@ jobs:
       - run: pnpm lint
       - run: pnpm fmt:check
       - run: pnpm -r typecheck
+      - name: C++ plugin core tests (pure functions, GWCA-free)
+        # The game-dependent 80% of the plugin is only validatable in-game
+        # (debt #2); the pure core (JSON escaping, hero table, skill-unlock
+        # bitfield decoding) is tested here on every PR in under a second.
+        # The Windows plugin workflow keeps proving MSVC /W4 /WX integration.
+        run: g++ -std=c++20 -Wall -Wextra -Werror -o /tmp/core_tests gwtoolbox-plugin/tests/core_tests.cpp && /tmp/core_tests
       - name: Tests (with lcov coverage for Codecov)
         # Also runs the MCP Registry schema validation (registry-schema.test.ts).
         run: pnpm -r run test --coverage.enabled=true --coverage.reporter=lcov --coverage.reporter=text --reporter=default --reporter=junit --outputFile.junit=test-report.junit.xml

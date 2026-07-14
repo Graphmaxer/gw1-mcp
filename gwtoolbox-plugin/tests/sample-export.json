@@ -1,0 +1,30 @@
+{
+  "type": "gw1-mcp-account-export",
+  "version": 1,
+  "character": {
+    "name": "Graph \"Maxette\" Test",
+    "primaryProfessionId": 10,
+    "secondaryProfessionId": 3,
+    "level": 20,
+    "mapId": 431
+  },
+  "heroes": [
+    {
+      "id": 27,
+      "name": "Ogden Stonehealer",
+      "level": 20,
+      "primaryProfessionId": 3,
+      "secondaryProfessionId": 0
+    },
+    { "id": 26, "name": "Vekk", "level": 20, "primaryProfessionId": 6, "secondaryProfessionId": 0 },
+    {
+      "id": 11,
+      "name": "General Morgahn",
+      "level": 20,
+      "primaryProfessionId": 9,
+      "secondaryProfessionId": 0
+    }
+  ],
+  "unlockedAccountSkills": [65, 127],
+  "learnedCharacterSkills": [30, 64, 66]
+}

@@ -6,6 +6,7 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 #include <cstdio>
 #include <iterator>
 #include <string>
@@ -85,6 +86,93 @@ void AppendSkillBitfield(std::string& out, const ArrayLike& bitfield)
         }
     }
     out += ']';
+}
+
+
+// ── Snapshot pattern ─────────────────────────────────────────────────────
+// ExportAccount (the GWCA-facing part) only FILLS this snapshot from game
+// memory; BuildAccountJson does the entire document assembly as a pure
+// function. The full output contract is therefore unit-testable with
+// fixtures — including cross-language: the golden file produced from these
+// structs is also parsed by the gw-mcp test suite (the consumer side).
+
+struct HeroSnapshot {
+    uint32_t id;
+    uint32_t level;
+    uint32_t primary_profession_id;
+    uint32_t secondary_profession_id;
+};
+
+struct AccountSnapshot {
+    std::string character_name_utf8;
+    uint32_t primary_profession_id;
+    uint32_t secondary_profession_id;
+    uint32_t level;
+    uint32_t map_id;
+    std::vector<HeroSnapshot> heroes;
+    std::vector<uint32_t> unlocked_account_skills;  // bitfield words
+    std::vector<uint32_t> learned_character_skills; // bitfield words
+};
+
+namespace detail {
+// Adapts a plain vector to the array-like shape AppendSkillBitfield expects
+// (the same shape GW::Array has), so the builder stays GWCA-free.
+struct VectorBitfield {
+    const std::vector<uint32_t>& words;
+    bool valid() const { return true; }
+    uint32_t size() const { return static_cast<uint32_t>(words.size()); }
+    uint32_t operator[](const uint32_t i) const { return words[i]; }
+};
+} // namespace detail
+
+inline std::string BuildAccountJson(const AccountSnapshot& snapshot)
+{
+    std::string json;
+    json.reserve(16 * 1024);
+    json += "{\"type\":\"gw1-mcp-account-export\",\"version\":1";
+
+    json += ",\"character\":{\"name\":\"";
+    JsonEscapeInto(json, snapshot.character_name_utf8);
+    json += "\",\"primaryProfessionId\":";
+    json += std::to_string(snapshot.primary_profession_id);
+    json += ",\"secondaryProfessionId\":";
+    json += std::to_string(snapshot.secondary_profession_id);
+    json += ",\"level\":";
+    json += std::to_string(snapshot.level);
+    json += ",\"mapId\":";
+    json += std::to_string(snapshot.map_id);
+    json += "}";
+
+    json += ",\"heroes\":[";
+    bool first_hero = true;
+    for (const HeroSnapshot& hero : snapshot.heroes) {
+        if (!first_hero) {
+            json += ',';
+        }
+        json += "{\"id\":";
+        json += std::to_string(hero.id);
+        json += ",\"name\":\"";
+        JsonEscapeInto(json, HeroName(hero.id));
+        json += "\",\"level\":";
+        json += std::to_string(hero.level);
+        json += ",\"primaryProfessionId\":";
+        json += std::to_string(hero.primary_profession_id);
+        json += ",\"secondaryProfessionId\":";
+        json += std::to_string(hero.secondary_profession_id);
+        json += "}";
+        first_hero = false;
+    }
+    json += "]";
+
+    // Account-unlocked: what heroes can equip (and tomes can teach).
+    json += ",\"unlockedAccountSkills\":";
+    AppendSkillBitfield(json, detail::VectorBitfield{snapshot.unlocked_account_skills});
+    // Character-learned: what this character can put on their own bar.
+    json += ",\"learnedCharacterSkills\":";
+    AppendSkillBitfield(json, detail::VectorBitfield{snapshot.learned_character_skills});
+
+    json += "}";
+    return json;
 }
 
 } // namespace account_export

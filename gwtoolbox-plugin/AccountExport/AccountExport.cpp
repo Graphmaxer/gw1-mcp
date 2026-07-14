@@ -16,6 +16,7 @@
 #include <imgui.h>
 
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -37,6 +38,19 @@ std::string WStringToUtf8(const wchar_t* wstr)
     return out;
 }
 
+template <typename GwArray>
+std::vector<uint32_t> CopyWords(const GwArray& bitfield)
+{
+    std::vector<uint32_t> words;
+    if (bitfield.valid()) {
+        words.reserve(bitfield.size());
+        for (uint32_t i = 0; i < bitfield.size(); i++) {
+            words.push_back(bitfield[i]);
+        }
+    }
+    return words;
+}
+
 void ExportAccount(GW::HookStatus*, const wchar_t*, int, const LPWSTR*)
 {
     const auto* world = GW::GetWorldContext();
@@ -50,66 +64,38 @@ void ExportAccount(GW::HookStatus*, const wchar_t*, int, const LPWSTR*)
         return;
     }
 
-    std::string json;
-    json.reserve(16 * 1024);
-    json += "{\"type\":\"gw1-mcp-account-export\",\"version\":1";
+    // Fill the plain snapshot from game memory; ALL document assembly lives
+    // in the pure, unit-tested BuildAccountJson (AccountExportCore.h).
+    account_export::AccountSnapshot snapshot;
+    snapshot.character_name_utf8 = WStringToUtf8(character->player_name);
+    snapshot.primary_profession_id = static_cast<uint32_t>(player->primary);
+    snapshot.secondary_profession_id = static_cast<uint32_t>(player->secondary);
+    snapshot.level = player->level;
+    snapshot.map_id = static_cast<uint32_t>(GW::Map::GetMapID());
 
-    // --- character ----------------------------------------------------------
-    json += ",\"character\":{\"name\":\"";
-    account_export::JsonEscapeInto(json, WStringToUtf8(character->player_name));
-    json += "\",\"primaryProfessionId\":";
-    json += std::to_string(static_cast<uint32_t>(player->primary));
-    json += ",\"secondaryProfessionId\":";
-    json += std::to_string(static_cast<uint32_t>(player->secondary));
-    json += ",\"level\":";
-    json += std::to_string(player->level);
-    json += ",\"mapId\":";
-    json += std::to_string(static_cast<uint32_t>(GW::Map::GetMapID()));
-    json += "}";
-
-    // --- heroes -------------------------------------------------------------
-    json += ",\"heroes\":[";
-    uint32_t hero_count = 0;
     const auto& heroes = world->hero_info;
     if (heroes.valid()) {
+        snapshot.heroes.reserve(heroes.size());
         for (uint32_t i = 0; i < heroes.size(); i++) {
             const GW::HeroInfo& hero = heroes[i];
-            if (hero_count > 0) {
-                json += ',';
-            }
-            json += "{\"id\":";
-            json += std::to_string(static_cast<uint32_t>(hero.hero_id));
-            json += ",\"name\":\"";
-            account_export::JsonEscapeInto(json, account_export::HeroName(hero.hero_id));
-            json += "\",\"level\":";
-            json += std::to_string(hero.level);
-            json += ",\"primaryProfessionId\":";
-            json += std::to_string(static_cast<uint32_t>(hero.primary));
-            json += ",\"secondaryProfessionId\":";
-            json += std::to_string(static_cast<uint32_t>(hero.secondary));
-            json += "}";
-            hero_count++;
+            snapshot.heroes.push_back({
+                static_cast<uint32_t>(hero.hero_id),
+                hero.level,
+                static_cast<uint32_t>(hero.primary),
+                static_cast<uint32_t>(hero.secondary),
+            });
         }
     }
-    json += "]";
+    snapshot.unlocked_account_skills = CopyWords(account->unlocked_account_skills);
+    snapshot.learned_character_skills = CopyWords(world->unlocked_character_skills);
 
-    // --- skills -------------------------------------------------------------
-    // Account-unlocked skills: what heroes can equip (and tomes can teach).
-    json += ",\"unlockedAccountSkills\":";
-    account_export::AppendSkillBitfield(json, account->unlocked_account_skills);
-
-    // Character-learned skills: what this character can put on their own bar.
-    json += ",\"learnedCharacterSkills\":";
-    account_export::AppendSkillBitfield(json, world->unlocked_character_skills);
-
-    json += "}";
-
+    const std::string json = account_export::BuildAccountJson(snapshot);
     ImGui::SetClipboardText(json.c_str());
 
     wchar_t message[128];
     swprintf(message, _countof(message),
-             L"[AccountExport] Account export copied to clipboard (%u heroes). Paste it to your assistant.",
-             hero_count);
+             L"[AccountExport] Account export copied to clipboard (%zu heroes). Paste it to your assistant.",
+             snapshot.heroes.size());
     GW::Chat::WriteChat(GW::Chat::Channel::CHANNEL_GLOBAL, message, nullptr, true);
 }
 

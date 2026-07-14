@@ -4,6 +4,8 @@
 #include "../AccountExport/AccountExportCore.h"
 
 #include <cassert>
+#include <fstream>
+#include <sstream>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -75,6 +77,38 @@ int main()
         const std::string all = bits({.words = {0xFFFF'FFFFu}});
         assert(all.front() == '[' && all.back() == ']');
         assert(all == "[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31]");
+    }
+
+    // ── Full-document contract (snapshot pattern) ──
+    // The golden file is SHARED with the consumer side: the gw-mcp test suite
+    // parses the same fixture and feeds it to validate_build. If the builder
+    // output drifts, this diff fails; if the consumer expectation drifts,
+    // the TS test fails. Regenerate the golden only on a DELIBERATE format
+    // change (bump "version" when you do).
+    {
+        account_export::AccountSnapshot s;
+        s.character_name_utf8 = "Graph \"Maxette\" Test"; // exercises escaping
+        s.primary_profession_id = 10;
+        s.secondary_profession_id = 3;
+        s.level = 20;
+        s.map_id = 431;
+        s.heroes = {
+            {27, 20, 3, 0}, // Ogden Stonehealer
+            {26, 20, 6, 0}, // Vekk
+            {11, 20, 9, 0}, // General Morgahn
+        };
+        s.unlocked_account_skills = {0, 0, 0b10, 0x80000000u};
+        s.learned_character_skills = {0b1000000000000000000000000000000, 0, 0b101};
+
+        std::ifstream golden_file("gwtoolbox-plugin/tests/sample-export.json");
+        assert(golden_file.good() && "run from the repo root");
+        std::stringstream golden;
+        golden << golden_file.rdbuf();
+        std::string expected = golden.str();
+        while (!expected.empty() && (expected.back() == '\n' || expected.back() == '\r')) {
+            expected.pop_back();
+        }
+        assert(account_export::BuildAccountJson(s) == expected);
     }
 
     return 0;

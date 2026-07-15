@@ -52,15 +52,23 @@ type AppEnv = {
 export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array()): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
+  // Single source of truth for cross-endpoint strings (repo URL appeared in
+  // three places, the trademark disclaimer in two).
+  const REPO_URL = "https://github.com/Graphmaxer/gw1-mcp";
+  const DISCLAIMER =
+    "Unofficial fan-made tool. Guild Wars is a registered trademark of NCSoft Corporation; not affiliated with or endorsed by NCSoft or ArenaNet.";
+  // Security contact derives from the same place SECURITY.md points to:
+  // GitHub private vulnerability reporting. No email to duplicate or scrape.
+  const SECURITY_CONTACT = `${REPO_URL}/security/advisories/new`;
+
   app.get("/", (c) =>
     c.json({
       name: "gw1-mcp",
       description: "A Guild Wars 1 build compiler for LLMs",
       endpoint: "/mcp",
       transport: "streamable-http",
-      repository: "https://github.com/Graphmaxer/gw1-mcp",
-      disclaimer:
-        "Unofficial fan-made tool. Guild Wars is a registered trademark of NCSoft Corporation; not affiliated with or endorsed by NCSoft or ArenaNet.",
+      repository: REPO_URL,
+      disclaimer: DISCLAIMER,
     }),
   );
 
@@ -90,11 +98,9 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
         "(such as IP addresses in transient logs) per its own privacy policy.",
         "",
         "",
-        "Unofficial fan-made tool. Guild Wars is a registered trademark of",
-        "NCSoft Corporation; not affiliated with or endorsed by NCSoft or",
-        "ArenaNet.",
+        DISCLAIMER,
         "",
-        "Contact: open an issue at https://github.com/Graphmaxer/gw1-mcp",
+        `Contact: open an issue at ${REPO_URL}`,
       ].join("\n"),
     ),
   );
@@ -119,6 +125,22 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
         })
       : c.notFound();
   });
+
+  // security.txt (RFC 9116): points researchers to the same GitHub private
+  // vulnerability reporting SECURITY.md uses — Contact is a URL, not an email,
+  // so nothing is duplicated or exposed to scrapers.
+  app.get("/.well-known/security.txt", (c) =>
+    c.text(
+      [
+        `Contact: ${SECURITY_CONTACT}`,
+        `Policy: ${REPO_URL}/blob/main/SECURITY.md`,
+        "Preferred-Languages: en, fr",
+        `Canonical: https://gw1-mcp.graphmaxer.workers.dev/.well-known/security.txt`,
+      ].join("\n"),
+      200,
+      { "Content-Type": "text/plain; charset=utf-8" },
+    ),
+  );
 
   // Origin-header validation (directory technical requirement): when a
   // browser context sends an Origin, require https. Non-browser MCP clients

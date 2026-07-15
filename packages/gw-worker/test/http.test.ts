@@ -103,6 +103,14 @@ describe("directory-readiness routes", () => {
       maintainers: [{ email: "owner@example.com" }],
     });
   });
+  it("serves an RFC 9116 security.txt pointing at GitHub private reporting", async () => {
+    const app = createApp();
+    const body = await (await app.request("/.well-known/security.txt")).text();
+    expect(body).toContain(
+      "Contact: https://github.com/Graphmaxer/gw1-mcp/security/advisories/new",
+    );
+    expect(body).toContain("Policy: https://github.com/Graphmaxer/gw1-mcp/blob/main/SECURITY.md");
+  });
 });
 
 describe("favicon", () => {

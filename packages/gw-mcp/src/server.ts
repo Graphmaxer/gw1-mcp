@@ -170,16 +170,49 @@ export function createServer(): McpServer {
         "Search the full GW1 skill database with filters. professionName: Warrior, Ranger, Monk, Necromancer, Mesmer, Elementalist, Assassin, Ritualist, Paragon, Dervish, or None (common/PvE-only skills). campaignName: Core, Prophecies, Factions, Nightfall, Eye of the North. Returns compact records; use get_skill for full details.",
       annotations: READ_ONLY,
       inputSchema: {
-        professionName: z.string().optional(),
-        attributeName: z.string().optional(),
-        campaignName: z.string().optional(),
-        elite: z.boolean().optional(),
-        nameContains: z.string().optional(),
+        professionName: z
+          .string()
+          .optional()
+          .describe(
+            "Filter by profession: Warrior, Ranger, Monk, Necromancer, Mesmer, Elementalist, Assassin, Ritualist, Paragon, Dervish, or None (common / PvE-only skills that belong to no profession).",
+          ),
+        attributeName: z
+          .string()
+          .optional()
+          .describe(
+            'Filter by attribute line, exact English name, e.g. "Blood Magic", "Swordsmanship", "Divine Favor".',
+          ),
+        campaignName: z
+          .string()
+          .optional()
+          .describe(
+            "Filter by campaign: Core, Prophecies, Factions, Nightfall, or Eye of the North.",
+          ),
+        elite: z
+          .boolean()
+          .optional()
+          .describe("If true, return only elite skills; if false, only non-elite; omit for both."),
+        nameContains: z
+          .string()
+          .optional()
+          .describe(
+            "Case-insensitive substring match on the skill name, e.g. \"heal\" matches every skill with 'heal' in its name.",
+          ),
         includePvpVersions: z
           .boolean()
           .default(false)
-          .describe("Include separate '(PvP)' skill versions"),
-        limit: z.number().int().min(1).max(200).default(50),
+          .describe(
+            "Include separate '(PvP)' skill versions. Default false — most builds want the PvE version only.",
+          ),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(200)
+          .default(50)
+          .describe(
+            "Maximum number of records to return (1–200, default 50). Narrow filters if you hit it.",
+          ),
       },
     },
     async ({

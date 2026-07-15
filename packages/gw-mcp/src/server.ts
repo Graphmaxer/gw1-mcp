@@ -135,7 +135,7 @@ export function createServer(): McpServer {
     {
       title: "Get a Guild Wars 1 skill",
       description:
-        "Look up a single GW1 skill by exact English name or by template skill id. Returns full stats (energy, activation, recharge, adrenaline, sacrifice), profession, attribute, campaign, elite flag and description. If the name is not found, returns the closest matches so you can correct spelling.",
+        "Look up a single GW1 skill by exact English name or by template skill id. Returns full stats (energy, activation, recharge, adrenaline, sacrifice), profession, attribute, campaign, elite flag and description. If the name is not found, returns the closest matches so you can correct spelling. Use this when you already know the exact skill; to discover skills by profession, attribute or name fragment, use search_skills instead.",
       annotations: READ_ONLY,
       inputSchema: {
         name: z
@@ -301,7 +301,7 @@ export function createServer(): McpServer {
     {
       title: "Decode a paw-ned2 team template",
       description:
-        "Decode a paw-ned2 team build blob (the 'pwnd0001...>...<' format shared on PvXwiki team pages and by the paw-ned2 tool) into its individual builds: player/hero label, description, and each skill bar fully decoded. Whitespace and line wraps in the pasted blob are tolerated.",
+        "Decode a paw-ned2 team build blob (the 'pwnd0001...>...<' format shared on PvXwiki team pages and by the paw-ned2 tool) into its individual builds: player/hero label, description, and each skill bar fully decoded. Whitespace and line wraps in the pasted blob are tolerated. This decodes a SINGLE build code; for a multi-hero paw-ned2 team blob, use decode_pawned_team instead. For a single (non-team) build code, use decode_template instead.",
       annotations: READ_ONLY,
       inputSchema: {
         pwnd: z.string().describe("The full pwnd blob, starting with 'pwnd000'"),
@@ -433,7 +433,7 @@ export function createServer(): McpServer {
     {
       title: "Get a Guild Wars 1 hero",
       description:
-        "Look up a GW1 hero by name or by id (GWCA HeroID, matching the AccountExport plugin output). Returns profession, campaign and how the hero is unlocked. Remember: heroes can equip any skill unlocked at ACCOUNT level, but not most PvE-only skills.",
+        "Look up a GW1 hero by name or by id (GWCA HeroID, matching the AccountExport plugin output). Returns profession, campaign and how the hero is unlocked. Remember: heroes can equip any skill unlocked at ACCOUNT level, but not most PvE-only skills. Use this for one known hero; to browse or filter the roster, use list_heroes instead.",
       annotations: READ_ONLY,
       inputSchema: {
         name: z.string().optional().describe('Hero name, e.g. "Master of Whispers"'),

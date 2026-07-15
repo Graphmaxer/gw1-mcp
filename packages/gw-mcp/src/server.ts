@@ -1,3 +1,4 @@
+import type { ToolName } from "./tool-names.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import {
@@ -130,7 +131,7 @@ export function createServer(): McpServer {
   );
 
   server.registerTool(
-    "get_skill",
+    "get_skill" satisfies ToolName,
     {
       title: "Get a Guild Wars 1 skill",
       description:
@@ -162,7 +163,7 @@ export function createServer(): McpServer {
   );
 
   server.registerTool(
-    "search_skills",
+    "search_skills" satisfies ToolName,
     {
       title: "Search Guild Wars 1 skills",
       description:
@@ -240,7 +241,7 @@ export function createServer(): McpServer {
   );
 
   server.registerTool(
-    "decode_template",
+    "decode_template" satisfies ToolName,
     {
       title: "Decode a skill template code",
       description:
@@ -263,7 +264,7 @@ export function createServer(): McpServer {
   );
 
   server.registerTool(
-    "decode_pawned_team",
+    "decode_pawned_team" satisfies ToolName,
     {
       title: "Decode a paw-ned2 team template",
       description:
@@ -316,7 +317,7 @@ export function createServer(): McpServer {
   );
 
   server.registerTool(
-    "encode_template",
+    "encode_template" satisfies ToolName,
     {
       title: "Encode a build into a template code",
       description:
@@ -362,7 +363,7 @@ export function createServer(): McpServer {
   );
 
   server.registerTool(
-    "validate_build",
+    "validate_build" satisfies ToolName,
     {
       title: "Validate a build against GW1 rules",
       description:
@@ -395,7 +396,7 @@ export function createServer(): McpServer {
   );
 
   server.registerTool(
-    "get_hero",
+    "get_hero" satisfies ToolName,
     {
       title: "Get a Guild Wars 1 hero",
       description:
@@ -417,7 +418,7 @@ export function createServer(): McpServer {
   );
 
   server.registerTool(
-    "list_heroes",
+    "list_heroes" satisfies ToolName,
     {
       title: "List Guild Wars 1 heroes",
       description:

@@ -1,8 +1,6 @@
 import { Hono } from "hono";
 import { StreamableHTTPTransport } from "@hono/mcp";
-import { createServer } from "@gw1-mcp/gw-mcp";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { createServer, TOOL_NAMES } from "@gw1-mcp/gw-mcp";
 
 /**
  * Fetch-native Streamable HTTP wrapper around the gw1-mcp server.
@@ -23,21 +21,10 @@ interface AnalyticsEngineDataset {
   writeDataPoint(point: { blobs?: string[]; doubles?: number[]; indexes?: string[] }): void;
 }
 
-// Tool names are DISCOVERED from the server itself (single source of truth:
-// whatever createServer() registers), once per isolate, lazily on the first
-// analytics-enabled POST. No hardcoded list to drift, no sync test to keep.
-let knownToolsPromise: Promise<Set<string>> | undefined;
-function knownTools(): Promise<Set<string>> {
-  knownToolsPromise ??= (async () => {
-    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-    const client = new Client({ name: "label-introspection", version: "0.0.0" });
-    await Promise.all([createServer().connect(serverTransport), client.connect(clientTransport)]);
-    const names = (await client.listTools()).tools.map((tool) => tool.name);
-    await client.close();
-    return new Set(names);
-  })();
-  return knownToolsPromise;
-}
+// THE tool list is imported from gw-mcp's single source of truth
+// (tool-names.ts): registrations there are compiler-checked against the
+// same union, so this set cannot drift from what the server exposes.
+const KNOWN_TOOLS = new Set<string>(TOOL_NAMES);
 
 // JSON-RPC methods are MCP protocol constants (spec-stable), not project
 // state — the one acceptable literal list here.
@@ -148,7 +135,7 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
         // gw-worker test/http.test.ts against the real tool list).
         const label =
           rpc.method === "tools/call"
-            ? (await knownTools()).has(rpc.params?.name ?? "")
+            ? KNOWN_TOOLS.has(rpc.params?.name ?? "")
               ? `tool:${rpc.params?.name}`
               : "tool:_unknown"
             : KNOWN_METHODS.has(rpc.method ?? "")

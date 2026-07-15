@@ -2,7 +2,10 @@
   "uid": "gw1-mcp-usage",
   "title": "gw1-mcp \u2014 public usage",
   "description": "Live, anonymous usage of the gw1-mcp MCP server. Only the invoked tool's NAME is ever recorded \u2014 never arguments, never identities (see the worker's /privacy page). This dashboard is code: grafana/gw1-mcp-usage.json in the repository.",
-  "tags": ["gw1-mcp", "public"],
+  "tags": [
+    "gw1-mcp",
+    "public"
+  ],
   "timezone": "browser",
   "editable": true,
   "schemaVersion": 39,
@@ -12,15 +15,7 @@
   },
   "refresh": "5m",
   "templating": {
-    "list": [
-      {
-        "name": "datasource",
-        "type": "datasource",
-        "label": "Analytics Engine (Altinity ClickHouse)",
-        "query": "vertamedia-clickhouse-datasource",
-        "current": {}
-      }
-    ]
+    "list": []
   },
   "panels": [
     {
@@ -51,14 +46,14 @@
       },
       "datasource": {
         "type": "vertamedia-clickhouse-datasource",
-        "uid": "${datasource}"
+        "uid": "dfs49zyrglywwf"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "vertamedia-clickhouse-datasource",
-            "uid": "${datasource}"
+            "uid": "dfs49zyrglywwf"
           },
           "query": "SELECT SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%'",
           "rawQuery": "SELECT SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%'",
@@ -73,7 +68,9 @@
       ],
       "options": {
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -104,14 +101,14 @@
       },
       "datasource": {
         "type": "vertamedia-clickhouse-datasource",
-        "uid": "${datasource}"
+        "uid": "dfs49zyrglywwf"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "vertamedia-clickhouse-datasource",
-            "uid": "${datasource}"
+            "uid": "dfs49zyrglywwf"
           },
           "query": "SELECT COUNT(DISTINCT blob1) AS tools FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%'",
           "rawQuery": "SELECT COUNT(DISTINCT blob1) AS tools FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%'",
@@ -126,7 +123,9 @@
       ],
       "options": {
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -157,14 +156,14 @@
       },
       "datasource": {
         "type": "vertamedia-clickhouse-datasource",
-        "uid": "${datasource}"
+        "uid": "dfs49zyrglywwf"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "vertamedia-clickhouse-datasource",
-            "uid": "${datasource}"
+            "uid": "dfs49zyrglywwf"
           },
           "query": "SELECT SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE timestamp > NOW() - INTERVAL '1' DAY AND blob1 LIKE 'tool:%'",
           "rawQuery": "SELECT SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE timestamp > NOW() - INTERVAL '1' DAY AND blob1 LIKE 'tool:%'",
@@ -179,7 +178,9 @@
       ],
       "options": {
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -210,14 +211,14 @@
       },
       "datasource": {
         "type": "vertamedia-clickhouse-datasource",
-        "uid": "${datasource}"
+        "uid": "dfs49zyrglywwf"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "vertamedia-clickhouse-datasource",
-            "uid": "${datasource}"
+            "uid": "dfs49zyrglywwf"
           },
           "query": "SELECT round(100 * SUM(if(blob1 NOT LIKE 'tool:%', _sample_interval, 0)) / SUM(_sample_interval), 1) AS pct FROM gw1_mcp_usage WHERE $timeFilter",
           "rawQuery": "SELECT round(100 * SUM(if(blob1 NOT LIKE 'tool:%', _sample_interval, 0)) / SUM(_sample_interval), 1) AS pct FROM gw1_mcp_usage WHERE $timeFilter",
@@ -232,7 +233,9 @@
       ],
       "options": {
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -264,14 +267,14 @@
       },
       "datasource": {
         "type": "vertamedia-clickhouse-datasource",
-        "uid": "${datasource}"
+        "uid": "dfs49zyrglywwf"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "vertamedia-clickhouse-datasource",
-            "uid": "${datasource}"
+            "uid": "dfs49zyrglywwf"
           },
           "query": "SELECT substring(blob1, 6, 64) AS tool, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%' GROUP BY tool ORDER BY calls DESC",
           "rawQuery": "SELECT substring(blob1, 6, 64) AS tool, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%' GROUP BY tool ORDER BY calls DESC",
@@ -288,7 +291,9 @@
         "orientation": "horizontal",
         "displayMode": "gradient",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "/calls/",
           "values": true
         }
@@ -315,14 +320,14 @@
       },
       "datasource": {
         "type": "vertamedia-clickhouse-datasource",
-        "uid": "${datasource}"
+        "uid": "dfs49zyrglywwf"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "vertamedia-clickhouse-datasource",
-            "uid": "${datasource}"
+            "uid": "dfs49zyrglywwf"
           },
           "query": "SELECT toStartOfInterval(timestamp, INTERVAL '1' HOUR) AS t, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter GROUP BY t ORDER BY t",
           "rawQuery": "SELECT toStartOfInterval(timestamp, INTERVAL '1' HOUR) AS t, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter GROUP BY t ORDER BY t",
@@ -358,14 +363,14 @@
       },
       "datasource": {
         "type": "vertamedia-clickhouse-datasource",
-        "uid": "${datasource}"
+        "uid": "dfs49zyrglywwf"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "vertamedia-clickhouse-datasource",
-            "uid": "${datasource}"
+            "uid": "dfs49zyrglywwf"
           },
           "query": "SELECT toStartOfInterval(timestamp, INTERVAL '1' DAY) AS t, substring(blob1, 6, 64) AS tool, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%' GROUP BY t, tool ORDER BY t",
           "rawQuery": "SELECT toStartOfInterval(timestamp, INTERVAL '1' DAY) AS t, substring(blob1, 6, 64) AS tool, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%' GROUP BY t, tool ORDER BY t",

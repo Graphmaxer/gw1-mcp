@@ -315,7 +315,11 @@ for action. Nothing else in the repo is knowingly imperfect.
    derived at import time from the GWCA HeroID enum (vendored in GWToolboxpp
    — the standalone gwdevhub/GWCA repo 404s since ~2026, the vendored copy
    IS the living source, and it gains new Reforged heroes within days).
-   Never edit heroes.json by hand. The only curated file is
+   The same run writes gwtoolbox-plugin/AccountExport/hero-names.generated.h
+   (the C++ plugin's HeroID-indexed name table — one pipeline, two consumers,
+   nothing to keep in sync; the hand-kept table it replaced had silently
+   drifted, ids 36-39 exported "Unknown").
+   Never edit heroes.json or the generated .h by hand. The only curated file is
    data/heroes-overlay.json (professionId/campaignId/unlock — knowledge that
    exists in no machine-readable source). The weekly workflow regenerates;
    a new upstream hero makes the run fail listing the identifiers to add to

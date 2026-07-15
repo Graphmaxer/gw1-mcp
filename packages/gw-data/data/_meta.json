@@ -7,7 +7,7 @@
  },
  "heroes": {
   "source": "https://raw.githubusercontent.com/gwdevhub/GWToolboxpp/master/Dependencies/GWCA/include/GWCA/Constants/Constants.h (GWCA HeroID enum, vendored in GWToolboxpp — the living source; standalone gwdevhub/GWCA is gone)",
-  "generatedAt": "2026-07-13",
+  "generatedAt": "2026-07-15",
   "curatedOverlay": "data/heroes-overlay.json (professionId/campaignId/unlock — human knowledge, no machine-readable source exists)"
  }
 }

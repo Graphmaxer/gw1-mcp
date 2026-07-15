@@ -91,8 +91,13 @@ int main()
     assert(std::string(HeroName(0)) == "None");
     assert(std::string(HeroName(1)) == "Norgu");
     assert(std::string(HeroName(27)) == "Ogden Stonehealer");
+    assert(std::string(HeroName(35)) == "Merc8");
+    // ids 36-39 exported "Unknown" while the table was hand-maintained —
+    // the generated table knows them (the drift that proved the principle).
+    assert(std::string(HeroName(36)) == "Miku");
+    assert(std::string(HeroName(39)) == "Ghost of Althea");
     constexpr auto table_size = static_cast<uint32_t>(std::size(account_export::kHeroNames));
-    assert(std::string(HeroName(table_size - 1)) == "Merc8");
+    static_assert(std::size(account_export::kHeroNames) == 40);
     assert(std::string(HeroName(table_size)) == "Unknown");
     assert(std::string(HeroName(9999)) == "Unknown");
 

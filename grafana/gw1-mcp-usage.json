@@ -1,13 +1,16 @@
 {
   "uid": "gw1-mcp-usage",
-  "title": "gw1-mcp \u2014 MCP usage",
-  "description": "Anonymous per-tool usage of the gw1-mcp worker (Workers Analytics Engine dataset gw1_mcp_usage; tool NAME only, never arguments). Queries always SUM(_sample_interval) \u2014 never COUNT() \u2014 because Analytics Engine samples. Retention: 90 days.",
-  "tags": ["gw1-mcp", "analytics-engine"],
+  "title": "gw1-mcp \u2014 public usage",
+  "description": "Live, anonymous usage of the gw1-mcp MCP server. Only the invoked tool's NAME is ever recorded \u2014 never arguments, never identities (see the worker's /privacy page). This dashboard is code: grafana/gw1-mcp-usage.json in the repository.",
+  "tags": [
+    "gw1-mcp",
+    "public"
+  ],
   "timezone": "browser",
   "editable": true,
   "schemaVersion": 39,
   "time": {
-    "from": "now-7d",
+    "from": "now-30d",
     "to": "now"
   },
   "refresh": "5m",
@@ -24,13 +27,249 @@
   },
   "panels": [
     {
-      "id": 1,
-      "title": "Calls per tool (selected range)",
-      "type": "bargauge",
-      "description": "Which tools carry the usage. tool:* labels only.",
+      "id": 10,
+      "type": "text",
+      "title": "",
       "gridPos": {
         "x": 0,
         "y": 0,
+        "w": 24,
+        "h": 3
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## gw1-mcp \u2014 what the server actually does, live\nAnonymous per-tool call counts from the [gw1-mcp](https://github.com/Graphmaxer/gw1-mcp) MCP server (Guild Wars 1 build compiler for LLMs). **Tool names only \u2014 never arguments, never identities** ([privacy](https://gw1-mcp.graphmaxer.workers.dev/privacy)). Data: Cloudflare Workers Analytics Engine, 90-day retention, sampled (totals use `SUM(_sample_interval)`). This dashboard is versioned code \u2014 [see the JSON](https://github.com/Graphmaxer/gw1-mcp/blob/main/grafana/gw1-mcp-usage.json)."
+      }
+    },
+    {
+      "id": 11,
+      "type": "stat",
+      "title": "Tool calls (selected range)",
+      "description": "Actual work requested by assistants.",
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 6,
+        "h": 5
+      },
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${datasource}"
+          },
+          "query": "SELECT SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%'",
+          "rawQuery": "SELECT SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%'",
+          "format": "table",
+          "database": "default",
+          "table": "gw1_mcp_usage",
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "round": "0s",
+          "intervalFactor": 1
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "Distinct tools used",
+      "description": "Of the 8 tools the server exposes.",
+      "gridPos": {
+        "x": 6,
+        "y": 3,
+        "w": 6,
+        "h": 5
+      },
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${datasource}"
+          },
+          "query": "SELECT COUNT(DISTINCT blob1) AS tools FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%'",
+          "rawQuery": "SELECT COUNT(DISTINCT blob1) AS tools FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%'",
+          "format": "table",
+          "database": "default",
+          "table": "gw1_mcp_usage",
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "round": "0s",
+          "intervalFactor": 1
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "Tool calls (last 24h)",
+      "description": "Fixed 24h window, independent of the time picker.",
+      "gridPos": {
+        "x": 12,
+        "y": 3,
+        "w": 6,
+        "h": 5
+      },
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${datasource}"
+          },
+          "query": "SELECT SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE timestamp > NOW() - INTERVAL '1' DAY AND blob1 LIKE 'tool:%'",
+          "rawQuery": "SELECT SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE timestamp > NOW() - INTERVAL '1' DAY AND blob1 LIKE 'tool:%'",
+          "format": "table",
+          "database": "default",
+          "table": "gw1_mcp_usage",
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "round": "0s",
+          "intervalFactor": 1
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 14,
+      "type": "stat",
+      "title": "Protocol overhead share",
+      "description": "initialize / resource reads vs tool work.",
+      "gridPos": {
+        "x": 18,
+        "y": 3,
+        "w": 6,
+        "h": 5
+      },
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${datasource}"
+          },
+          "query": "SELECT round(100 * SUM(if(blob1 NOT LIKE 'tool:%', _sample_interval, 0)) / SUM(_sample_interval), 1) AS pct FROM gw1_mcp_usage WHERE $timeFilter",
+          "rawQuery": "SELECT round(100 * SUM(if(blob1 NOT LIKE 'tool:%', _sample_interval, 0)) / SUM(_sample_interval), 1) AS pct FROM gw1_mcp_usage WHERE $timeFilter",
+          "format": "table",
+          "database": "default",
+          "table": "gw1_mcp_usage",
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "round": "0s",
+          "intervalFactor": 1
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 1,
+      "type": "bargauge",
+      "title": "Calls per tool (selected range)",
+      "description": "Which of the server's tools carry the usage.",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
         "w": 12,
         "h": 9
       },
@@ -45,8 +284,8 @@
             "type": "vertamedia-clickhouse-datasource",
             "uid": "${datasource}"
           },
-          "query": "SELECT blob1 AS label, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%' GROUP BY label ORDER BY calls DESC",
-          "rawQuery": "SELECT blob1 AS label, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%' GROUP BY label ORDER BY calls DESC",
+          "query": "SELECT replaceOne(blob1, 'tool:', '') AS tool, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%' GROUP BY tool ORDER BY calls DESC",
+          "rawQuery": "SELECT replaceOne(blob1, 'tool:', '') AS tool, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%' GROUP BY tool ORDER BY calls DESC",
           "format": "table",
           "database": "default",
           "table": "gw1_mcp_usage",
@@ -60,7 +299,9 @@
         "orientation": "horizontal",
         "displayMode": "gradient",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "/calls/",
           "values": true
         }
@@ -75,106 +316,15 @@
       }
     },
     {
-      "id": 2,
-      "title": "Tool calls vs protocol overhead",
-      "type": "piechart",
-      "description": "initialize / resource reads vs actual tool work.",
+      "id": 4,
+      "type": "timeseries",
+      "title": "Hourly pulse",
+      "description": "All RPC traffic per hour \u2014 spikes are launch or discovery moments.",
       "gridPos": {
         "x": 12,
-        "y": 0,
+        "y": 8,
         "w": 12,
         "h": 9
-      },
-      "datasource": {
-        "type": "vertamedia-clickhouse-datasource",
-        "uid": "${datasource}"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "vertamedia-clickhouse-datasource",
-            "uid": "${datasource}"
-          },
-          "query": "SELECT if(blob1 LIKE 'tool:%', 'tool calls', 'protocol') AS kind, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter GROUP BY kind",
-          "rawQuery": "SELECT if(blob1 LIKE 'tool:%', 'tool calls', 'protocol') AS kind, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter GROUP BY kind",
-          "format": "table",
-          "database": "default",
-          "table": "gw1_mcp_usage",
-          "dateTimeType": "DATETIME",
-          "dateTimeColDataType": "timestamp",
-          "round": "0s",
-          "intervalFactor": 1
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "/calls/",
-          "values": true
-        },
-        "legend": {
-          "displayMode": "list",
-          "placement": "right"
-        }
-      }
-    },
-    {
-      "id": 3,
-      "title": "Daily calls per tool",
-      "type": "timeseries",
-      "description": "The trend line \u2014 the panel to watch after the Reddit post.",
-      "gridPos": {
-        "x": 0,
-        "y": 9,
-        "w": 24,
-        "h": 10
-      },
-      "datasource": {
-        "type": "vertamedia-clickhouse-datasource",
-        "uid": "${datasource}"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "vertamedia-clickhouse-datasource",
-            "uid": "${datasource}"
-          },
-          "query": "SELECT toStartOfInterval(timestamp, INTERVAL '1' DAY) AS t, blob1 AS label, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%' GROUP BY t, label ORDER BY t",
-          "rawQuery": "SELECT toStartOfInterval(timestamp, INTERVAL '1' DAY) AS t, blob1 AS label, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%' GROUP BY t, label ORDER BY t",
-          "format": "time_series",
-          "database": "default",
-          "table": "gw1_mcp_usage",
-          "dateTimeType": "DATETIME",
-          "dateTimeColDataType": "timestamp",
-          "round": "0s",
-          "intervalFactor": 1
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "drawStyle": "bars",
-            "stacking": {
-              "mode": "normal"
-            },
-            "fillOpacity": 60
-          }
-        },
-        "overrides": []
-      }
-    },
-    {
-      "id": 4,
-      "title": "Hourly pulse (zoom the range to 48h)",
-      "type": "timeseries",
-      "description": "All RPC traffic per hour \u2014 spikes = launch moments.",
-      "gridPos": {
-        "x": 0,
-        "y": 19,
-        "w": 24,
-        "h": 8
       },
       "datasource": {
         "type": "vertamedia-clickhouse-datasource",
@@ -203,6 +353,52 @@
           "custom": {
             "drawStyle": "line",
             "fillOpacity": 20
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Daily calls per tool",
+      "description": "The trend that answers: is the server finding its public?",
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${datasource}"
+          },
+          "query": "SELECT toStartOfInterval(timestamp, INTERVAL '1' DAY) AS t, replaceOne(blob1, 'tool:', '') AS tool, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%' GROUP BY t, tool ORDER BY t",
+          "rawQuery": "SELECT toStartOfInterval(timestamp, INTERVAL '1' DAY) AS t, replaceOne(blob1, 'tool:', '') AS tool, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%' GROUP BY t, tool ORDER BY t",
+          "format": "time_series",
+          "database": "default",
+          "table": "gw1_mcp_usage",
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "round": "0s",
+          "intervalFactor": 1
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "stacking": {
+              "mode": "normal"
+            },
+            "fillOpacity": 60
           }
         },
         "overrides": []

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
@@ -451,5 +452,17 @@ describe("error branches (total failures and reports)", () => {
     });
     expect(result.isError).toBe(true);
     expect(payload(result).error.code).toBe("INVALID_PWND");
+  });
+});
+
+describe("analytics whitelist (gw-worker) stays in sync with the real tools", () => {
+  it("KNOWN_TOOLS in the worker's app.ts matches the tools this server exposes", async () => {
+    const client = await connectedClient();
+    const real = (await client.listTools()).tools.map((t) => t.name).sort();
+
+    const source = readFileSync(new URL("../../gw-worker/src/app.ts", import.meta.url), "utf8");
+    const block = /const KNOWN_TOOLS = new Set\(\[([\s\S]*?)\]\)/.exec(source)?.[1] ?? "";
+    const listed = [...block.matchAll(/"([^"]+)"/g)].map((m) => m[1] ?? "").sort();
+    expect(listed).toEqual(real);
   });
 });

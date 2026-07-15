@@ -90,6 +90,19 @@ describe("directory-readiness routes", () => {
     );
     expect(await res.text()).toBe("tok123");
   });
+  it("serves the Glama ownership file only when configured", async () => {
+    const app = createApp();
+    expect((await app.request("/.well-known/glama.json")).status).toBe(404);
+    const res = await app.request(
+      "/.well-known/glama.json",
+      {},
+      { GLAMA_MAINTAINER_EMAIL: "owner@example.com" },
+    );
+    expect(await res.json()).toEqual({
+      $schema: "https://glama.ai/mcp/schemas/connector.json",
+      maintainers: [{ email: "owner@example.com" }],
+    });
+  });
 });
 
 describe("favicon", () => {

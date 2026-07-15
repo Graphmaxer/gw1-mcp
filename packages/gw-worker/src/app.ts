@@ -42,7 +42,11 @@ const KNOWN_METHODS = new Set([
 ]);
 
 type AppEnv = {
-  Bindings: { OPENAI_APPS_CHALLENGE?: string; MCP_ANALYTICS?: AnalyticsEngineDataset };
+  Bindings: {
+    OPENAI_APPS_CHALLENGE?: string;
+    GLAMA_MAINTAINER_EMAIL?: string;
+    MCP_ANALYTICS?: AnalyticsEngineDataset;
+  };
 };
 
 export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array()): Hono<AppEnv> {
@@ -100,6 +104,20 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
   app.get("/.well-known/openai-apps-challenge", (c) => {
     const token = c.env?.["OPENAI_APPS_CHALLENGE"];
     return token ? c.text(token) : c.notFound();
+  });
+
+  // Glama connector ownership verification: Glama fetches this file from the
+  // server's own domain and matches the email against the Glama account that
+  // claims the listing. Email lives in a var (GLAMA_MAINTAINER_EMAIL) — it is
+  // public by design, not a secret. Absent var → 404, same as the challenge.
+  app.get("/.well-known/glama.json", (c) => {
+    const email = c.env?.["GLAMA_MAINTAINER_EMAIL"];
+    return email
+      ? c.json({
+          $schema: "https://glama.ai/mcp/schemas/connector.json",
+          maintainers: [{ email }],
+        })
+      : c.notFound();
   });
 
   // Origin-header validation (directory technical requirement): when a

@@ -164,3 +164,23 @@ describe("usage analytics hook", () => {
     expect(points).toHaveLength(1);
   });
 });
+
+describe("analytics whitelist stays in sync with the real server", () => {
+  it("KNOWN_TOOLS in app.ts matches the tools the MCP server actually exposes", async () => {
+    const { createServer } = await import("@gw1-mcp/gw-mcp");
+    const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
+    const { InMemoryTransport } = await import("@modelcontextprotocol/sdk/inMemory.js");
+    const [ct, st] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "sync-check", version: "0" });
+    await Promise.all([createServer().connect(st), client.connect(ct)]);
+    const real = (await client.listTools()).tools.map((t) => t.name).sort();
+
+    const source = (await import("node:fs")).readFileSync(
+      new URL("../src/app.ts", import.meta.url),
+      "utf8",
+    );
+    const block = source.match(/const KNOWN_TOOLS = new Set\(\[([\s\S]*?)\]\)/)?.[1] ?? "";
+    const listed = [...block.matchAll(/"([^"]+)"/g)].map((m) => m[1]).sort();
+    expect(listed).toEqual(real);
+  });
+});

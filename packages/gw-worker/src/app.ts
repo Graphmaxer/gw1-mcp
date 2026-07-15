@@ -21,6 +21,30 @@ interface AnalyticsEngineDataset {
   writeDataPoint(point: { blobs?: string[]; doubles?: number[]; indexes?: string[] }): void;
 }
 
+const KNOWN_TOOLS = new Set([
+  "get_skill",
+  "search_skills",
+  "decode_template",
+  "encode_template",
+  "validate_build",
+  "get_hero",
+  "list_heroes",
+  "decode_pawned_team",
+]);
+
+const KNOWN_METHODS = new Set([
+  "initialize",
+  "ping",
+  "tools/list",
+  "tools/call",
+  "resources/list",
+  "resources/read",
+  "resources/templates/list",
+  "prompts/list",
+  "notifications/initialized",
+  "notifications/cancelled",
+]);
+
 type AppEnv = {
   Bindings: { OPENAI_APPS_CHALLENGE?: string; MCP_ANALYTICS?: AnalyticsEngineDataset };
 };
@@ -107,10 +131,20 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
           method?: string;
           params?: { name?: string };
         };
+        // Whitelisted labels only: the endpoint is public and probed by
+        // registry validators and scanners sending arbitrary tool names —
+        // recording the REQUESTED name verbatim would let anyone inject
+        // labels into a public dashboard. Unknown names aggregate.
+        // KEEP IN SYNC with the server's tools (locked by a test in
+        // gw-worker test/http.test.ts against the real tool list).
         const label =
-          rpc.method === "tools/call" && rpc.params?.name
-            ? `tool:${rpc.params.name}`
-            : `rpc:${rpc.method ?? "unknown"}`;
+          rpc.method === "tools/call"
+            ? KNOWN_TOOLS.has(rpc.params?.name ?? "")
+              ? `tool:${rpc.params?.name}`
+              : "tool:_unknown"
+            : KNOWN_METHODS.has(rpc.method ?? "")
+              ? `rpc:${rpc.method}`
+              : "rpc:_other";
         analytics.writeDataPoint({ blobs: [label], doubles: [1], indexes: [label] });
       } catch {
         // non-JSON or unreadable body: nothing to count

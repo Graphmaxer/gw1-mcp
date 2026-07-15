@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { TOOL_NAMES, type ToolName } from "../src/tool-names.js";
 import { createServer } from "../src/server.js";
 
 async function connectedClient() {
@@ -16,19 +17,13 @@ function payload(result: Awaited<ReturnType<Client["callTool"]>>) {
 }
 
 describe("gw1-mcp server", () => {
-  it("lists the compiler tools", async () => {
+  it("registers exactly TOOL_NAMES — set equality in both directions", async () => {
+    // `satisfies ToolName` on every registration proves registered ⊆ TOOL_NAMES
+    // at compile time; this asserts TOOL_NAMES ⊆ registered at runtime. No
+    // third hand-written copy of the list anywhere.
     const client = await connectedClient();
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual([
-      "decode_pawned_team",
-      "decode_template",
-      "encode_template",
-      "get_hero",
-      "get_skill",
-      "list_heroes",
-      "search_skills",
-      "validate_build",
-    ]);
+    expect(tools.map((t) => t.name).sort()).toEqual([...TOOL_NAMES].sort());
   });
 
   it("gets a skill with suggestions on typo", async () => {
@@ -451,5 +446,15 @@ describe("error branches (total failures and reports)", () => {
     });
     expect(result.isError).toBe(true);
     expect(payload(result).error.code).toBe("INVALID_PWND");
+  });
+});
+
+describe("TOOL_NAMES compile-time lock", () => {
+  it("rejects names outside the union (the negative proof, committed)", () => {
+    // @ts-expect-error — a typo'd tool name must NOT satisfy ToolName. If this
+    // line ever stops erroring (e.g. ToolName widened to string), tsc fails on
+    // the unused @ts-expect-error: the lock guards itself.
+    const bogus = "get_skil" satisfies ToolName;
+    expect(bogus).toBe("get_skil");
   });
 });

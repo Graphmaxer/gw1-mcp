@@ -16,3 +16,9 @@ repo rulesets apply to dashboard changes too).
 
 The underlying queries live in `docs/analytics-queries.md` with the two
 rules that matter (`SUM(_sample_interval)`, 90-day retention).
+
+**Formatting note:** oxfmt deliberately ignores `grafana/*.json`. Grafana is
+the owning serializer of these files — a Save in the UI commits back its own
+export format (bidirectional Git Sync), and two formatters fighting over one
+file would produce phantom diffs and red CI on Grafana's PRs. Same rule as
+the generated data files: the tool that round-trips a file owns its format.

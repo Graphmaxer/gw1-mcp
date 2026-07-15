@@ -141,8 +141,8 @@
             "type": "vertamedia-clickhouse-datasource",
             "uid": "${datasource}"
           },
-          "query": "SELECT toStartOfInterval(timestamp, INTERVAL 1 DAY) AS t, blob1 AS label, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%' GROUP BY t, label ORDER BY t",
-          "rawQuery": "SELECT toStartOfInterval(timestamp, INTERVAL 1 DAY) AS t, blob1 AS label, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%' GROUP BY t, label ORDER BY t",
+          "query": "SELECT toStartOfInterval(timestamp, INTERVAL '1' DAY) AS t, blob1 AS label, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%' GROUP BY t, label ORDER BY t",
+          "rawQuery": "SELECT toStartOfInterval(timestamp, INTERVAL '1' DAY) AS t, blob1 AS label, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%' GROUP BY t, label ORDER BY t",
           "format": "time_series",
           "database": "default",
           "table": "gw1_mcp_usage",
@@ -187,8 +187,8 @@
             "type": "vertamedia-clickhouse-datasource",
             "uid": "${datasource}"
           },
-          "query": "SELECT toStartOfInterval(timestamp, INTERVAL 1 HOUR) AS t, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter GROUP BY t ORDER BY t",
-          "rawQuery": "SELECT toStartOfInterval(timestamp, INTERVAL 1 HOUR) AS t, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter GROUP BY t ORDER BY t",
+          "query": "SELECT toStartOfInterval(timestamp, INTERVAL '1' HOUR) AS t, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter GROUP BY t ORDER BY t",
+          "rawQuery": "SELECT toStartOfInterval(timestamp, INTERVAL '1' HOUR) AS t, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter GROUP BY t ORDER BY t",
           "format": "time_series",
           "database": "default",
           "table": "gw1_mcp_usage",

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import {
   getAttributeByName,
   getProfessionByName,
@@ -99,6 +100,29 @@ export function resolveNamedBuild(
 }
 
 /** Enriched, human/LLM-readable view of a decoded template. */
+export const decodedSkillSchema = z.object({
+  slot: z.number().int().describe("Bar position 1-8"),
+  name: z.string().nullable().describe("null for an empty bar slot"),
+  elite: z.boolean().optional(),
+  attribute: z.string().nullable().optional(),
+  energy: z.number().optional(),
+  activation: z.number().optional(),
+  recharge: z.number().optional(),
+  adrenaline: z.number().optional(),
+  sacrifice: z.number().optional(),
+  description: z.string().optional(),
+});
+
+export const decodedBuildShape = {
+  primary: z.string().describe("Primary profession name"),
+  secondary: z.string().nullable().describe("Secondary profession name, null for none"),
+  attributes: z.array(z.object({ attribute: z.string(), rank: z.number().int() })),
+  skills: z.array(decodedSkillSchema).describe("The 8 bar slots in order"),
+  raw: z.unknown().describe("The raw decoded template (ids, not names)"),
+};
+
+export type DecodedBuild = z.infer<z.ZodObject<typeof decodedBuildShape>>;
+
 export function describeTemplate(template: SkillTemplate) {
   return {
     primary: getProfessionById(template.primary)?.name ?? `Unknown (${template.primary})`,

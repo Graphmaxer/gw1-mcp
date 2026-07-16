@@ -1,4 +1,5 @@
 import type { ToolName } from "./tool-names.js";
+import { type DecodedBuild, decodedBuildShape } from "./build-io.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import {
@@ -79,27 +80,6 @@ const buildResultSchema = {
 // list_heroes. Zod objects tolerate extra keys, so data-pipeline additions
 // don't break validation; removals/renames fail the golden tests.
 
-const decodedSkillSchema = z.object({
-  slot: z.number().int().describe("Bar position 1-8"),
-  name: z.string().nullable().describe("null for an empty bar slot"),
-  elite: z.boolean().optional(),
-  attribute: z.string().nullable().optional(),
-  energy: z.number().optional(),
-  activation: z.number().optional(),
-  recharge: z.number().optional(),
-  adrenaline: z.number().optional(),
-  sacrifice: z.number().optional(),
-  description: z.string().optional(),
-});
-
-const decodedBuildShape = {
-  primary: z.string().describe("Primary profession name"),
-  secondary: z.string().nullable().describe("Secondary profession name, null for none"),
-  attributes: z.array(z.object({ attribute: z.string(), rank: z.number().int() })),
-  skills: z.array(decodedSkillSchema).describe("The 8 bar slots in order"),
-  raw: z.unknown().describe("The raw decoded template (ids, not names)"),
-};
-
 const fullSkillShape = {
   id: z.number().int(),
   name: z.string(),
@@ -131,6 +111,8 @@ const skillSummarySchema = z.object({
   recharge: z.number(),
 });
 
+type FullSkillOut = z.infer<z.ZodObject<typeof fullSkillShape>>;
+
 const fullHeroSchema = z.object({
   id: z.number().int().describe("GWCA HeroID"),
   name: z.string(),
@@ -140,6 +122,8 @@ const fullHeroSchema = z.object({
   profession: z.string().nullable(),
   campaign: z.string().nullable(),
 });
+
+type FullHeroOut = z.infer<typeof fullHeroSchema>;
 
 const pwndEntrySchema = z.object({
   slot: z.number().int(),
@@ -170,7 +154,7 @@ function jsonError(code: string, message: string, extra?: Record<string, unknown
 }
 
 /** Enrich a hero with resolved profession/campaign names (single source). */
-function fullHero(hero: Hero) {
+function fullHero(hero: Hero): FullHeroOut {
   return {
     ...hero,
     profession: getProfessionById(hero.professionId)?.name ?? null,
@@ -178,7 +162,7 @@ function fullHero(hero: Hero) {
   };
 }
 
-function fullSkill(id: number) {
+function fullSkill(id: number): FullSkillOut | null {
   const skill = getSkillById(id);
   if (!skill) return null;
   return {
@@ -247,7 +231,7 @@ export function createServer(): McpServer {
     {
       title: "Search Guild Wars 1 skills",
       description:
-        "Search the full GW1 skill database with filters. professionName: Warrior, Ranger, Monk, Necromancer, Mesmer, Elementalist, Assassin, Ritualist, Paragon, Dervish, or None (common/PvE-only skills). campaignName: Core, Prophecies, Factions, Nightfall, Eye of the North. Returns compact records; use get_skill for full details.",
+        "Search the full GW1 skill database by profession, attribute, campaign, elite flag or name fragment (valid values are documented per parameter). Returns compact records; use get_skill for full details.",
       annotations: READ_ONLY,
       outputSchema: {
         total: z.number().int().describe("Total matches BEFORE limit is applied"),
@@ -344,17 +328,20 @@ export function createServer(): McpServer {
       const results = searchSkills(filters);
       return jsonStructured({
         total: results.length,
-        skills: results.slice(0, limit).map((s) => ({
-          id: s.id,
-          name: s.name,
-          elite: s.elite,
-          profession: getProfessionById(s.professionId)?.name ?? null,
-          attribute: getAttributeById(s.attributeId)?.name ?? null,
-          campaign: getCampaignById(s.campaignId)?.name ?? null,
-          energy: s.energy,
-          activation: s.activation,
-          recharge: s.recharge,
-        })),
+        skills: results.slice(0, limit).map(
+          (s) =>
+            ({
+              id: s.id,
+              name: s.name,
+              elite: s.elite,
+              profession: getProfessionById(s.professionId)?.name ?? null,
+              attribute: getAttributeById(s.attributeId)?.name ?? null,
+              campaign: getCampaignById(s.campaignId)?.name ?? null,
+              energy: s.energy,
+              activation: s.activation,
+              recharge: s.recharge,
+            }) satisfies z.infer<typeof skillSummarySchema>,
+        ),
       });
     },
   );
@@ -412,8 +399,8 @@ export function createServer(): McpServer {
       }
       return jsonStructured({
         builds: entries.map((entry, index) => {
-          let build: unknown;
-          let buildError: unknown;
+          let build: DecodedBuild | undefined;
+          let buildError: { code: string; message: string } | undefined;
           try {
             build = describeTemplate(decodeTemplate(entry.skills));
           } catch (error) {

@@ -73,6 +73,85 @@ const buildResultSchema = {
   warnings: z.array(issueSchema).optional(),
 };
 
+// ---- Output schemas for the read tools (structuredContent contracts). ----
+// Shared blocks: one decoded-skill shape serves decode_template AND
+// decode_pawned_team; one enriched-hero shape serves get_hero AND
+// list_heroes. Zod objects tolerate extra keys, so data-pipeline additions
+// don't break validation; removals/renames fail the golden tests.
+
+const decodedSkillSchema = z.object({
+  slot: z.number().int().describe("Bar position 1-8"),
+  name: z.string().nullable().describe("null for an empty bar slot"),
+  elite: z.boolean().optional(),
+  attribute: z.string().nullable().optional(),
+  energy: z.number().optional(),
+  activation: z.number().optional(),
+  recharge: z.number().optional(),
+  adrenaline: z.number().optional(),
+  sacrifice: z.number().optional(),
+  description: z.string().optional(),
+});
+
+const decodedBuildShape = {
+  primary: z.string().describe("Primary profession name"),
+  secondary: z.string().nullable().describe("Secondary profession name, null for none"),
+  attributes: z.array(z.object({ attribute: z.string(), rank: z.number().int() })),
+  skills: z.array(decodedSkillSchema).describe("The 8 bar slots in order"),
+  raw: z.unknown().describe("The raw decoded template (ids, not names)"),
+};
+
+const fullSkillShape = {
+  id: z.number().int(),
+  name: z.string(),
+  elite: z.boolean(),
+  energy: z.number(),
+  activation: z.number(),
+  recharge: z.number(),
+  adrenaline: z.number(),
+  sacrifice: z.number(),
+  overcast: z.number(),
+  upkeep: z.number(),
+  description: z.string(),
+  isPvpVersion: z.boolean(),
+  profession: z.string().nullable(),
+  attribute: z.string().nullable(),
+  campaign: z.string().nullable(),
+  type: z.string().nullable().describe("Skill type, e.g. Enchantment Spell"),
+};
+
+const skillSummarySchema = z.object({
+  id: z.number().int(),
+  name: z.string(),
+  elite: z.boolean(),
+  profession: z.string().nullable(),
+  attribute: z.string().nullable(),
+  campaign: z.string().nullable(),
+  energy: z.number(),
+  activation: z.number(),
+  recharge: z.number(),
+});
+
+const fullHeroSchema = z.object({
+  id: z.number().int().describe("GWCA HeroID"),
+  name: z.string(),
+  professionId: z.number().int(),
+  campaignId: z.number().int(),
+  unlock: z.string().describe("How the hero is recruited"),
+  profession: z.string().nullable(),
+  campaign: z.string().nullable(),
+});
+
+const pwndEntrySchema = z.object({
+  slot: z.number().int(),
+  label: z.string().describe("Slot name shown in paw-ned2 (Player, Hero 1, ...)"),
+  notes: z.string().nullable(),
+  inGamePlayerName: z.string().nullable(),
+  skillsCode: z.string().describe("This entry's individual template code"),
+  equipmentCode: z.string().nullable(),
+  build: z.object(decodedBuildShape).optional().describe("Decoded bar (absent if decoding failed)"),
+  error: z.object({ code: z.string(), message: z.string() }).optional(),
+});
+
 /** Structured result: machine-parseable structuredContent plus the usual JSON text. */
 function jsonStructured(data: object) {
   return { ...json(data), structuredContent: data as Record<string, unknown> };
@@ -137,6 +216,7 @@ export function createServer(): McpServer {
       description:
         "Look up a single GW1 skill by exact English name or by template skill id. Returns full stats (energy, activation, recharge, adrenaline, sacrifice), profession, attribute, campaign, elite flag and description. If the name is not found, returns the closest matches so you can correct spelling. Use this when you already know the exact skill; to discover skills by profession, attribute or name fragment, use search_skills instead.",
       annotations: READ_ONLY,
+      outputSchema: fullSkillShape,
       inputSchema: {
         name: z
           .string()
@@ -148,12 +228,12 @@ export function createServer(): McpServer {
     async ({ name, id }) => {
       if (id !== undefined) {
         const skill = fullSkill(id);
-        return skill ? json(skill) : jsonError("NOT_FOUND", `No skill with id ${id}`);
+        return skill ? jsonStructured(skill) : jsonError("NOT_FOUND", `No skill with id ${id}`);
       }
       if (name !== undefined) {
         const skill = getSkillByName(name);
         return skill
-          ? json(fullSkill(skill.id))
+          ? jsonStructured(fullSkill(skill.id) ?? {})
           : jsonError("NOT_FOUND", `No skill named ${JSON.stringify(name)}`, {
               suggestions: suggestSkillNames(name),
             });
@@ -169,6 +249,12 @@ export function createServer(): McpServer {
       description:
         "Search the full GW1 skill database with filters. professionName: Warrior, Ranger, Monk, Necromancer, Mesmer, Elementalist, Assassin, Ritualist, Paragon, Dervish, or None (common/PvE-only skills). campaignName: Core, Prophecies, Factions, Nightfall, Eye of the North. Returns compact records; use get_skill for full details.",
       annotations: READ_ONLY,
+      outputSchema: {
+        total: z.number().int().describe("Total matches BEFORE limit is applied"),
+        skills: z
+          .array(skillSummarySchema)
+          .describe("Compact records; use get_skill for full details"),
+      },
       inputSchema: {
         professionName: z
           .string()
@@ -256,7 +342,7 @@ export function createServer(): McpServer {
       if (nameContains !== undefined) filters.nameContains = nameContains;
 
       const results = searchSkills(filters);
-      return json({
+      return jsonStructured({
         total: results.length,
         skills: results.slice(0, limit).map((s) => ({
           id: s.id,
@@ -278,15 +364,16 @@ export function createServer(): McpServer {
     {
       title: "Decode a skill template code",
       description:
-        'Decode an in-game GW1 skill template code (e.g. "OwpiMypMBg1cxcBAMBdmtIKAA") into professions, attribute allocations and the 8 skills with their stats and descriptions.',
+        'Decode an in-game GW1 skill template code (e.g. "OwpiMypMBg1cxcBAMBdmtIKAA") into professions, attribute allocations and the 8 skills with their stats and descriptions. This decodes a SINGLE build code; for a multi-hero paw-ned2 team blob, use decode_pawned_team instead.',
       annotations: READ_ONLY,
+      outputSchema: decodedBuildShape,
       inputSchema: {
         code: z.string().describe("The template code string"),
       },
     },
     async ({ code }) => {
       try {
-        return json(describeTemplate(decodeTemplate(code)));
+        return jsonStructured(describeTemplate(decodeTemplate(code)));
       } catch (error) {
         if (error instanceof TemplateError) {
           return jsonError(error.code, error.message);
@@ -301,8 +388,11 @@ export function createServer(): McpServer {
     {
       title: "Decode a paw-ned2 team template",
       description:
-        "Decode a paw-ned2 team build blob (the 'pwnd0001...>...<' format shared on PvXwiki team pages and by the paw-ned2 tool) into its individual builds: player/hero label, description, and each skill bar fully decoded. Whitespace and line wraps in the pasted blob are tolerated. This decodes a SINGLE build code; for a multi-hero paw-ned2 team blob, use decode_pawned_team instead. For a single (non-team) build code, use decode_template instead.",
+        "Decode a paw-ned2 team build blob (the 'pwnd0001...>...<' format shared on PvXwiki team pages and by the paw-ned2 tool) into its individual builds: player/hero label, description, and each skill bar fully decoded. Whitespace and line wraps in the pasted blob are tolerated. For a single (non-team) build code, use decode_template instead.",
       annotations: READ_ONLY,
+      outputSchema: {
+        builds: z.array(pwndEntrySchema).describe("One entry per team slot, in blob order"),
+      },
       inputSchema: {
         pwnd: z.string().describe("The full pwnd blob, starting with 'pwnd000'"),
       },
@@ -320,7 +410,7 @@ export function createServer(): McpServer {
       } catch (error) {
         return jsonError("INVALID_PWND", error instanceof Error ? error.message : String(error));
       }
-      return json({
+      return jsonStructured({
         builds: entries.map((entry, index) => {
           let build: unknown;
           let buildError: unknown;
@@ -435,6 +525,7 @@ export function createServer(): McpServer {
       description:
         "Look up a GW1 hero by name or by id (GWCA HeroID, matching the AccountExport plugin output). Returns profession, campaign and how the hero is unlocked. Remember: heroes can equip any skill unlocked at ACCOUNT level, but not most PvE-only skills. Use this for one known hero; to browse or filter the roster, use list_heroes instead.",
       annotations: READ_ONLY,
+      outputSchema: fullHeroSchema.shape,
       inputSchema: {
         name: z.string().optional().describe('Hero name, e.g. "Master of Whispers"'),
         id: z.number().int().min(0).max(255).optional().describe("GWCA HeroID value"),
@@ -446,7 +537,7 @@ export function createServer(): McpServer {
       if (!hero) {
         return jsonError("NOT_FOUND", `No hero matching ${JSON.stringify(name ?? id)}`);
       }
-      return json(fullHero(hero));
+      return jsonStructured(fullHero(hero));
     },
   );
 
@@ -457,6 +548,10 @@ export function createServer(): McpServer {
       description:
         "List all GW1 heroes, optionally filtered by profession or campaign name. Useful for team-building: shows which professions are coverable by heroes and how each hero is unlocked.",
       annotations: READ_ONLY,
+      outputSchema: {
+        total: z.number().int(),
+        heroes: z.array(fullHeroSchema),
+      },
       inputSchema: {
         professionName: z.string().optional(),
         campaignName: z.string().optional(),
@@ -479,7 +574,7 @@ export function createServer(): McpServer {
           return jsonError("UNKNOWN_CAMPAIGN", `Unknown campaign ${JSON.stringify(campaignName)}`);
         results = results.filter((h) => h.campaignId === campaign.id);
       }
-      return json({
+      return jsonStructured({
         total: results.length,
         heroes: results.map(fullHero),
       });

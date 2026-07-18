@@ -862,6 +862,26 @@
      2
     ]
    }
+  },
+  {
+   "name": "Empty bar (in-game emission, degenerate case: zero attributes, eight empty slots, BYTE-EXACT)",
+   "code": "OgBAAAAAAAAAAAAA",
+   "roundtrip": true,
+   "expect": {
+    "primary": 6,
+    "secondary": 0,
+    "attributes": [],
+    "skills": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   }
   }
  ]
 }

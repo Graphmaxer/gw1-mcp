@@ -19,8 +19,10 @@ import { TemplateError, type SkillTemplate } from "./types.js";
  * TWO EMISSION DIALECTS exist in the wild (settled 2026-07-16 with codes
  * copied from a live client): web tools (wiki, PvXwiki, gw1builds) emit the
  * minimal form above; the GAME CLIENT pads with zero chars to an EVEN number
- * of characters (8/8 live samples: odd-minimal codes gain one 'A', even-
- * minimal codes are emitted byte-identical to our minimal form). Both directions are field-proven interoperable:
+ * of characters (9/9 live samples: odd-minimal codes gain one 'A', even-
+ * minimal codes are emitted byte-identical to our minimal form — including
+ * the degenerate empty bar, which also settles the zero-attribute filler:
+ * the client writes it exactly as we do). Both directions are field-proven interoperable:
  * the game loads our minimal codes, and decodeTemplate tolerates arbitrary
  * trailing zero chars (golden-locked). encodeTemplate deliberately emits the
  * minimal web-canonical form — we will not imitate a client rule we cannot

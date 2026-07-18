@@ -310,10 +310,11 @@ for action. Nothing else in the repo is knowingly imperfect.
    byte-identical to our encoder, golden-locked as "in-game emission"
    fixtures including three byte-exact ones); our decoder tolerates arbitrary trailing zeros and
    the game loads our minimal codes (field-proven both ways, dialect rule
-   documented in codec.ts). Zero-attribute filler and attribute width remain
-   open in theory but both live samples prefix-match our encoding bit for
-   bit — no discriminating sample seen yet; settle opportunistically if an
-   exotic in-game code ever disagrees.
+   documented in codec.ts). Zero-attribute filler is SETTLED too: the
+   client's empty-bar emission is byte-identical to ours (degenerate golden).
+   Attribute width shows no disagreement across 9 live samples covering high
+   Dervish attribute ids and the zero count — the codec has NO open
+   questions left.
 4. Runtime dependency @buildwars/gw-templates has a known truncation bug
    (docs/upstream-gw-templates-bug.md, report ready to file). Our sentinel
    test pins the buggy behavior: when upstream fixes it, the sentinel FAILS

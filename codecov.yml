@@ -2,6 +2,16 @@
 # Component-level targets track src-only coverage per package; scripts are
 # untested by design (see CLAUDE.md). Raise targets as coverage improves;
 # never lower without a written why.
+# wait_for_ci: false is REQUIRED for bot-pushed commits (gw1-mcp-bot release
+# PRs): with the default (true), Codecov processes uploads but never sends
+# statuses/comments. Correlation is now 2/2 (removed 07-15 -> silence
+# returned on the next bot PR; present -> notifications flow). Mechanism
+# unknown, likely their CI-completion detection stalling on bot events —
+# do NOT remove again without a Codecov support resolution in hand.
+codecov:
+  notify:
+    wait_for_ci: false
+
 coverage:
   status:
     project:

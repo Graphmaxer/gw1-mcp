@@ -124,7 +124,7 @@ codes, semantic round-trip always holds and is asserted for every fixture.
    FC/Dom/Insp bar), does the game emit the spec-minimal 4 bits or pad to 5
    like PvXCode and @buildwars/gw-templates do (shared authorship)? Our
    encoder emits the minimum; both forms decode identically everywhere.
-   Corpus coverage (18 fixtures): ALL 10 primary professions, 8 secondaries, skills from all 5 campaigns (Core, Prophecies,
+   Corpus coverage (27 fixtures, incl. nine live in-game emissions): ALL 10 primary professions, 8 secondaries, skills from all 5 campaigns (Core, Prophecies,
    Factions, Nightfall, EotN), all 64 charset chars exercised ('+' and '/'
    included), both header formats, sorted and unsorted attribute orders, three
    independent third-party encoders (the game pre-2007, PvXCode, and
@@ -158,6 +158,16 @@ would fight the scripts that emit them and pollute every weekly data PR.
 Keep that list in sync when adding generated outputs.
 
 ## Coverage expectations
+
+Codecov incident register: bot-pushed commits (gw1-mcp-bot release PRs) get
+their uploads PROCESSED but the notification layer stays silent under the
+default config — no statuses, no PR comment ("No Status" in their UI).
+`codecov: notify: wait_for_ci: false` in codecov.yml fixes it; the removal
+experiment (2026-07-15) confirmed the correlation 2/2 (the very next bot PR
+#13 got zero statuses again), so the setting is PERMANENT. Do not remove it
+without a Codecov support resolution (evidence: run 29372114225). The admin
+bypass merge stays the legitimate unblock if it ever regresses (release PRs
+have 0 coverable lines).
 
 `pnpm test:coverage` (provider @vitest/coverage-v8, version-locked to the
 workspace vitest). Reference levels (vitest 4 measurement): gw-template

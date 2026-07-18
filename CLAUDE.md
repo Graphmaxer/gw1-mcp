@@ -131,11 +131,10 @@ codes, semantic round-trip always holds and is asserted for every fixture.
    @buildwars/gw-templates via gw1builds.com whose icon URLs expose skill IDS
    for id-level verification, plus a GWW player page whose Ranger codes are
    byte-identical to our encoding except one trailing zero-padding char).
-   Fixture wishlist from the maintainer's game client (each arbitrates one open question):
-   one bar with no attributes (unused width-field filler), one bar with all
-   attribute ids < 16 (4-vs-5-bit attribute width), and ANY bar at all (exact
-   trailing-padding convention: we pad to 6 bits; the Catbus source emits one
-   extra zero group; compare code LENGTH char-for-char).
+   The fixture wishlist was FULLY SERVED on 2026-07-16 (nine live client
+   emissions including the empty bar and all-low-attribute-id bars, four
+   byte-exact) — every question it was written to arbitrate is settled; see
+   the "in-game emission" fixture class and the codec.ts dialect note.
 
 ## TypeScript configuration philosophy
 
@@ -394,10 +393,12 @@ deployed on Cloudflare (auto-deploy per push), published on the official MCP
 Registry, releases automated (changelog + DLL + registry in cascade), plugin
 compiled clean in CI (/W4 /WX). Bundle size: whatever
 `pnpm --filter @gw1-mcp/gw-worker check` prints — do not hardcode it here.
-NEXT (maintainer-gated only): load the DLL in-game (/exportaccount, debt #2),
-file
-the upstream bug report (debt #4), submit to the ChatGPT and Claude
-directories (kits in docs/).
+NEXT (maintainer-gated only): file the upstream bug report (debt #4,
+report ready in docs/), submit to the ChatGPT and Claude directories
+(kits in docs/). Debts #2 and #3 were CLOSED 2026-07-16: the DLL exported
+a real account in production (hero names from the generated table, export
+fed validate_build end-to-end) and nine in-game codes settled every codec
+question.
 
 ## MCP tools (MVP scope — do not add more without discussion)
 

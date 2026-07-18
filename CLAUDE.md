@@ -305,9 +305,10 @@ for action. Nothing else in the repo is knowingly imperfect.
    warnings — 2026-07-11) but has never been loaded in-game. Trigger:
    the maintainer runs /exportaccount with the artifact DLL.
 3. Codec questions, updated 2026-07-16 with two codes copied from a live
-   client: trailing padding is SETTLED — the client emits our minimal form
-   plus ONE zero char (2/2 samples, golden-locked as the "in-game client
-   emission" fixtures); our decoder tolerates arbitrary trailing zeros and
+   client: trailing padding is SETTLED — the client pads to an
+   EVEN number of chars (8/8 live samples; even-minimal codes come out
+   byte-identical to our encoder, golden-locked as "in-game emission"
+   fixtures including three byte-exact ones); our decoder tolerates arbitrary trailing zeros and
    the game loads our minimal codes (field-proven both ways, dialect rule
    documented in codec.ts). Zero-attribute filler and attribute width remain
    open in theory but both live samples prefix-match our encoding bit for

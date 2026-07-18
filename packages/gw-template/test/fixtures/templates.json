@@ -664,6 +664,204 @@
      314
     ]
    }
+  },
+  {
+   "name": "Mo/? Dunkoro (in-game emission, odd-minimal padded to even: 25\u219226)",
+   "code": "OwYT043A5JuuRubfkWSFBZoTAA",
+   "roundtrip": false,
+   "expect": {
+    "primary": 3,
+    "secondary": 6,
+    "attributes": [
+     {
+      "attributeId": 13,
+      "rank": 12
+     },
+     {
+      "attributeId": 15,
+      "rank": 3
+     },
+     {
+      "attributeId": 16,
+      "rank": 12
+     }
+    ],
+    "skills": [
+     1393,
+     283,
+     887,
+     287,
+     301,
+     277,
+     200,
+     314
+    ]
+   }
+  },
+  {
+   "name": "R/? Acolyte Jin (in-game emission, 25\u219226)",
+   "code": "OgATcVMm5xXraeMzGfjwB7IAAA",
+   "roundtrip": false,
+   "expect": {
+    "primary": 2,
+    "secondary": 0,
+    "attributes": [
+     {
+      "attributeId": 23,
+      "rank": 10
+     },
+     {
+      "attributeId": 24,
+      "rank": 8
+     },
+     {
+      "attributeId": 25,
+      "rank": 12
+     }
+    ],
+    "skills": [
+     1726,
+     426,
+     399,
+     435,
+     446,
+     450,
+     472,
+     2
+    ]
+   }
+  },
+  {
+   "name": "R/? Margrid (in-game emission, 25\u219226)",
+   "code": "OgATcVMm5ZxoaeMYHfTxpVKAAA",
+   "roundtrip": false,
+   "expect": {
+    "primary": 2,
+    "secondary": 0,
+    "attributes": [
+     {
+      "attributeId": 23,
+      "rank": 10
+     },
+     {
+      "attributeId": 24,
+      "rank": 8
+     },
+     {
+      "attributeId": 25,
+      "rank": 12
+     }
+    ],
+    "skills": [
+     395,
+     426,
+     399,
+     472,
+     446,
+     453,
+     1197,
+     2
+    ]
+   }
+  },
+  {
+   "name": "N/? Olias (in-game emission, even-minimal: BYTE-EXACT with our encoder)",
+   "code": "OABDQTxGPLVqQVANgHqqKVBA",
+   "roundtrip": true,
+   "expect": {
+    "primary": 4,
+    "secondary": 0,
+    "attributes": [
+     {
+      "attributeId": 4,
+      "rank": 3
+     },
+     {
+      "attributeId": 5,
+      "rank": 12
+     },
+     {
+      "attributeId": 6,
+      "rank": 12
+     }
+    ],
+    "skills": [
+     1355,
+     84,
+     85,
+     104,
+     120,
+     1365,
+     1354,
+     2
+    ]
+   }
+  },
+  {
+   "name": "Me/? Norgu (in-game emission, even-minimal: BYTE-EXACT)",
+   "code": "OQBDAqwDOngcw0z0lBGC4UBA",
+   "roundtrip": true,
+   "expect": {
+    "primary": 5,
+    "secondary": 0,
+    "attributes": [
+     {
+      "attributeId": 0,
+      "rank": 10
+     },
+     {
+      "attributeId": 2,
+      "rank": 12
+     },
+     {
+      "attributeId": 3,
+      "rank": 8
+     }
+    ],
+    "skills": [
+     39,
+     57,
+     979,
+     934,
+     25,
+     67,
+     1336,
+     2
+    ]
+   }
+  },
+  {
+   "name": "E/? Zhed (in-game emission, even-minimal: BYTE-EXACT)",
+   "code": "OgVDIjyMP0txaTTX4LwFIDBA",
+   "roundtrip": true,
+   "expect": {
+    "primary": 6,
+    "secondary": 5,
+    "attributes": [
+     {
+      "attributeId": 2,
+      "rank": 3
+     },
+     {
+      "attributeId": 10,
+      "rank": 12
+     },
+     {
+      "attributeId": 12,
+      "rank": 12
+     }
+    ],
+    "skills": [
+     884,
+     1379,
+     845,
+     186,
+     190,
+     184,
+     200,
+     2
+    ]
+   }
   }
  ]
 }

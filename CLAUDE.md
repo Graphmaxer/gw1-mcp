@@ -304,9 +304,15 @@ for action. Nothing else in the repo is knowingly imperfect.
 2. The C++ plugin compiled clean on the first CI run (/W4 /WX, zero
    warnings — 2026-07-11) but has never been loaded in-game. Trigger:
    the maintainer runs /exportaccount with the artifact DLL.
-3. Three open codec questions (trailing-padding convention, zero-attribute
-   filler, 4-vs-5-bit attribute width) — arbitrable only by in-game codes;
-   the encoder is correct for the game's decoder either way.
+3. Codec questions, updated 2026-07-16 with two codes copied from a live
+   client: trailing padding is SETTLED — the client emits our minimal form
+   plus ONE zero char (2/2 samples, golden-locked as the "in-game client
+   emission" fixtures); our decoder tolerates arbitrary trailing zeros and
+   the game loads our minimal codes (field-proven both ways, dialect rule
+   documented in codec.ts). Zero-attribute filler and attribute width remain
+   open in theory but both live samples prefix-match our encoding bit for
+   bit — no discriminating sample seen yet; settle opportunistically if an
+   exotic in-game code ever disagrees.
 4. Runtime dependency @buildwars/gw-templates has a known truncation bug
    (docs/upstream-gw-templates-bug.md, report ready to file). Our sentinel
    test pins the buggy behavior: when upstream fixes it, the sentinel FAILS
@@ -387,7 +393,7 @@ Registry, releases automated (changelog + DLL + registry in cascade), plugin
 compiled clean in CI (/W4 /WX). Bundle size: whatever
 `pnpm --filter @gw1-mcp/gw-worker check` prints — do not hardcode it here.
 NEXT (maintainer-gated only): load the DLL in-game (/exportaccount, debt #2),
-paste in-game codes to settle the three open codec questions (debt #3), file
+file
 the upstream bug report (debt #4), submit to the ChatGPT and Claude
 directories (kits in docs/).
 

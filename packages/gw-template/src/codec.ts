@@ -15,6 +15,15 @@ import { TemplateError, type SkillTemplate } from "./types.js";
  *                then per attribute: id, 4 bits rank
  *   skills:      4 bits code (bits per skill id = code + 8), then 8 skill ids
  *   tail:        1 zero bit, then zero padding to a 6-bit boundary
+ *
+ * TWO EMISSION DIALECTS exist in the wild (settled 2026-07-16 with codes
+ * copied from a live client): web tools (wiki, PvXwiki, gw1builds) emit the
+ * minimal form above; the GAME CLIENT emits minimal + one extra zero char
+ * (observed on 2/2 samples). Both directions are field-proven interoperable:
+ * the game loads our minimal codes, and decodeTemplate tolerates arbitrary
+ * trailing zero chars (golden-locked). encodeTemplate deliberately emits the
+ * minimal web-canonical form — we will not imitate a client rule we cannot
+ * pin down from two same-length samples.
  */
 
 const TEMPLATE_TYPE_SKILL = 14;

@@ -188,7 +188,7 @@
    }
   },
   {
-   "name": "P/W Imbagon Luxon (PvXwiki) — attributes NOT in ascending order in the original; our canonical encoder sorts, so only semantic round-trip holds",
+   "name": "P/W Imbagon Luxon (PvXwiki) \u2014 attributes NOT in ascending order in the original; our canonical encoder sorts, so only semantic round-trip holds",
    "code": "OQGjgylopSAAAAieAh5iXFpbAA",
    "roundtrip": false,
    "expect": {
@@ -221,7 +221,7 @@
    }
   },
   {
-   "name": "Me/any PvE Energy Surge (PvXwiki) — PvX's encoder pads attribute ids to 5 bits where the spec minimum is 4 (all ids here are <= 3); an in-game code with all attribute ids < 16 would arbitrate what the game emits",
+   "name": "Me/any PvE Energy Surge (PvXwiki) \u2014 PvX's encoder pads attribute ids to 5 bits where the spec minimum is 4 (all ids here are <= 3); an in-game code with all attribute ids < 16 would arbitrate what the game emits",
    "code": "OQBTAYBPGS0ZJ4EY6x0BAAAAuE",
    "roundtrip": false,
    "expect": {
@@ -320,7 +320,7 @@
    }
   },
   {
-   "name": "N/Mo Unyielding Aura Prot hero (gw1builds.com) — gw1builds encodes via @buildwars/gw-templates (unsorted attribute order and/or width floors), so only semantic round-trip holds; primary attribute stored last",
+   "name": "N/Mo Unyielding Aura Prot hero (gw1builds.com) \u2014 gw1builds encodes via @buildwars/gw-templates (unsorted attribute order and/or width floors), so only semantic round-trip holds; primary attribute stored last",
    "code": "OAND04rGTMEVVNg1DBECEaRbh",
    "roundtrip": false,
    "expect": {
@@ -353,7 +353,7 @@
    }
   },
   {
-   "name": "Me/P Energy Surge hero, four attributes incl. cross-profession Command (gw1builds.com) — gw1builds encodes via @buildwars/gw-templates (unsorted attribute order and/or width floors), so only semantic round-trip holds",
+   "name": "Me/P Energy Surge hero, four attributes incl. cross-profession Command (gw1builds.com) \u2014 gw1builds encodes via @buildwars/gw-templates (unsorted attribute order and/or width floors), so only semantic round-trip holds",
    "code": "OQlkYeCMAOgzJY6Z6yBFhMwyfHD",
    "roundtrip": false,
    "expect": {
@@ -390,7 +390,7 @@
    }
   },
   {
-   "name": "Me/any Panic hero (gw1builds.com), exercises '/' charset char — gw1builds encodes via @buildwars/gw-templates (unsorted attribute order and/or width floors), so only semantic round-trip holds",
+   "name": "Me/any Panic hero (gw1builds.com), exercises '/' charset char \u2014 gw1builds encodes via @buildwars/gw-templates (unsorted attribute order and/or width floors), so only semantic round-trip holds",
    "code": "OQBDIMoDO0gpnpLHgTzAL/bK",
    "roundtrip": false,
    "expect": {
@@ -423,7 +423,7 @@
    }
   },
   {
-   "name": "E/P Mind Burn Fire hero (gw1builds.com, verified against icon skill ids) — gw1builds encodes via @buildwars/gw-templates, so only semantic round-trip holds",
+   "name": "E/P Mind Burn Fire hero (gw1builds.com, verified against icon skill ids) \u2014 gw1builds encodes via @buildwars/gw-templates, so only semantic round-trip holds",
    "code": "OgljowMpZO5CdRwYsaMwF7YcMA",
    "roundtrip": false,
    "expect": {
@@ -456,7 +456,7 @@
    }
   },
   {
-   "name": "E/P Thunderclap Air hero (gw1builds.com, verified against icon skill ids) — gw1builds encodes via @buildwars/gw-templates, so only semantic round-trip holds",
+   "name": "E/P Thunderclap Air hero (gw1builds.com, verified against icon skill ids) \u2014 gw1builds encodes via @buildwars/gw-templates, so only semantic round-trip holds",
    "code": "OgljgwMpZOkjvhSLHGOqx7YcMA",
    "roundtrip": false,
    "expect": {
@@ -489,7 +489,7 @@
    }
   },
   {
-   "name": "R/Mo Broad Head Arrow hero — GWW player page (User:Catbus/Builds), likely game-client origin; content is byte-identical to our encoding except ONE extra trailing zero-padding 'A' — only semantic round-trip asserted",
+   "name": "R/Mo Broad Head Arrow hero \u2014 GWW player page (User:Catbus/Builds), likely game-client origin; content is byte-identical to our encoding except ONE extra trailing zero-padding 'A' \u2014 only semantic round-trip asserted",
    "code": "OgMU8mLjzcOuyHjqZ2kXFO+GZCA",
    "roundtrip": false,
    "expect": {
@@ -526,7 +526,7 @@
    }
   },
   {
-   "name": "R/Me Broad Head Arrow Epidemic hero — GWW player page (User:Catbus/Builds), likely game-client origin; content is byte-identical to our encoding except ONE extra trailing zero-padding 'A' — only semantic round-trip asserted",
+   "name": "R/Me Broad Head Arrow Epidemic hero \u2014 GWW player page (User:Catbus/Builds), likely game-client origin; content is byte-identical to our encoding except ONE extra trailing zero-padding 'A' \u2014 only semantic round-trip asserted",
    "code": "OgUUMmLjzcOuyHjqZ24EEO+GBAA",
    "roundtrip": false,
    "expect": {
@@ -563,7 +563,7 @@
    }
   },
   {
-   "name": "R/Mo Magebane Shot hero — GWW player page (User:Catbus/Builds), likely game-client origin; content is byte-identical to our encoding except ONE extra trailing zero-padding 'A' — only semantic round-trip asserted",
+   "name": "R/Mo Magebane Shot hero \u2014 GWW player page (User:Catbus/Builds), likely game-client origin; content is byte-identical to our encoding except ONE extra trailing zero-padding 'A' \u2014 only semantic round-trip asserted",
    "code": "OgMU8mLjzcO+6Hjq51kXLO+GZCA",
    "roundtrip": false,
    "expect": {
@@ -596,6 +596,72 @@
      453,
      446,
      306
+    ]
+   }
+  },
+  {
+   "name": "D/any Scythe (in-game client emission #1 \u2014 minimal form + one zero-char padding, real account 2026-07-16)",
+   "code": "OgCjkyrKLOf7AMzdczeXvW8LOA",
+   "roundtrip": false,
+   "expect": {
+    "primary": 10,
+    "secondary": 0,
+    "attributes": [
+     {
+      "attributeId": 41,
+      "rank": 12
+     },
+     {
+      "attributeId": 43,
+      "rank": 10
+     },
+     {
+      "attributeId": 44,
+      "rank": 8
+     }
+    ],
+    "skills": [
+     1759,
+     1537,
+     1484,
+     1763,
+     1516,
+     1515,
+     1814,
+     1815
+    ]
+   }
+  },
+  {
+   "name": "Mo/any ZB Prot (in-game client emission #2 \u2014 same +1 zero-char tail, real account 2026-07-16)",
+   "code": "OwAT0mHD55SXPurzkAymuloTAA",
+   "roundtrip": false,
+   "expect": {
+    "primary": 3,
+    "secondary": 0,
+    "attributes": [
+     {
+      "attributeId": 13,
+      "rank": 3
+     },
+     {
+      "attributeId": 15,
+      "rank": 12
+     },
+     {
+      "attributeId": 16,
+      "rank": 12
+     }
+    ],
+    "skills": [
+     1687,
+     245,
+     1399,
+     307,
+     257,
+     1691,
+     301,
+     314
     ]
    }
   }

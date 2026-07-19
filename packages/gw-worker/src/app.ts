@@ -45,6 +45,7 @@ type AppEnv = {
   Bindings: {
     OPENAI_APPS_CHALLENGE?: string;
     GLAMA_MAINTAINER_EMAIL?: string;
+    RATE_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> };
     MCP_ANALYTICS?: AnalyticsEngineDataset;
   };
 };
@@ -96,6 +97,8 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
         "arguments) are recorded for operational purposes. The service runs on",
         "Cloudflare Workers; Cloudflare may process standard operational metadata",
         "(such as IP addresses in transient logs) per its own privacy policy.",
+        "Per-IP rate limiting uses the connecting IP as an in-memory counter",
+        "key at the edge; we never store it.",
         "",
         "",
         DISCLAIMER,
@@ -147,6 +150,32 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
   // send no Origin and are unaffected. This is the proportionate control for
   // a public, read-only, credential-free server (DNS-rebinding protection
   // targets local servers; there is no session or state here to ride).
+  // Per-IP rate limit, evaluated before any parsing or analytics work.
+  // Optional binding (absent in dev/tests -> fail-open), same philosophy as
+  // MCP_ANALYTICS: protection must never break the service it protects.
+  app.use("/mcp", async (c, next) => {
+    const limiter = c.env?.RATE_LIMITER;
+    if (limiter) {
+      const key = c.req.header("CF-Connecting-IP") ?? "unknown";
+      const { success } = await limiter.limit({ key });
+      if (!success) {
+        return c.json(
+          {
+            jsonrpc: "2.0",
+            id: null,
+            error: {
+              code: -32000,
+              message: "Rate limit exceeded (100 requests/minute per IP). Retry shortly.",
+            },
+          },
+          429,
+          { "Retry-After": "60" },
+        );
+      }
+    }
+    await next();
+  });
+
   app.use("/mcp", async (c, next) => {
     const origin = c.req.header("Origin");
     if (origin !== undefined && !origin.startsWith("https://")) {

@@ -185,3 +185,48 @@ describe("usage analytics hook", () => {
     expect(points).toHaveLength(1);
   });
 });
+describe("rate limiting", () => {
+  const post = (app: ReturnType<typeof createApp>, env?: object) =>
+    app.request(
+      "/mcp",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json, text/event-stream",
+          "CF-Connecting-IP": "203.0.113.7",
+        },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping" }),
+      },
+      env,
+    );
+
+  it("fails open when the binding is absent (dev/tests)", async () => {
+    const res = await post(createApp());
+    expect(res.status).not.toBe(429);
+  });
+
+  it("returns 429 with Retry-After when the limiter denies, keyed on the IP", async () => {
+    const seen: string[] = [];
+    const env = {
+      RATE_LIMITER: {
+        limit: async ({ key }: { key: string }) => {
+          seen.push(key);
+          return { success: false };
+        },
+      },
+    };
+    const res = await post(createApp(), env);
+    expect(res.status).toBe(429);
+    expect(res.headers.get("Retry-After")).toBe("60");
+    expect(seen).toEqual(["203.0.113.7"]);
+    const body = (await res.json()) as { error: { message: string } };
+    expect(body.error.message).toContain("Rate limit");
+  });
+
+  it("passes through when the limiter allows", async () => {
+    const env = { RATE_LIMITER: { limit: async () => ({ success: true }) } };
+    const res = await post(createApp(), env);
+    expect(res.status).not.toBe(429);
+  });
+});

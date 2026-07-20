@@ -255,8 +255,7 @@ in exchange for the audit's security). Bump each deliberately:
 - mcp-publisher VERSION + SHA256_amd64/arm64 (publish-registry.yml): pinned
   release with per-arch digest check (GW1-05). To bump: download the new
   tarballs, `sha256sum` them, update VERSION and BOTH digests together.
-  The monthly upstream-pin-check workflow opens an issue when any of these
-  drifts from upstream latest — the active tripwire instead of memory.
+  The weekly upstream-pin-bump workflow opens a PR (never auto-merged) when any of these drifts from upstream latest, recomputing mcp-publisher's digests for eye-review — the active tripwire instead of memory.
 
 The weekly Pages import stays isolated from all secrets by the two-job split
 in update-data.yml; its npm fallback is lockfile-integrity-checked. Data

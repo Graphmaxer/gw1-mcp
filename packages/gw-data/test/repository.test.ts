@@ -16,6 +16,49 @@ import {
   suggestSkillNames,
 } from "../src/index.js";
 
+describe("upstream-integrity invariants (GW1-13)", () => {
+  // These lock structural properties that a compromised or mis-parsed upstream
+  // could break while still passing the coarse count/name checks below. They
+  // don't validate game-correctness (that's the codec/validator corpus) —
+  // they assert the dataset is internally consistent.
+  it("every skill id is unique", () => {
+    const ids = skills.map((s) => s.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+  it("every hero id is unique", () => {
+    const ids = heroes.map((h) => h.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+  it("every skill's foreign keys resolve", () => {
+    for (const s of skills) {
+      expect(getProfessionById(s.professionId), `skill ${s.id} profession`).toBeDefined();
+      expect(getAttributeById(s.attributeId), `skill ${s.id} attribute`).toBeDefined();
+      expect(getCampaignById(s.campaignId), `skill ${s.id} campaign`).toBeDefined();
+    }
+  });
+  it("every hero's foreign keys resolve", () => {
+    for (const h of heroes) {
+      expect(getProfessionById(h.professionId), `hero ${h.id} profession`).toBeDefined();
+      expect(getCampaignById(h.campaignId), `hero ${h.id} campaign`).toBeDefined();
+    }
+  });
+  it("numeric skill fields stay within sane ranges", () => {
+    for (const s of skills) {
+      expect(s.id, `skill ${s.id} id`).toBeGreaterThan(0);
+      expect(s.energy, `skill ${s.id} energy`).toBeGreaterThanOrEqual(0);
+      expect(s.recharge, `skill ${s.id} recharge`).toBeGreaterThanOrEqual(0);
+      expect(s.activation, `skill ${s.id} activation`).toBeGreaterThanOrEqual(0);
+    }
+  });
+  it("pvpSplit and splitId agree bidirectionally", () => {
+    for (const s of skills) {
+      if (s.splitId) {
+        expect(getSkillById(s.splitId), `skill ${s.id} splitId target`).toBeDefined();
+      }
+    }
+  });
+});
+
 describe("data integrity", () => {
   it("has the full player skill set", () => {
     expect(skills.length).toBeGreaterThan(1400); // includes separate (PvP) versions

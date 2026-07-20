@@ -188,8 +188,22 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
 
   app.use("/mcp", async (c, next) => {
     const origin = c.req.header("Origin");
-    if (origin !== undefined && !origin.startsWith("https://")) {
-      return c.json({ error: "forbidden origin" }, 403);
+    // Parse the Origin rather than string-prefixing (GW1-12): startsWith
+    // "https://" accepts "https://evil.example" and even "https://" as a
+    // substring prefix of a crafted value. We require a well-formed https
+    // Origin with a real host. Non-browser MCP clients send no Origin and are
+    // unaffected; this stays proportionate for a public read-only server.
+    if (origin !== undefined) {
+      let ok = false;
+      try {
+        const u = new URL(origin);
+        ok = u.protocol === "https:" && u.hostname.length > 0;
+      } catch {
+        ok = false;
+      }
+      if (!ok) {
+        return c.json({ error: "forbidden origin" }, 403);
+      }
     }
     await next();
   });

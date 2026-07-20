@@ -141,6 +141,21 @@ describe("origin validation and logo", () => {
     });
     expect(res.status).not.toBe(403);
   });
+  it("rejects a malformed Origin that a prefix check would have let through (GW1-12)", async () => {
+    const res = await createApp().request("/mcp", {
+      method: "POST",
+      headers: { Origin: "https://" },
+    });
+    expect(res.status).toBe(403);
+  });
+  it("accepts a well-formed https Origin", async () => {
+    const res = await createApp().request("/mcp", {
+      method: "POST",
+      headers: { Origin: "https://claude.ai", "content-type": "application/json" },
+      body: "{}",
+    });
+    expect(res.status).not.toBe(403);
+  });
   it("serves the PNG logo at /logo.png", async () => {
     const res = await createApp(new Uint8Array([137, 80, 78, 71])).request("/logo.png");
     expect(res.status).toBe(200);

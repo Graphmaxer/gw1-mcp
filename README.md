@@ -51,7 +51,7 @@ wrong.
 | `get_hero` / `list_heroes` | Heroes with professions, campaigns and unlock notes                                               |
 | `decode_pawned_team`       | paw-ned2 team blobs (PvXwiki team pages) → every bar decoded                                      |
 
-Resources: `gw1://guide/build-workflow` (methodology for the LLM) and `gw1://heroes`.
+Resources: `gw1://guide/build-workflow` (methodology for the LLM), `gw1://meta` (professions, attribute lines, campaigns, skill-type list and data import date) and `gw1://heroes`.
 
 ## Quick start
 

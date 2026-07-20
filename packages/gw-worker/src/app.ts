@@ -157,8 +157,18 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
     const limiter = c.env?.RATE_LIMITER;
     if (limiter) {
       const key = c.req.header("CF-Connecting-IP") ?? "unknown";
-      const { success } = await limiter.limit({ key });
-      if (!success) {
+      // Fail-open on ANY limiter fault, not just a missing binding (GW1-08):
+      // if limit() rejects or returns an unexpected shape, an uncaught throw
+      // here would 500 the request — the opposite of "protection must never
+      // break the service". A limiter outage degrades to "no limit", logged.
+      let allowed = true;
+      try {
+        const result = await limiter.limit({ key });
+        allowed = result?.success !== false;
+      } catch (err) {
+        console.error("rate limiter faulted, failing open:", err);
+      }
+      if (!allowed) {
         return c.json(
           {
             jsonrpc: "2.0",

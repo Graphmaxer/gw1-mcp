@@ -55,6 +55,21 @@ export async function loadUpstream(source: string | undefined): Promise<Upstream
     const require = createRequire(import.meta.url);
     const constants = require(bundlePath) as Record<string, unknown>;
 
+    // Provenance bound to the actual bytes we fetched (GW1-06): a post-hoc
+    // `ls-remote` names a commit that may differ from what produced these five
+    // files (a Pages redeploy between requests could even mix versions). We
+    // record a content hash of each downloaded artifact so an import is
+    // reproducible and tamper-evident, and keep the remote HEAD only as a
+    // secondary hint. Not a signed manifest (that needs upstream support), but
+    // it ties provenance to data instead of to a racy side channel.
+    const { createHash } = await import("node:crypto");
+    const digest = (s: string) => createHash("sha256").update(s).digest("hex").slice(0, 16);
+    const contentHashes = {
+      skilldata: digest(skilldataText),
+      skilldesc: digest(descText),
+      bundle: digest(bundle),
+    };
+
     let version = `pages:${new Date().toISOString().slice(0, 10)}`;
     try {
       const head = execSync(
@@ -66,6 +81,7 @@ export async function loadUpstream(source: string | undefined): Promise<Upstream
     } catch {
       /* provenance falls back to the fetch date */
     }
+    version = `${version} (sha256 skilldata:${contentHashes.skilldata} desc:${contentHashes.skilldesc} bundle:${contentHashes.bundle})`;
     return {
       ATTRIBUTES: constants.ATTRIBUTES,
       CAMPAIGNS: constants.CAMPAIGNS,

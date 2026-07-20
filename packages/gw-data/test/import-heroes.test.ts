@@ -1,6 +1,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { generateHeroes, identifierToName, parseHeroEnum } from "../scripts/import-heroes.js";
+import {
+  generateHeroes,
+  identifierToName,
+  parseHeroEnum,
+  renderHeroNamesHeader,
+} from "../scripts/import-heroes.js";
 import type { HeroMeta } from "../scripts/import-heroes.js";
 import heroes from "../data/heroes.json";
 import overlay from "../data/heroes-overlay.json";
@@ -9,6 +14,20 @@ const header = readFileSync(
   new URL("./fixtures/gwca-heroid-2026-07-11.h", import.meta.url),
   "utf8",
 );
+
+const committedHeader = readFileSync(
+  new URL("../../../gwtoolbox-plugin/AccountExport/hero-names.generated.h", import.meta.url),
+  "utf8",
+);
+
+describe("C++ hero-names header stays in sync with heroes.json (GW1-07)", () => {
+  it("the committed header equals a fresh render from heroes.json", () => {
+    // The weekly workflow now carries this header in its patch; this test is
+    // the second half of that guarantee — if heroes.json changes and the
+    // header is not regenerated, CI fails instead of the DLL silently drifting.
+    expect(committedHeader).toBe(renderHeroNamesHeader(heroes));
+  });
+});
 
 describe("GWCA HeroID enum parsing", () => {
   const parsed = parseHeroEnum(header);

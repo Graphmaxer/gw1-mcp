@@ -224,6 +224,19 @@ describe("rate limiting", () => {
     expect(body.error.message).toContain("Rate limit");
   });
 
+  it("fails open (not 500) when the limiter itself throws", async () => {
+    const env = {
+      RATE_LIMITER: {
+        limit: async () => {
+          throw new Error("limiter backend unavailable");
+        },
+      },
+    };
+    const res = await post(createApp(), env);
+    expect(res.status).not.toBe(429);
+    expect(res.status).not.toBe(500);
+  });
+
   it("passes through when the limiter allows", async () => {
     const env = { RATE_LIMITER: { limit: async () => ({ success: true }) } };
     const res = await post(createApp(), env);

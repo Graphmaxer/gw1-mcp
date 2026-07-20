@@ -44,7 +44,7 @@ jobs:
       - name: Check for meaningful changes (ignore import date)
         id: diff
         run: |
-          if git diff --numstat -- packages/gw-data/data | grep -v "_meta.json" | grep -q .; then
+          if git diff --numstat -- packages/gw-data/data gwtoolbox-plugin/AccountExport/hero-names.generated.h | grep -v "_meta.json" | grep -q .; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             git checkout -- packages/gw-data/data/_meta.json || true
@@ -54,7 +54,7 @@ jobs:
         if: steps.diff.outputs.changed == 'true'
       - name: Upload the data diff as an artifact
         if: steps.diff.outputs.changed == 'true'
-        run: git diff -- packages/gw-data/data > /tmp/data-update.patch
+        run: git diff -- packages/gw-data/data gwtoolbox-plugin/AccountExport/hero-names.generated.h > /tmp/data-update.patch
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: steps.diff.outputs.changed == 'true'
         with:

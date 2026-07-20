@@ -91,3 +91,17 @@ describe("malformed input rejection", () => {
     expect(encodeTemplate(decodeTemplate("OQASEZKT9F7gTNAAAAAAXFxgA"))).toBeTruthy();
   });
 });
+
+describe("malformed bitstream rejection (GW1-02 audit)", () => {
+  it("accepts the canonical empty bar and its pad-to-even form", () => {
+    expect(() => decodeTemplate("OQAAAAAAAAAAAAAA")).not.toThrow();
+  });
+  it("rejects a non-zero terminal/padding bit", () => {
+    expect(() => decodeTemplate("OQAAAAAAAAAAAAAQ")).toThrow(/tail|non-zero/i);
+    expect(() => decodeTemplate("OQAAAAAAAAAAAAAg")).toThrow(/tail|non-zero/i);
+  });
+  it("rejects a non-zero trailing base64 char", () => {
+    expect(() => decodeTemplate("OQAAAAAAAAAAAAAAB")).toThrow(/tail|non-zero/i);
+    expect(() => decodeTemplate("OQAAAAAAAAAAAAAA/")).toThrow(/tail|non-zero/i);
+  });
+});

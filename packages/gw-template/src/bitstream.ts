@@ -6,17 +6,23 @@ import { TemplateError } from "./types.js";
  * spanning 6-bit groups continue in the same order).
  */
 export class BitReader {
-  private readonly bits: number[] = [];
+  private readonly values: readonly number[];
   private pos = 0;
 
+  // Index the 6-bit values directly instead of expanding to one JS number per
+  // bit: a 100k-char template used to allocate a 600k-element array (~5MB of
+  // boxed numbers) before reading its first field. Now O(1) memory over the
+  // input. (GW1-01)
   constructor(values6bit: number[]) {
-    for (const v of values6bit) {
-      for (let i = 0; i < 6; i++) this.bits.push((v >> i) & 1);
-    }
+    this.values = values6bit;
   }
 
   get remaining(): number {
-    return this.bits.length - this.pos;
+    return this.values.length * 6 - this.pos;
+  }
+
+  private bitAt(i: number): number {
+    return (this.values[(i / 6) | 0]! >> (i % 6)) & 1;
   }
 
   read(n: number): number {
@@ -28,13 +34,29 @@ export class BitReader {
     }
     let value = 0;
     for (let i = 0; i < n; i++) {
-      value |= (this.bits[this.pos + i] ?? 0) << i;
+      value |= this.bitAt(this.pos + i) << i;
     }
     this.pos += n;
     return value >>> 0;
   }
 
-  /** Read n bits without consuming them. */
+  /**
+   * After the payload, GW templates carry a zero terminal bit then zero
+   * padding to the 6-bit boundary; the game client may append whole zero
+   * chars (pad-to-even). Everything left MUST be zero — a non-zero trailing
+   * bit means a malformed bitstream, not a padding dialect. (GW1-02)
+   */
+  assertZeroTail(): void {
+    while (this.remaining > 0) {
+      if (this.bitAt(this.pos) !== 0) {
+        throw new TemplateError(
+          "NON_ZERO_TAIL",
+          "Template has non-zero bits after the skill payload",
+        );
+      }
+      this.pos++;
+    }
+  }
 }
 
 /** Writes unsigned integers lowest-bit-first and packs them into 6-bit values. */

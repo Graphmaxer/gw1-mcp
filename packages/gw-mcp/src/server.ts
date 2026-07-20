@@ -242,18 +242,21 @@ export function createServer(): McpServer {
       inputSchema: {
         professionName: z
           .string()
+          .max(64)
           .optional()
           .describe(
             "Filter by profession: Warrior, Ranger, Monk, Necromancer, Mesmer, Elementalist, Assassin, Ritualist, Paragon, Dervish, or None (common / PvE-only skills that belong to no profession).",
           ),
         attributeName: z
           .string()
+          .max(64)
           .optional()
           .describe(
             'Filter by attribute line, exact English name, e.g. "Blood Magic", "Swordsmanship", "Divine Favor".',
           ),
         campaignName: z
           .string()
+          .max(64)
           .optional()
           .describe(
             "Filter by campaign: Core, Prophecies, Factions, Nightfall, or Eye of the North.",
@@ -264,6 +267,7 @@ export function createServer(): McpServer {
           .describe("If true, return only elite skills; if false, only non-elite; omit for both."),
         nameContains: z
           .string()
+          .max(64)
           .optional()
           .describe(
             "Case-insensitive substring match on the skill name, e.g. \"heal\" matches every skill with 'heal' in its name.",
@@ -355,7 +359,7 @@ export function createServer(): McpServer {
       annotations: READ_ONLY,
       outputSchema: decodedBuildShape,
       inputSchema: {
-        code: z.string().describe("The template code string"),
+        code: z.string().max(128, "Template code too long").describe("The template code string"),
       },
     },
     async ({ code }) => {
@@ -381,7 +385,10 @@ export function createServer(): McpServer {
         builds: z.array(pwndEntrySchema).describe("One entry per team slot, in blob order"),
       },
       inputSchema: {
-        pwnd: z.string().describe("The full pwnd blob, starting with 'pwnd000'"),
+        pwnd: z
+          .string()
+          .max(262144, "pwnd blob too large")
+          .describe("The full pwnd blob, starting with 'pwnd000'"),
       },
     },
     async ({ pwnd }) => {

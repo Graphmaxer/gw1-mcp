@@ -68,6 +68,11 @@ export function decodeTemplate(code: string): SkillTemplate {
     skills.push(reader.read(skillBits));
   }
 
+  // Everything after the payload must be zero (terminal bit + padding, plus
+  // the client's pad-to-even zero char). Non-zero trailing bits are malformed,
+  // not a padding dialect — see the codec dialect note above. (GW1-02)
+  reader.assertZeroTail();
+
   return { primary, secondary, attributes, skills };
 }
 

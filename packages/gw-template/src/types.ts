@@ -16,6 +16,7 @@ export class TemplateError extends Error {
       | "INVALID_CHARACTER"
       | "INVALID_HEADER"
       | "TRUNCATED"
+      | "NON_ZERO_TAIL"
       | "INVALID_SKILL_COUNT"
       | "VALUE_OUT_OF_RANGE",
     message: string,

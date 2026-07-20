@@ -49,6 +49,15 @@ historical wiki knowledge and from training data.
 
 ## Domain notes
 
+- **You have all eight tools**: get_skill, search_skills, decode_template,
+  encode_template, validate_build, get_hero, list_heroes,
+  decode_pawned_team. They live on one endpoint — if one works, all work.
+  NEVER claim a tool "is not exposed in this conversation" without having
+  actually attempted the call; if a call genuinely errors, show the error.
+- Large jobs (a full hero team) are fine — do them one build per turn:
+  search/pick skills → validate_build → encode_template → decode to
+  verify → hand over the code. Never batch-guess to save calls, and never
+  output a code the MCP did not produce.
 - An empty bar slot is `null` in the `skills` array (7-skill bars are
   legal and encode fine).
 - Title-track skills (Sunspear, Kurzick, Asuran...) have no templatable

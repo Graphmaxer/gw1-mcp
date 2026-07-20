@@ -1,0 +1,114 @@
+name: Upstream pin bump
+
+# The manual pins Dependabot cannot see (they live in workflow env:/run:, not
+# a manifest) drift silently. This weekly job checks each against upstream
+# latest and, on drift, opens ONE pull request that actually edits the pins —
+# same actionable pattern as update-data.yml, not a passive issue.
+#
+# Deliberately NO auto-merge: a supply-chain pin bump needs a human. For
+# mcp-publisher the PR recomputes the two SHA-256 digests and prints them in
+# the body next to the upstream Sigstore attestation link, so the reviewer
+# attests the hashes by eye — a bot generating a hash at download time proves
+# nothing on its own (the TOCTOU trap the audit flagged for provenance).
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # 06:00 UTC every Monday, like the other automation
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.bump.outputs.changed }}
+      body: ${{ steps.bump.outputs.body }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - name: Bump drifted pins in place
+        id: bump
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          build_wf=.github/workflows/build-gwtoolbox-plugin.yml
+          pub_wf=.github/workflows/publish-registry.yml
+          body=$'Automated upstream-pin check found drift. Review carefully — this is a supply-chain bump, no auto-merge.\n\n'
+          changed=false
+
+          pinned_gwtb=$(grep -oP 'GWTOOLBOX_COMMIT:\s*\K[0-9a-f]+' "$build_wf")
+          latest_gwtb=$(gh api repos/gwdevhub/GWToolboxpp/commits/master --jq '.sha')
+          if [ "$pinned_gwtb" != "$latest_gwtb" ]; then
+            sed -i "s/${pinned_gwtb}/${latest_gwtb}/" "$build_wf"
+            compare="https://github.com/gwdevhub/GWToolboxpp/compare/${pinned_gwtb}...${latest_gwtb}"
+            body="${body}### GWToolboxpp"$'\n'"\`${pinned_gwtb:0:12}\` -> \`${latest_gwtb:0:12}\`"$'\n'"Review upstream changes: ${compare}"$'\n'"The plugin build job compiles against this commit, so CI proves it still builds."$'\n\n'
+            changed=true
+          fi
+
+          pinned_pub=$(grep -oP 'VERSION:\s*\Kv[0-9.]+' "$pub_wf")
+          latest_pub=$(gh api repos/modelcontextprotocol/registry/releases/latest --jq '.tag_name')
+          if [ "$pinned_pub" != "$latest_pub" ]; then
+            base="https://github.com/modelcontextprotocol/registry/releases/download/${latest_pub}"
+            curl --fail --show-error --location "${base}/mcp-publisher_linux_amd64.tar.gz" -o amd64.tgz
+            curl --fail --show-error --location "${base}/mcp-publisher_linux_arm64.tar.gz" -o arm64.tgz
+            sha_amd64=$(sha256sum amd64.tgz | cut -d' ' -f1)
+            sha_arm64=$(sha256sum arm64.tgz | cut -d' ' -f1)
+            old_amd64=$(grep -oP 'SHA256_amd64:\s*\K[0-9a-f]+' "$pub_wf")
+            old_arm64=$(grep -oP 'SHA256_arm64:\s*\K[0-9a-f]+' "$pub_wf")
+            sed -i "s/${pinned_pub}/${latest_pub}/;s/${old_amd64}/${sha_amd64}/;s/${old_arm64}/${sha_arm64}/" "$pub_wf"
+            rm -f amd64.tgz arm64.tgz
+            body="${body}### mcp-publisher"$'\n'"\`${pinned_pub}\` -> \`${latest_pub}\`"$'\n\n'"**Verify these digests by eye against the upstream Sigstore attestation** (\`${base}/mcp-publisher_linux_amd64.tar.gz.sigstore.json\`):"$'\n'"- amd64: \`${sha_amd64}\`"$'\n'"- arm64: \`${sha_arm64}\`"$'\n\n'
+            changed=true
+          fi
+
+          echo "changed=${changed}" >> "$GITHUB_OUTPUT"
+          if [ "$changed" = "true" ]; then
+            {
+              echo "body<<PINEOF"
+              echo "$body"
+              echo "PINEOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload the pin patch
+        if: steps.bump.outputs.changed == 'true'
+        run: git diff -- .github/workflows > /tmp/pin-bump.patch
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: steps.bump.outputs.changed == 'true'
+        with:
+          name: pin-bump
+          path: /tmp/pin-bump.patch
+          retention-days: 3
+
+  open-pr:
+    needs: check
+    if: needs.check.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Mint an ephemeral app token (gw1-mcp-bot)
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ secrets.AUTOMATION_APP_ID }}
+          private-key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: pin-bump
+          path: /tmp
+      - name: Apply the pin bump
+        run: git apply /tmp/pin-bump.patch
+      - name: Open pull request
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: chore/bump-upstream-pins
+          title: "ci: bump upstream pins Dependabot cannot see"
+          commit-message: "ci: bump drifted upstream pins (GWToolboxpp / mcp-publisher)"
+          body: ${{ needs.check.outputs.body }}

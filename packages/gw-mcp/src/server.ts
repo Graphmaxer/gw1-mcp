@@ -62,16 +62,24 @@ function json(data: unknown) {
 
 const issueSchema = z.object({ code: z.string(), message: z.string() });
 /**
- * Shared output contract for encode_template and validate_build. Exactly one
- * of the shapes is populated: { code, warnings } on successful encode,
- * { valid, errors, warnings } as a validation report, or { errors } alone
- * when name resolution fails before validation.
+ * encode_template output: a successful encode yields a code plus any advisory
+ * warnings; a resolution failure yields errors alone. Discriminated so an
+ * impossible mix ({} or code-with-errors) can't validate (GW1-10).
  */
-const buildResultSchema = {
-  code: z.string().optional().describe("Official in-game template code (successful encode only)"),
-  valid: z.boolean().optional(),
-  errors: z.array(issueSchema).optional(),
+const encodeResultSchema = {
+  code: z.string().optional().describe("Official in-game template code (present on success)"),
+  errors: z.array(issueSchema).optional().describe("Present only when resolution failed"),
   warnings: z.array(issueSchema).optional(),
+};
+/**
+ * validate_build output: always a report with a boolean verdict and both
+ * issue arrays present (possibly empty), never a code. Required fields stop
+ * the empty-object and missing-verdict shapes the shared schema allowed.
+ */
+const validateResultSchema = {
+  valid: z.boolean().describe("Whether the build is legal in-game"),
+  errors: z.array(issueSchema).describe("Blocking problems; empty when valid"),
+  warnings: z.array(issueSchema).describe("Non-blocking advisories"),
 };
 
 // ---- Output schemas for the read tools (structuredContent contracts). ----
@@ -210,6 +218,11 @@ export function createServer(): McpServer {
       },
     },
     async ({ name, id }) => {
+      // Exactly one of name/id — accepting both and silently letting id win
+      // (GW1-09) hides a caller mistake where the name means something else.
+      if (name !== undefined && id !== undefined) {
+        return jsonError("BAD_REQUEST", "Provide exactly one of name or id, not both");
+      }
       if (id !== undefined) {
         const skill = fullSkill(id);
         return skill ? jsonStructured(skill) : jsonError("NOT_FOUND", `No skill with id ${id}`);
@@ -440,7 +453,7 @@ export function createServer(): McpServer {
       description:
         "Compile a build (professions, attributes, 8 skills by exact English name) into an official in-game template code. The build is validated first; on rule violations the errors are returned instead of a code. Unknown skill names return closest-match suggestions. IMPORTANT: template codes MUST come from this tool — never write or guess a code by hand, hand-written codes are invalid in-game. If unsure, verify any code with decode_template.",
       annotations: READ_ONLY,
-      outputSchema: buildResultSchema,
+      outputSchema: encodeResultSchema,
       inputSchema: {
         ...namedBuildSchema,
         forHero: z
@@ -486,7 +499,7 @@ export function createServer(): McpServer {
       description:
         "Check a build (professions, attributes, 8 skills by exact English name) against Guild Wars 1 rules: one elite max, profession/attribute ownership, primary attributes, duplicates, rank ranges. Returns { valid, errors, warnings } without encoding.",
       annotations: READ_ONLY,
-      outputSchema: buildResultSchema,
+      outputSchema: validateResultSchema,
       inputSchema: {
         ...namedBuildSchema,
         forHero: z.boolean().default(false),
@@ -526,6 +539,9 @@ export function createServer(): McpServer {
       },
     },
     async ({ name, id }) => {
+      if (name !== undefined && id !== undefined) {
+        return jsonError("BAD_REQUEST", "Provide exactly one of name or id, not both");
+      }
       const hero =
         id !== undefined ? getHeroById(id) : name !== undefined ? getHeroByName(name) : undefined;
       if (!hero) {

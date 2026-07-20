@@ -38,6 +38,16 @@ describe("gw1-mcp server", () => {
     expect(ko.error.suggestions).toContain("Mystic Regeneration");
   });
 
+  it("get_skill rejects name and id together instead of silently favoring id (GW1-09)", async () => {
+    const client = await connectedClient();
+    const res = await client.callTool({
+      name: "get_skill",
+      arguments: { name: "Mystic Regeneration", id: 1 },
+    });
+    expect(res.isError).toBe(true);
+    expect(payload(res).error.code).toBe("BAD_REQUEST");
+  });
+
   it("decodes the golden template", async () => {
     const client = await connectedClient();
     const decoded = payload(
@@ -249,9 +259,12 @@ describe("resources and error surfaces", () => {
 
   it("decode_pawned_team rejects garbage blobs with a structured error", async () => {
     const client = await connectedClient();
+    // Use the real parameter name `pwnd` — the old test passed `blob`, so it
+    // only exercised Zod's missing-required-arg rejection, not the decoder
+    // (GW1-14). This now actually feeds the paw-ned2 parser a bad blob.
     const res = await client.callTool({
       name: "decode_pawned_team",
-      arguments: { blob: "pwnd-garbage" },
+      arguments: { pwnd: "pwnd-garbage-not-a-real-team-blob" },
     });
     expect(res.isError).toBe(true);
   });

@@ -237,15 +237,30 @@ changes nothing. Each release also
 rebuilds AccountExport.dll on a Windows runner and attaches it to the
 GitHub release (job attach-plugin-to-release in release-please.yml).
 
-Supply-chain posture (2026-07-13): every third-party action is pinned by
-full commit SHA with a trailing # vX comment — a moved tag can no longer
-swap the code CI runs; Dependabot understands this format and bumps the
-SHAs weekly. packageManager carries the pnpm sha512 integrity hash
-(corepack verifies the binary itself). The two remaining unpinned execution
-surfaces are known and bounded: the weekly Pages import (isolated from all
-secrets by the two-job split in update-data.yml) and its npm fallback
-(lockfile-integrity-checked). CI also runs actionlint, so invalid workflow
-expressions fail a PR check instead of breaking main.
+Supply-chain posture (updated 2026-07-20 after an external audit): every
+third-party action is pinned by full commit SHA with a trailing # vX comment
+— a moved tag can no longer swap the code CI runs; Dependabot understands
+this format and bumps the SHAs weekly. packageManager carries the pnpm
+sha512 integrity hash (corepack verifies the binary itself). CI also runs
+actionlint, so invalid workflow expressions fail a PR check.
+
+MANUAL PINS Dependabot CANNOT see (they live in workflow env:/run:, not a
+manifest — so they drift SILENTLY; this is the maintenance cost we accepted
+in exchange for the audit's security). Bump each deliberately:
+
+- GWTOOLBOX_COMMIT (build-gwtoolbox-plugin.yml): the GWToolboxpp commit the
+  plugin compiles against. Was a floating master clone (GW1-04). Build runs
+  contents:read; a separate release-upload job holds contents:write.
+- VCPKG_COMMIT (same file): upstream's pinned vcpkg toolchain commit.
+- mcp-publisher VERSION + SHA256_amd64/arm64 (publish-registry.yml): pinned
+  release with per-arch digest check (GW1-05). To bump: download the new
+  tarballs, `sha256sum` them, update VERSION and BOTH digests together.
+  The monthly upstream-pin-check workflow opens an issue when any of these
+  drifts from upstream latest — the active tripwire instead of memory.
+
+The weekly Pages import stays isolated from all secrets by the two-job split
+in update-data.yml; its npm fallback is lockfile-integrity-checked. Data
+import provenance now records sha256 of the downloaded bytes (GW1-06).
 
 CodeQL runs via GitHub DEFAULT SETUP: its configuration lives OUTSIDE the
 repo (Settings -> Code security), the same out-of-repo category as the
@@ -300,6 +315,19 @@ per pipeline (skills <- @buildwars/gw-skilldata import, heroes <- GWCA enum
 
 Everything below is a KNOWN compromise, kept deliberately, with its trigger
 for action. Nothing else in the repo is knowingly imperfect.
+
+External audit (2026-07-20): an independent GPT-driven audit of the v0.6.0+
+snapshot raised 15 findings (3 High, 5 Medium, rest Low/Info). ALL 15 were
+addressed — bit-array amplification removed (GW1-01), strict codec tail
+(GW1-02), C++ UTF-8 OOB write fixed (GW1-03), supply-chain surfaces pinned &
+isolated (GW1-04/05), provenance hashing (GW1-06), C++ header in the weekly
+patch + sync test (GW1-07), rate limiter truly fail-open (GW1-08), name/id
+exclusivity (GW1-09), split result schemas (GW1-10), Node 22 CI job
+(GW1-11), parsed Origin + loopback default (GW1-12), data invariants
+(GW1-13), fixed pwnd test (GW1-14), README meta (GW1-15). The auditor could
+NOT run the suite (no pnpm/DNS), so its code-reading findings were reliable
+but its execution claims were neither confirmed nor denied — re-audit in a
+working npm environment before declaring fully verified.
 
 1. Deployment is LIVE and verified (2026-07-11): Cloudflare Workers Builds
    deploys every push to main to https://gw1-mcp.graphmaxer.workers.dev

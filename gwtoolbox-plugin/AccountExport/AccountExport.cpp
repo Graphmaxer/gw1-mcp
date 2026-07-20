@@ -33,8 +33,16 @@ std::string WStringToUtf8(const wchar_t* wstr)
     if (needed <= 1) {
         return {};
     }
-    std::string out(static_cast<size_t>(needed) - 1, '\0');
-    WideCharToMultiByte(CP_UTF8, 0, wstr, -1, out.data(), needed, nullptr, nullptr);
+    // Allocate the full size including the terminal NUL slot: WideCharToMultiByte
+    // writes `needed` bytes (payload + NUL), so a `needed - 1` buffer wrote one
+    // byte past size() — undefined behavior. Size to `needed`, then trim the NUL.
+    // (audit GW1-03)
+    std::string out(static_cast<size_t>(needed), '\0');
+    const int written = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, out.data(), needed, nullptr, nullptr);
+    if (written <= 0) {
+        return {};
+    }
+    out.resize(static_cast<size_t>(written) - 1);
     return out;
 }
 

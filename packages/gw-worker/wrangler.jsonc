@@ -9,20 +9,21 @@
   // Requires Analytics Engine enabled on the account (dash: Storage &
   // Databases > Analytics Engine). The binding is optional in code: local
   // dev and tests run without it.
-  // Per-IP rate limiting (Workers Rate Limiting binding): protects CPU and
-  // Analytics Engine writes from abuse. NOTE: on workers.dev every request
-  // still counts against the daily quota even when 429'd — true pre-worker
-  // blocking would need a custom domain + WAF zone rules (doctrine trigger).
-  "unsafe": {
-    "bindings": [
-      {
-        "name": "RATE_LIMITER",
-        "type": "ratelimit",
-        "namespace_id": "1001",
-        "simple": { "limit": 100, "period": 60 },
-      },
-    ],
-  },
+  // Per-IP rate limiting (GA "ratelimits" binding, wrangler >= 4.36): protects
+  // CPU and Analytics Engine writes from abuse. Two documented choices:
+  // (1) workers.dev requests still count against the daily quota even when
+  // 429'd — true pre-worker blocking would need a custom domain + WAF rules;
+  // (2) the key is the connecting IP, which Cloudflare's docs advise against
+  // (CGNAT/proxies share IPs) — but this server is public and anonymous: no
+  // API keys, no user ids, one path. IP is the only actor signal there is,
+  // and 100/min is generous enough for shared-IP collateral.
+  "ratelimits": [
+    {
+      "name": "RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 100, "period": 60 },
+    },
+  ],
   "analytics_engine_datasets": [{ "binding": "MCP_ANALYTICS", "dataset": "gw1_mcp_usage" }],
   "rules": [{ "type": "Data", "globs": ["**/*.png"], "fallthrough": true }],
 }

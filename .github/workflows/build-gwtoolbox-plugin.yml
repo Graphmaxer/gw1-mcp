@@ -30,19 +30,26 @@ jobs:
   build:
     runs-on: windows-latest
     timeout-minutes: 45
-    # contents:write is needed only on the release path (gh release upload).
-    # inputs.* is not available in a job-level permissions block, so this is
-    # unconditional — harmless on the push/dispatch paths, which write nothing.
+    # Build runs with contents:read only. Compiling unpinned upstream code in a
+    # contents:write job (GW1-04) would let an upstream compromise touch our
+    # releases; the privileged release upload is a separate minimal job below,
+    # fed through a run artifact.
     permissions:
-      contents: write
+      contents: read
     env:
       VCPKG_COMMIT: ce613c41372b23b1f51333815feb3edd87ef8a8b
+      # Pinned to a verified GWToolboxpp commit instead of a floating master
+      # clone (GW1-04). Bump deliberately after reviewing upstream changes.
+      GWTOOLBOX_COMMIT: ca20ae743551fd24f4fd0653e8a64d5e5b55a820
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
-      - name: Checkout GWToolboxpp (master)
+      - name: Checkout GWToolboxpp (pinned commit)
         shell: bash
-        run: git clone --depth 1 https://github.com/gwdevhub/GWToolboxpp.git GWToolboxpp
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/gwdevhub/GWToolboxpp.git GWToolboxpp
+          cd GWToolboxpp
+          git checkout "$GWTOOLBOX_COMMIT"
 
       - name: Inject AccountExport plugin
         shell: pwsh
@@ -107,16 +114,27 @@ jobs:
           Get-ChildItem out
 
       - name: Upload AccountExport.dll (run artifact)
-        if: ${{ !inputs.release_tag }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: AccountExport
           path: out/
           if-no-files-found: error
 
+  # Privileged upload isolated from the build: contents:write, no upstream code,
+  # only downloads the artifact the build produced and attaches it (GW1-04).
+  release-upload:
+    needs: build
+    if: ${{ inputs.release_tag }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download built DLL artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: AccountExport
+          path: out/
       - name: Attach AccountExport.dll to the release
-        if: ${{ inputs.release_tag }}
-        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "${{ inputs.release_tag }}" out/AccountExport.dll --clobber

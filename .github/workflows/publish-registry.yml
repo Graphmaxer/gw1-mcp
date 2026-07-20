@@ -19,15 +19,28 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    # Best-effort: the registry is in preview; an outage must not fail a release.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-      - name: Install mcp-publisher
+      - name: Install mcp-publisher (pinned + digest-verified)
+        # Pinned to a specific version with a checked SHA-256 instead of piping
+        # `releases/latest` straight into tar in an OIDC job (GW1-05): a
+        # compromised `latest` would otherwise run in our id-token context.
+        # Bump VERSION + the two digests together when upgrading. Digests from
+        # the v1.8.0 release assets (also Sigstore-signed upstream).
+        env:
+          VERSION: v1.8.0
+          SHA256_amd64: 1370446bbe74d562608e8005a6ccce02d146a661fbd78674e11cc70b9618d6cf
+          SHA256_arm64: c978982c60e1b4903a976de090f04dc4fac4a320daa50704fcad2dbc93433d62
         run: |
+          set -euo pipefail
           arch=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
           os=$(uname -s | tr '[:upper:]' '[:lower:]')
-          curl -sL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_${os}_${arch}.tar.gz" | tar xz mcp-publisher
+          expected=$(eval echo "\$SHA256_${arch}")
+          curl --fail --show-error --location \
+            "https://github.com/modelcontextprotocol/registry/releases/download/${VERSION}/mcp-publisher_${os}_${arch}.tar.gz" \
+            -o mcp-publisher.tar.gz
+          echo "${expected}  mcp-publisher.tar.gz" | sha256sum --check --strict
+          tar xzf mcp-publisher.tar.gz mcp-publisher
       - name: Login (GitHub OIDC) and publish
         run: |
           ./mcp-publisher login github-oidc

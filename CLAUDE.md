@@ -332,6 +332,26 @@ NOT run the suite (no pnpm/DNS), so its code-reading findings were reliable
 but its execution claims were neither confirmed nor denied — re-audit in a
 working npm environment before declaring fully verified.
 
+Second external audit (2026-07-21, v0.7.0): a deeper GPT audit that mounted
+the MCP and exercised all 8 tools live, so it caught business-rule bugs a
+read-only pass missed. 14 findings. Addressed: core GW1 validator rules
+(AUD-03 — is_rp threaded as isRoleplay, Signet-of-Capture-x3, PvE-only via
+flag not attribute heuristic, hero-illegal is now a hard error, 3-PvE cap);
+DoS hardening (AUD-01 — 64-char name bounds, capped unlockedSkillIds,
+Levenshtein length guard, 512 KiB body limit); data licensing (AUD-02 —
+THIRD_PARTY_NOTICES.md: descriptions are GFDL/CC-BY-NC-SA, not MIT — LEGAL
+SIGN-OFF STILL OWED before any commercial redistribution); privacy/security
+text accuracy (AUD-06); provenance hashes all 5 artifacts (AUD-05); export
+doc learned-vs-unlocked (AUD-10); encode schema honesty (AUD-04); pagination
+offset + fixture-count drift (P2). Two findings kept as documented
+decisions, NOT fixed: AUD-09 (Cloudflare deploy not IaC) is debt #1, already
+assumed; AUD-07 (plugin not compiled on every PR) is deliberate — a Windows
+vcpkg build on each PR touching the plugin is disproportionate; the pinned
+GWTOOLBOX_COMMIT + release-time build cover it. Caveat: isRoleplay was
+reconstructed from title-track attrs + Signet of Capture (network-blocked
+import); a real `pnpm import` repopulates it authoritatively from upstream
+is_rp.
+
 1. Deployment is LIVE and verified (2026-07-11): Cloudflare Workers Builds
    deploys every push to main to https://gw1-mcp.graphmaxer.workers.dev
    (first production tool calls served the same day). Residual debt: the

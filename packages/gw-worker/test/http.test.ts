@@ -252,6 +252,14 @@ describe("rate limiting", () => {
     expect(res.status).not.toBe(500);
   });
 
+  it("rejects an oversized body with 413 before processing (GW1-AUD-01)", async () => {
+    const res = await createApp().request("/mcp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Content-Length": String(600 * 1024) },
+      body: "x".repeat(10),
+    });
+    expect(res.status).toBe(413);
+  });
   it("passes through when the limiter allows", async () => {
     const env = { RATE_LIMITER: { limit: async () => ({ success: true }) } };
     const res = await post(createApp(), env);

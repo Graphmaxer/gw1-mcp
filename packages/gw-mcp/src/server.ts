@@ -27,21 +27,22 @@ import { describeTemplate, resolveNamedBuild } from "./build-io.js";
 import { validateBuild } from "./validate.js";
 
 const namedBuildSchema = {
-  primary: z.string().describe('Primary profession, e.g. "Dervish"'),
+  primary: z.string().max(64).describe('Primary profession, e.g. "Dervish"'),
   secondary: z
     .string()
+    .max(64)
     .optional()
     .describe('Secondary profession, e.g. "Monk". Omit or "None" for none.'),
   attributes: z
     .array(
       z.object({
-        attribute: z.string().describe('Exact attribute name, e.g. "Mysticism"'),
+        attribute: z.string().max(64).describe('Exact attribute name, e.g. "Mysticism"'),
         rank: z.number().int().min(0).max(12).describe("Base rank 0-12 (before runes)"),
       }),
     )
     .describe("Attribute point allocations"),
   skills: z
-    .array(z.string().nullable())
+    .array(z.string().max(64).nullable())
     .length(8)
     .describe(
       "Exactly 8 skill names in bar order. Use null for an empty slot. Names must be exact English skill names.",
@@ -212,6 +213,7 @@ export function createServer(): McpServer {
       inputSchema: {
         name: z
           .string()
+          .max(64)
           .optional()
           .describe('Exact English skill name, e.g. "Mystic Regeneration"'),
         id: z.number().int().min(0).max(65535).optional().describe("Template skill id"),
@@ -462,6 +464,7 @@ export function createServer(): McpServer {
           .describe("Set true if this bar is for a hero (PvE-only skills are flagged)"),
         unlockedSkillIds: z
           .array(z.number().int().min(0).max(65535))
+          .max(8192)
           .optional()
           .describe(
             "Optional: unlocked skill ids from a GWToolbox account export (/exportaccount). Skills outside this list are flagged as warnings.",
@@ -505,6 +508,7 @@ export function createServer(): McpServer {
         forHero: z.boolean().default(false),
         unlockedSkillIds: z
           .array(z.number().int().min(0).max(65535))
+          .max(8192)
           .optional()
           .describe(
             "Optional: unlocked skill ids from a GWToolbox account export (/exportaccount). Skills outside this list are flagged as warnings.",
@@ -534,7 +538,7 @@ export function createServer(): McpServer {
       annotations: READ_ONLY,
       outputSchema: fullHeroSchema.shape,
       inputSchema: {
-        name: z.string().optional().describe('Hero name, e.g. "Master of Whispers"'),
+        name: z.string().max(64).optional().describe('Hero name, e.g. "Master of Whispers"'),
         id: z.number().int().min(0).max(255).optional().describe("GWCA HeroID value"),
       },
     },

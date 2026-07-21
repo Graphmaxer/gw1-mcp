@@ -151,6 +151,25 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
   // a public, read-only, credential-free server (DNS-rebinding protection
   // targets local servers; there is no session or state here to ride).
   // Per-IP rate limit, evaluated before any parsing or analytics work.
+  // Body-size ceiling, checked before parsing or rate limiting (GW1-AUD-01):
+  // the codec and fuzzy-match paths amplify input CPU, so a large body is the
+  // cheapest DoS vector. 512 KiB is far above any legitimate build/pwnd payload.
+  const MAX_BODY_BYTES = 512 * 1024;
+  app.use("/mcp", async (c, next) => {
+    const len = c.req.header("Content-Length");
+    if (len !== undefined && Number(len) > MAX_BODY_BYTES) {
+      return c.json(
+        {
+          jsonrpc: "2.0",
+          id: null,
+          error: { code: -32600, message: "Request body too large (max 512 KiB)." },
+        },
+        413,
+      );
+    }
+    await next();
+  });
+
   // Optional binding (absent in dev/tests -> fail-open), same philosophy as
   // MCP_ANALYTICS: protection must never break the service it protects.
   app.use("/mcp", async (c, next) => {

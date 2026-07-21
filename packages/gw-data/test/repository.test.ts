@@ -100,6 +100,11 @@ describe("lookups", () => {
   it("suggests close names for typos", () => {
     expect(suggestSkillNames("Mystic Regenration")[0]).toBe("Mystic Regeneration");
   });
+
+  it("returns no suggestions for an oversized query (GW1-AUD-01 CPU guard)", () => {
+    // A multi-kilobyte name must not trigger the O(n*m) scan over every skill.
+    expect(suggestSkillNames("a".repeat(5000))).toEqual([]);
+  });
 });
 
 describe("name uniqueness invariant", () => {

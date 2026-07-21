@@ -79,6 +79,11 @@ export function searchSkills(filters: SkillSearchFilters): Skill[] {
   );
 }
 
+/** Longest query we will run fuzzy matching on — beyond this, skip suggestions
+ *  entirely. Guards against the O(n*m) suggestion path being a CPU DoS vector
+ *  (GW1-AUD-01): a real skill name is well under this. */
+const MAX_SUGGEST_LEN = 64;
+
 function levenshtein(a: string, b: string): number {
   const m = a.length;
   const n = b.length;
@@ -99,6 +104,7 @@ function levenshtein(a: string, b: string): number {
 
 /** Closest skill names to a (possibly misspelled) query — for LLM self-correction. */
 export function suggestAttributeNames(name: string, count = 3): string[] {
+  if (name.length > MAX_SUGGEST_LEN) return [];
   const needle = normalizeName(name);
   return attributes
     .map((a) => ({ a, d: levenshtein(needle, normalizeName(a.name)) }))
@@ -108,6 +114,7 @@ export function suggestAttributeNames(name: string, count = 3): string[] {
 }
 
 export function suggestSkillNames(name: string, count = 3): string[] {
+  if (name.length > MAX_SUGGEST_LEN) return [];
   const needle = normalizeName(name);
   return skills
     .map((s) => ({ s, d: levenshtein(needle, normalizeName(s.name)) }))

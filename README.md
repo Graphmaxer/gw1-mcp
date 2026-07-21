@@ -64,7 +64,7 @@ pnpm --filter @gw1-mcp/gw-mcp dev   # stdio server
 ## Packages
 
 - `packages/gw-template` — template code codec (zero dependencies; round-trip tested against in-game/PvX codes and differentially fuzzed against [@buildwars/gw-templates](https://github.com/build-wars/gw-templates))
-- `packages/gw-data` — game data (1484 skills, Reforged-current) imported from [build-wars/gw-skilldata](https://github.com/build-wars/gw-skilldata) (MIT)
+- `packages/gw-data` — game data (1484 skills, Reforged-current) imported from [build-wars/gw-skilldata](https://github.com/build-wars/gw-skilldata) (code MIT; skill descriptions under GFDL / CC BY-NC-SA — see [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md))
 
 The codec is verified four ways: 18 golden fixtures covering all 10 primary
 professions and all 5 campaigns (sourced from PvXwiki, gw1builds.com, the
@@ -123,9 +123,11 @@ itself. See `CLAUDE.md` for the full architecture notes.
 ---
 
 _This project is not affiliated with ArenaNet or NCSoft. Guild Wars is a
-trademark of NCSoft Corporation. Game data courtesy of the
-[build-wars/gw-skilldata](https://github.com/build-wars/gw-skilldata) project
-(MIT) and the format documentation on the
+trademark of NCSoft Corporation. Game data is imported from
+[build-wars/gw-skilldata](https://github.com/build-wars/gw-skilldata); its code
+is MIT but the skill descriptions originate from the Guild Wars community wikis
+under the GFDL and CC BY-NC-SA 2.5 (a NonCommercial license) — see
+[THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md). Format documentation from the
 [Guild Wars Wiki](https://wiki.guildwars.com/wiki/Skill_template_format)._
 
 ## Development
@@ -142,4 +144,5 @@ honest register of known debts.
 
 ## License
 
-MIT
+Source code: MIT (see `LICENSE`). Bundled game data carries separate terms —
+see [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).

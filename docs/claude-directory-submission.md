@@ -38,7 +38,8 @@ the form's "What you'll need" list.
   request content persisted by the application (Cloudflare operational
   logs per their policy)
 - Third-party connections: none at request time (data is imported at
-  build time from the MIT-licensed build-wars/gw-skilldata dataset)
+  build time from build-wars/gw-skilldata; its code is MIT but the skill
+  descriptions are GFDL/CC-BY-NC-SA — see THIRD_PARTY_NOTICES.md)
 - Health data: none
 - Category: Entertainment / Gaming
 - Allowed link URIs: N/A (the connector opens no links)

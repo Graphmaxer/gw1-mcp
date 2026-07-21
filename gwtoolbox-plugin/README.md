@@ -45,8 +45,11 @@ or automates anything.
 ### Option A — GitHub Actions (nothing to install)
 
 The repo ships `.github/workflows/build-gwtoolbox-plugin.yml`: it builds the
-DLL on a GitHub-hosted Windows runner against the GWToolboxpp master branch,
-mirroring their own CI (same vcpkg pin, their `vcpkg` CMake preset). Go to
+DLL on a GitHub-hosted Windows runner against a pinned GWToolboxpp commit
+(`GWTOOLBOX_COMMIT` in the workflow — not the floating `master` branch, so a
+supply-chain change upstream can't silently affect the build; see CLAUDE.md's
+manual-pin registry for the bump procedure), mirroring their own CI (same
+vcpkg pin, their `vcpkg` CMake preset). Go to
 the **Actions** tab → _Build GWToolbox plugin_ → **Run workflow**, wait
 (~20-30 min cold, faster once caches are warm), then download the
 `AccountExport` artifact from the run — it contains the DLL (and PDB).

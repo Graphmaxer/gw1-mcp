@@ -55,9 +55,10 @@ on every tool — there are no write tools in this app.
 Anticipated reviewer question — "is this an unofficial connector to a
 third-party service?": No. The app never communicates with Guild Wars
 servers or any NCSoft/ArenaNet system. It is a standalone calculator over
-the MIT-licensed community dataset build-wars/gw-skilldata, refreshed at
-build time. The listing and the server's own /privacy and / routes carry
-an explicit non-affiliation disclaimer.
+the build-wars/gw-skilldata community dataset (code MIT; the skill
+descriptions it packages are GFDL/CC-BY-NC-SA — see THIRD_PARTY_NOTICES.md),
+refreshed at build time. The listing and the server's own /privacy and /
+routes carry an explicit non-affiliation disclaimer.
 
 ## Starter prompts
 
@@ -105,8 +106,9 @@ an explicit non-affiliation disclaimer.
 ## Release notes (initial submission)
 
 Initial submission. MCP-backed app (8 read-only tools, no auth) plus one
-bundled skill (build-design workflow and code-integrity rules). Server is
-open source (MIT): https://github.com/Graphmaxer/gw1-mcp
+bundled skill (build-design workflow and code-integrity rules). Server
+code is open source (MIT); bundled game data carries separate GFDL/CC-BY-NC-SA
+terms — see THIRD_PARTY_NOTICES.md: https://github.com/Graphmaxer/gw1-mcp
 
 ## Pre-submission decisions and traps (from the official submission doc)
 

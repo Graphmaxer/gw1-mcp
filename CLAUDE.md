@@ -440,7 +440,11 @@ Any change to the codec must keep every fixture green. When a bug is found, add 
 
 ## Game data
 
-Source: https://github.com/build-wars/gw-skilldata (MIT — keep the license notice, credit in README). (The older build-wars/gw1-database SQL dumps are dead since 2019; see Data maintenance.)
+Source: https://github.com/build-wars/gw-skilldata. Its code is MIT, but the
+skill descriptions it aggregates come from the Guild Wars community wikis
+under GFDL / CC BY-NC-SA — see THIRD_PARTY_NOTICES.md, keep both notices, and
+credit both in README. (The older build-wars/gw1-database SQL dumps are dead
+since 2019; see Data maintenance.)
 
 - Imported by a script into `packages/gw-data/data/*.json` (skills, professions, attributes, heroes, campaigns).
 - The import script is committed and re-runnable; the generated JSON is committed too (the server must not fetch anything at runtime).
@@ -504,7 +508,9 @@ Tool design rules:
 
 ## Data maintenance & Reforged
 
-- Upstream: build-wars/gw-skilldata (MIT, npm @buildwars/gw-skilldata) —
+- Upstream: build-wars/gw-skilldata (code MIT, npm @buildwars/gw-skilldata;
+  the skill descriptions it packages are GFDL/CC-BY-NC-SA — see
+  THIRD_PARTY_NOTICES.md, not MIT) —
   ACTIVELY MAINTAINED and tracks Guild Wars Reforged balance updates within
   days (verified: Feb 2026 Beguiling Haze 15->10; Reforged-added skills like
   Vow of Revolution id 3430 are present). The npm release may lag the repo

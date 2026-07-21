@@ -1,7 +1,6 @@
 import {
   MAX_TEMPLATE_ATTRIBUTE_ID,
   NO_ATTRIBUTE_ID,
-  TITLE_TRACK_MIN_ID,
   getAttributeById,
   getProfessionById,
   getSkillById,
@@ -104,16 +103,30 @@ export function validateBuild(
     resolved.push({ slot, skill });
   });
 
-  const seen = new Map<number, number>();
+  const seen = new Map<number, number[]>();
   for (const { slot, skill } of resolved) {
-    const firstSlot = seen.get(skill.id);
-    if (firstSlot !== undefined) {
+    const slots = seen.get(skill.id);
+    if (slots) {
+      slots.push(slot);
+    } else {
+      seen.set(skill.id, [slot]);
+    }
+  }
+  // Signet of Capture is the one skill that may appear up to 3 times on a bar;
+  // every other skill is unique. (GW1-AUD-03 POC2.)
+  const SIGNET_OF_CAPTURE = "Signet of Capture";
+  for (const { slot, skill } of resolved) {
+    const slots = seen.get(skill.id);
+    if (!slots || slots[0] !== slot) continue; // report once, at first occurrence
+    const limit = skill.name === SIGNET_OF_CAPTURE ? 3 : 1;
+    if (slots.length > limit) {
       errors.push({
         code: "DUPLICATE_SKILL",
-        message: `"${skill.name}" appears in slots ${firstSlot + 1} and ${slot + 1}`,
+        message:
+          limit === 1
+            ? `"${skill.name}" appears in slots ${slots.map((s) => s + 1).join(", ")}`
+            : `"${skill.name}" may appear at most ${limit} times, found ${slots.length}`,
       });
-    } else {
-      seen.set(skill.id, slot);
     }
   }
 
@@ -149,11 +162,42 @@ export function validateBuild(
       });
     }
 
-    // PvE-only skills (title-track attributes) on hero bars.
-    if (options.forHero && skill.attributeId >= TITLE_TRACK_MIN_ID) {
-      warnings.push({
+    // PvE-only (roleplay) skills. Detected via the upstream is_rp flag, not
+    // an attributeId heuristic that misses no-attribute PvE signets (GW1-AUD-03).
+    if (options.forHero && skill.isRoleplay && skill.name !== SIGNET_OF_CAPTURE) {
+      // Heroes cannot equip PvE-only skills at all — this is a hard error, the
+      // message claimed impossibility while the code only warned (POC3).
+      errors.push({
         code: "PVE_ONLY_ON_HERO",
         message: `Slot ${slot + 1}: "${skill.name}" is a PvE-only skill; heroes cannot equip it`,
+      });
+    }
+  }
+
+  // Signet of Capture cannot be equipped by heroes either (POC3).
+  if (options.forHero) {
+    for (const { slot, skill } of resolved) {
+      if (skill.name === SIGNET_OF_CAPTURE) {
+        errors.push({
+          code: "PVE_ONLY_ON_HERO",
+          message: `Slot ${slot + 1}: "${skill.name}" cannot be equipped by heroes`,
+        });
+      }
+    }
+  }
+
+  // A player bar may hold at most 3 PvE-only skills (POC1). Signet of Capture
+  // is PvE-usable but does not count against the roleplay cap.
+  if (!options.forHero) {
+    const pveOnly = resolved.filter(
+      ({ skill }) => skill.isRoleplay && skill.name !== SIGNET_OF_CAPTURE,
+    );
+    if (pveOnly.length > 3) {
+      errors.push({
+        code: "TOO_MANY_PVE_SKILLS",
+        message: `At most 3 PvE-only skills per bar, found ${pveOnly.length}: ${pveOnly
+          .map((e) => e.skill.name)
+          .join(", ")}`,
       });
     }
   }

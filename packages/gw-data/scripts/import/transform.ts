@@ -79,6 +79,8 @@ export const transformSkills = (upstream: Upstream) =>
       professionId: s.profession,
       attributeId: s.attribute,
       elite: s.is_elite,
+      /** PvE-only / roleplay skill (upstream is_rp): player bars cap at 3, heroes none. */
+      isRoleplay: s.is_rp,
       /** True for the separate "(PvP)" version of a split skill (not encodable in PvE templates). */
       isPvpVersion: s.is_pvp,
       /** True if the skill has a separate PvP version; splitId points to it. */

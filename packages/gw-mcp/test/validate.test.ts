@@ -100,8 +100,9 @@ const cases: Array<{
   },
   {
     rule: "PVE_ONLY_ON_HERO",
-    kind: "warnings",
-    // Asuran Scan (2415, Asura title track) on a hero bar.
+    kind: "errors",
+    // Asuran Scan (2415, Asura title track) on a hero bar — heroes cannot equip
+    // PvE-only skills, so this is now a hard error (GW1-AUD-03 POC3).
     template: { ...base, attributes: [], skills: [1518, 2415, 0, 0, 0, 0, 0, 0] },
     options: { forHero: true },
   },
@@ -153,6 +154,49 @@ describe("structural validator rules", () => {
       {},
     );
     expect(r.errors.map((e) => e.code)).toContain("DUPLICATE_SKILL");
+  });
+
+  it("allows Signet of Capture up to 3 times (the documented exception)", () => {
+    // id 3 = Signet of Capture; three copies is legal in-game.
+    const r = validateBuild(
+      { primary: 10, secondary: 0, attributes: [], skills: [3, 3, 3, 1518, 0, 0, 0, 0] },
+      {},
+    );
+    expect(r.errors.map((e) => e.code)).not.toContain("DUPLICATE_SKILL");
+  });
+
+  it("rejects a 4th Signet of Capture", () => {
+    const r = validateBuild(
+      { primary: 10, secondary: 0, attributes: [], skills: [3, 3, 3, 3, 0, 0, 0, 0] },
+      {},
+    );
+    expect(r.errors.map((e) => e.code)).toContain("DUPLICATE_SKILL");
+  });
+
+  it("forbids Signet of Capture on a hero bar", () => {
+    const r = validateBuild(
+      { primary: 10, secondary: 0, attributes: [], skills: [3, 1518, 0, 0, 0, 0, 0, 0] },
+      { forHero: true },
+    );
+    expect(r.errors.map((e) => e.code)).toContain("PVE_ONLY_ON_HERO");
+  });
+
+  it("raises TOO_MANY_PVE_SKILLS when a player bar holds more than 3", () => {
+    // Four PvE-only skills (prof-agnostic): Lightbringer's Gaze 1814,
+    // Lightbringer Signet 1815, Sunspear Rebirth Signet 1816, Asuran Scan 2415.
+    const r = validateBuild(
+      { primary: 10, secondary: 0, attributes: [], skills: [1814, 1815, 1816, 2415, 0, 0, 0, 0] },
+      {},
+    );
+    expect(r.errors.map((e) => e.code)).toContain("TOO_MANY_PVE_SKILLS");
+  });
+
+  it("allows exactly 3 PvE-only skills on a player bar", () => {
+    const r = validateBuild(
+      { primary: 10, secondary: 0, attributes: [], skills: [1814, 1815, 1816, 1518, 0, 0, 0, 0] },
+      {},
+    );
+    expect(r.errors.map((e) => e.code)).not.toContain("TOO_MANY_PVE_SKILLS");
   });
 });
 

@@ -43,6 +43,9 @@ export interface Skill {
   /** 101 = no attribute; 102-109 = PvE title tracks. */
   attributeId: number;
   elite: boolean;
+  /** True for a PvE-only / roleplay skill (upstream is_rp): title-track skills
+   *  and PvE signets. Player bars allow at most 3; heroes allow none. */
+  isRoleplay: boolean;
   /** True for the separate "(PvP)" version of a split skill. */
   isPvpVersion: boolean;
   /** True if the skill has a separate PvP version; splitId points to it. */

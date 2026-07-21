@@ -348,6 +348,26 @@ describe("remaining tool surfaces", () => {
     expect(JSON.stringify(res)).toContain("Avatar of Balthazar");
   });
 
+  it("search_skills paginates with offset without changing total", async () => {
+    const client = await connectedClient();
+    const page1 = payload(
+      await client.callTool({
+        name: "search_skills",
+        arguments: { professionName: "Dervish", limit: 3, offset: 0 },
+      }),
+    );
+    const page2 = payload(
+      await client.callTool({
+        name: "search_skills",
+        arguments: { professionName: "Dervish", limit: 3, offset: 3 },
+      }),
+    );
+    expect(page1.total).toBe(page2.total); // total is the full match count
+    const ids1 = page1.skills.map((s: { id: number }) => s.id);
+    const ids2 = page2.skills.map((s: { id: number }) => s.id);
+    expect(ids1).not.toEqual(ids2); // different page, different records
+  });
+
   it("get_skill works by id and validate_build reports through the tool", async () => {
     const client = await connectedClient();
     const byId = payload(await client.callTool({ name: "get_skill", arguments: { id: 1518 } }));

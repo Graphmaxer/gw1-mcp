@@ -80,7 +80,7 @@ Distinguish `errors` (build cannot exist / template cannot be generated) from `w
 The codec in `packages/gw-template` is implemented and round-trip tested. Do **not** change the bitstream layout from memory. The authoritative references are, in order:
 
 1. The golden test fixtures (below) — real codes; extend them, never edit them.
-2. The verification corpus itself — 18 golden fixtures from four independent
+2. The verification corpus itself — 27 golden fixtures from four independent
    encoders (the pre-2007 game client, PvXCode, @buildwars/gw-templates, a
    GWW player page), differential + fuzz + malformed-input tests. The maintainer's
    historical Python codec, once planned as a reference oracle under
@@ -403,7 +403,7 @@ working npm environment before declaring fully verified.
 ]
 ```
 
-<!-- TODO(maintainer): 18 fixtures exist (all professions/campaigns covered).
+<!-- TODO(maintainer): 27 fixtures exist (all professions/campaigns covered, nine live in-game).
      What is still WANTED from in-game codes: samples that settle the three
      open codec questions (trailing padding, zero-attribute filler,
      4-vs-5-bit attribute width) — i.e. paste a code, re-copy it from the

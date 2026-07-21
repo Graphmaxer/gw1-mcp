@@ -66,7 +66,7 @@ pnpm --filter @gw1-mcp/gw-mcp dev   # stdio server
 - `packages/gw-template` — template code codec (zero dependencies; round-trip tested against in-game/PvX codes and differentially fuzzed against [@buildwars/gw-templates](https://github.com/build-wars/gw-templates))
 - `packages/gw-data` — game data (1484 skills, Reforged-current) imported from [build-wars/gw-skilldata](https://github.com/build-wars/gw-skilldata) (code MIT; skill descriptions under GFDL / CC BY-NC-SA — see [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md))
 
-The codec is verified four ways: 18 golden fixtures covering all 10 primary
+The codec is verified four ways: 27 golden fixtures (including nine live in-game emissions) covering all 10 primary
 professions and all 5 campaigns (sourced from PvXwiki, gw1builds.com, the
 official wiki and the pre-2007 in-game format, several verified down to the
 skill-id level), fuzzed round-trips, differential testing against an

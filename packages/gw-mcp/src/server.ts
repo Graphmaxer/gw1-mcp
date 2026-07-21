@@ -259,7 +259,7 @@ export function createServer(): McpServer {
         "Search the full GW1 skill database by profession, attribute, campaign, elite flag or name fragment (valid values are documented per parameter). Returns compact records; use get_skill for full details.",
       annotations: READ_ONLY,
       outputSchema: {
-        total: z.number().int().describe("Total matches BEFORE limit is applied"),
+        total: z.number().int().describe("Total matches before limit/offset are applied"),
         skills: z
           .array(skillSummarySchema)
           .describe("Compact records; use get_skill for full details"),
@@ -312,6 +312,12 @@ export function createServer(): McpServer {
           .describe(
             "Maximum number of records to return (1–200, default 50). Narrow filters if you hit it.",
           ),
+        offset: z
+          .number()
+          .int()
+          .min(0)
+          .default(0)
+          .describe("Number of records to skip, for paging through results beyond the limit."),
       },
     },
     async ({
@@ -322,6 +328,7 @@ export function createServer(): McpServer {
       nameContains,
       includePvpVersions,
       limit,
+      offset,
     }) => {
       const filters: Parameters<typeof searchSkills>[0] = { includePvpVersions };
       if (professionName !== undefined) {
@@ -357,7 +364,7 @@ export function createServer(): McpServer {
       const results = searchSkills(filters);
       return jsonStructured({
         total: results.length,
-        skills: results.slice(0, limit).map(
+        skills: results.slice(offset, offset + limit).map(
           (s) =>
             ({
               id: s.id,

@@ -137,4 +137,9 @@ jobs:
       - name: Attach AccountExport.dll to the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ inputs.release_tag }}" out/AccountExport.dll --clobber
+        # No actions/checkout in this job (by design — it only needs the
+        # artifact), so `gh` has no git-derived repo context and fails
+        # immediately without --repo. Root cause of the DLL missing from the
+        # v0.7.0 and v0.8.0 releases (last attached successfully at v0.6.0,
+        # before the build/upload job split for GW1-04).
+        run: gh release upload "${{ inputs.release_tag }}" out/AccountExport.dll --clobber --repo "${{ github.repository }}"

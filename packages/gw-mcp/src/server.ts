@@ -103,6 +103,7 @@ const fullSkillShape = {
   id: z.number().int(),
   name: z.string(),
   elite: z.boolean(),
+  isRoleplay: z.boolean().describe("PvE-only skill: max 3 per player bar, none on heroes"),
   energy: z.number(),
   activation: z.number(),
   recharge: z.number(),

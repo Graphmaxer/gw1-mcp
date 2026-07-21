@@ -104,6 +104,10 @@ export const decodedSkillSchema = z.object({
   slot: z.number().int().describe("Bar position 1-8"),
   name: z.string().nullable().describe("null for an empty bar slot"),
   elite: z.boolean().optional(),
+  isRoleplay: z
+    .boolean()
+    .optional()
+    .describe("PvE-only skill: max 3 per player bar, none on heroes"),
   attribute: z.string().nullable().optional(),
   energy: z.number().optional(),
   activation: z.number().optional(),
@@ -142,6 +146,7 @@ export function describeTemplate(template: SkillTemplate) {
             slot: index + 1,
             name: skill.name,
             elite: skill.elite,
+            isRoleplay: skill.isRoleplay,
             attribute: getAttributeById(skill.attributeId)?.name ?? null,
             energy: skill.energy,
             activation: skill.activation,

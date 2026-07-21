@@ -110,6 +110,10 @@ describe("directory-readiness routes", () => {
       "Contact: https://github.com/Graphmaxer/gw1-mcp/security/advisories/new",
     );
     expect(body).toContain("Policy: https://github.com/Graphmaxer/gw1-mcp/blob/main/SECURITY.md");
+    // Expires is a REQUIRED field per RFC 9116 (GW1-AUD-06).
+    const expires = body.match(/^Expires: (.+)$/m);
+    expect(expires).not.toBeNull();
+    expect(new Date(expires![1]).getTime()).toBeGreaterThan(Date.now());
   });
 });
 

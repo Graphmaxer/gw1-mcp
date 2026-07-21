@@ -97,8 +97,9 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
         "arguments) are recorded for operational purposes. The service runs on",
         "Cloudflare Workers; Cloudflare may process standard operational metadata",
         "(such as IP addresses in transient logs) per its own privacy policy.",
-        "Per-IP rate limiting uses the connecting IP as an in-memory counter",
-        "key at the edge; we never store it.",
+        "Per-IP rate limiting uses the connecting IP as a transient counter",
+        "key at the edge (a short-lived in-memory count, expiring within the",
+        "rate-limit window); we do not persist it or log it ourselves.",
         "",
         "",
         DISCLAIMER,
@@ -132,18 +133,22 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
   // security.txt (RFC 9116): points researchers to the same GitHub private
   // vulnerability reporting SECURITY.md uses — Contact is a URL, not an email,
   // so nothing is duplicated or exposed to scrapers.
-  app.get("/.well-known/security.txt", (c) =>
-    c.text(
+  app.get("/.well-known/security.txt", (c) => {
+    // Expires is REQUIRED by RFC 9116; compute a rolling ~1-year horizon so the
+    // file never serves a stale/expired date.
+    const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+    return c.text(
       [
         `Contact: ${SECURITY_CONTACT}`,
+        `Expires: ${expires}`,
         `Policy: ${REPO_URL}/blob/main/SECURITY.md`,
         "Preferred-Languages: en, fr",
         `Canonical: https://gw1-mcp.graphmaxer.workers.dev/.well-known/security.txt`,
       ].join("\n"),
       200,
       { "Content-Type": "text/plain; charset=utf-8" },
-    ),
-  );
+    );
+  });
 
   // Origin-header validation (directory technical requirement): when a
   // browser context sends an Origin, require https. Non-browser MCP clients

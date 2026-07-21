@@ -265,6 +265,17 @@ describe("rate limiting", () => {
     });
     expect(res.status).toBe(413);
   });
+  it("rejects a real oversized body even without a Content-Length header (GW1-RESTE-02)", async () => {
+    // A Content-Length-only check is bypassable (omitted header, chunked
+    // transfer, or a forged small value). hono/body-limit counts actual bytes
+    // read, so a genuinely large body is caught even when no length is declared.
+    const res = await createApp().request("/mcp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "x".repeat(600 * 1024),
+    });
+    expect(res.status).toBe(413);
+  });
   it("passes through when the limiter allows", async () => {
     const env = { RATE_LIMITER: { limit: async () => ({ success: true }) } };
     const res = await post(createApp(), env);

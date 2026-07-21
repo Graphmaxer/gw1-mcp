@@ -40,7 +40,13 @@ const namedBuildSchema = {
         rank: z.number().int().min(0).max(12).describe("Base rank 0-12 (before runes)"),
       }),
     )
-    .describe("Attribute point allocations"),
+    // The template format's attribute count is a 4-bit field (0-15); anything
+    // beyond that can't be legal or even encodable. Unbounded here let a
+    // compact request (e.g. 1000 repeated attributes) blow up validation into
+    // ~1000 DUPLICATE_ATTRIBUTE errors — response-size amplification, not just
+    // CPU (GW1-RESTE-01).
+    .max(15)
+    .describe("Attribute point allocations (template format caps this at 15 entries)"),
   skills: z
     .array(z.string().max(64).nullable())
     .length(8)

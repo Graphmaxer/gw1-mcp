@@ -70,8 +70,12 @@ Validation rules:
 3. A skill's attribute must belong to one of the two professions (or be no-attribute).
 4. The **primary attribute** of a profession (e.g. Divine Favor, Mysticism, Soul Reaping) is only available if that profession is the _primary_ one.
 5. Attribute ranks in a template are **base ranks 0–12** (runes/headgear are not part of the template code).
-6. No duplicate skills on one bar.
-7. Warnings (not errors) for things like: PvE-only skills on a hero bar (heroes cannot use most PvE-only skills), skills from a campaign the player may not own.
+6. No duplicate skills on one bar — except Signet of Capture, which may
+   appear up to 3 times.
+7. **Errors** (not warnings) for PvE-only skills on a hero bar — heroes
+   cannot equip them at all; a player bar caps at 3 PvE-only skills.
+   Warnings remain for milder advisories like skills from a campaign the
+   player may not own.
 
 Distinguish `errors` (build cannot exist / template cannot be generated) from `warnings` (build is encodable but suspicious). Always return both lists.
 
@@ -393,10 +397,12 @@ is_rp.
    a new upstream hero makes the run fail listing the identifiers to add to
    the overlay, then the regenerated hero rides the weekly PR. Trigger:
    that failing run; curate the metadata from GWW.
-6. The worker URL is now public DE FACTO (public repo + guessable
-   workers.dev name) with no auth and no rate limiting. Accepted: worst
-   case is free-tier quota burn (100k req/day) — the server holds no
-   secrets and mutates nothing. Trigger: unusual traffic in the Cloudflare
+6. The worker URL is public DE FACTO (public repo + guessable workers.dev
+   name) with no auth. A per-IP rate limiter (100 req/min) is in place
+   (added after this entry was first written — see wrangler.jsonc), so the
+   residual risk is narrower: free-tier quota burn from many distinct IPs,
+   not a single client hammering it. Accepted: the server holds no secrets
+   and mutates nothing. Trigger: unusual traffic in the Cloudflare
    analytics, or wanting to share the URL deliberately → add a Cloudflare
    WAF rate-limiting rule or a bearer check in app.ts.
 7. Early-adopter stack: TypeScript 7.0.x and vitest 4 are young majors and
@@ -423,11 +429,12 @@ is_rp.
 ]
 ```
 
-<!-- TODO(maintainer): 27 fixtures exist (all professions/campaigns covered, nine live in-game).
-     What is still WANTED from in-game codes: samples that settle the three
-     open codec questions (trailing padding, zero-attribute filler,
-     4-vs-5-bit attribute width) — i.e. paste a code, re-copy it from the
-     game unchanged, and add both if they differ. -->
+<!-- TODO(maintainer): 27 fixtures exist (all professions/campaigns covered, nine
+     live in-game). The three codec questions this wishlist was written to
+     settle (trailing padding, zero-attribute filler, 4-vs-5-bit attribute
+     width) are CLOSED as of 2026-07-16 — see "Open codec questions" above.
+     If a genuinely new question arises, add it here with the same
+     paste-and-re-copy protocol. -->
 
 Any change to the codec must keep every fixture green. When a bug is found, add the failing code as a new fixture _first_, then fix.
 

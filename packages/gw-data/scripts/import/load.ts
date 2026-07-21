@@ -128,6 +128,12 @@ export async function loadUpstream(source: string | undefined): Promise<Upstream
       version,
     } as Upstream;
   }
+  // Provenance for THIS path comes from a different, arguably stronger
+  // mechanism than the Pages path's content hashing (GW1-06): `pnpm install
+  // --frozen-lockfile` already verified this exact resolved version against
+  // the lockfile's SHA-512 integrity before this code ever ran. Hashing the
+  // already-lockfile-verified bytes again here would be redundant, not more
+  // secure — so this path intentionally has no ad-hoc digest of its own.
   const module_ = await import("@buildwars/gw-skilldata");
   const require = createRequire(import.meta.url);
   const pkg = JSON.parse(

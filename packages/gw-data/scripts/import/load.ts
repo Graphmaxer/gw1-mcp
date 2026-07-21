@@ -67,6 +67,8 @@ export async function loadUpstream(source: string | undefined): Promise<Upstream
     const contentHashes = {
       skilldata: digest(skilldataText),
       skilldesc: digest(descText),
+      skilldataSchema: digest(skilldataSchema),
+      descSchema: digest(descSchema),
       bundle: digest(bundle),
     };
 
@@ -81,7 +83,7 @@ export async function loadUpstream(source: string | undefined): Promise<Upstream
     } catch {
       /* provenance falls back to the fetch date */
     }
-    version = `${version} (sha256 skilldata:${contentHashes.skilldata} desc:${contentHashes.skilldesc} bundle:${contentHashes.bundle})`;
+    version = `${version} (sha256 skilldata:${contentHashes.skilldata} desc:${contentHashes.skilldesc} skilldataSchema:${contentHashes.skilldataSchema} descSchema:${contentHashes.descSchema} bundle:${contentHashes.bundle})`;
     return {
       ATTRIBUTES: constants.ATTRIBUTES,
       CAMPAIGNS: constants.CAMPAIGNS,

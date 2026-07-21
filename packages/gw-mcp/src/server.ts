@@ -65,12 +65,22 @@ const issueSchema = z.object({ code: z.string(), message: z.string() });
 /**
  * encode_template output: a successful encode yields a code plus any advisory
  * warnings; a resolution failure yields errors alone. Discriminated so an
- * impossible mix ({} or code-with-errors) can't validate (GW1-10).
+/**
+ * encode_template output. Exactly one of two shapes occurs at runtime:
+ * { code, warnings? } on success, or { errors } on resolution failure. MCP
+ * outputSchema is a plain object shape with no discriminated-union or XOR
+ * support, so the fields are individually optional and a hypothetical {} would
+ * pass SCHEMA validation — but the handler never emits {} (it always returns
+ * either a code or a non-empty errors array). The invariant is enforced in
+ * code and covered by tests, not expressible in the schema (GW1-AUD-04).
  */
 const encodeResultSchema = {
   code: z.string().optional().describe("Official in-game template code (present on success)"),
-  errors: z.array(issueSchema).optional().describe("Present only when resolution failed"),
-  warnings: z.array(issueSchema).optional(),
+  errors: z
+    .array(issueSchema)
+    .optional()
+    .describe("Present (non-empty) only when resolution failed; mutually exclusive with code"),
+  warnings: z.array(issueSchema).optional().describe("Advisories accompanying a successful code"),
 };
 /**
  * validate_build output: always a report with a boolean verdict and both

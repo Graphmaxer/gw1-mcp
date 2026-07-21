@@ -113,7 +113,8 @@ describe("directory-readiness routes", () => {
     // Expires is a REQUIRED field per RFC 9116 (GW1-AUD-06).
     const expires = body.match(/^Expires: (.+)$/m);
     expect(expires).not.toBeNull();
-    expect(new Date(expires![1]).getTime()).toBeGreaterThan(Date.now());
+    const expiresValue = expires?.[1] ?? "";
+    expect(new Date(expiresValue).getTime()).toBeGreaterThan(Date.now());
   });
 });
 

@@ -1,9 +1,15 @@
 name: Upstream pin bump
 
 # The manual pins Dependabot cannot see (they live in workflow env:/run:, not
-# a manifest) drift silently. This weekly job checks each against upstream
-# latest and, on drift, opens ONE pull request that actually edits the pins —
-# same actionable pattern as update-data.yml, not a passive issue.
+# a manifest) drift silently. This weekly job checks GWToolboxpp and
+# mcp-publisher against upstream latest and, on drift, opens ONE pull request
+# that actually edits the pins — same actionable pattern as update-data.yml,
+# not a passive issue.
+#
+# VCPKG_COMMIT is intentionally NOT watched here: vcpkg master moves dozens of
+# times a day and is a frozen build toolchain, not a feature source — tracking
+# it would spam noise PRs. It is bumped by hand only when a dependency needs a
+# newer baseline (documented in CLAUDE.md's manual-pin registry).
 #
 # Deliberately NO auto-merge: a supply-chain pin bump needs a human. For
 # mcp-publisher the PR recomputes the two SHA-256 digests and prints them in

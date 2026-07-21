@@ -252,6 +252,10 @@ in exchange for the audit's security). Bump each deliberately:
   plugin compiles against. Was a floating master clone (GW1-04). Build runs
   contents:read; a separate release-upload job holds contents:write.
 - VCPKG_COMMIT (same file): upstream's pinned vcpkg toolchain commit.
+  Deliberately NOT watched by the tripwire (unlike GWToolboxpp/mcp-publisher):
+  vcpkg's master moves dozens of times a day and it is a frozen build
+  toolchain, not a feature source — auto-PRing it would be pure noise. Bump it
+  manually only when a dependency actually needs a newer vcpkg baseline.
 - mcp-publisher VERSION + SHA256_amd64/arm64 (publish-registry.yml): pinned
   release with per-arch digest check (GW1-05). To bump: download the new
   tarballs, `sha256sum` them, update VERSION and BOTH digests together.

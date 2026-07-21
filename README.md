@@ -108,10 +108,14 @@ pnpm --filter @gw1-mcp/gw-data run import:data -- https://build-wars.github.io/g
 ## GWToolbox integration
 
 `gwtoolbox-plugin/` contains a read-only GWToolbox plugin adding
-`/exportaccount`: it copies your account state (heroes, unlocked skills) as JSON to
-the clipboard. Paste it in your conversation and pass `unlockedAccountSkills`
-to `validate_build` / `encode_template` as `unlockedSkillIds` — proposed
-skills you don't own are flagged. Windows build instructions in
+`/exportaccount`: it copies your account state as JSON to the clipboard. The
+export has two skill lists — `learnedCharacterSkills` (skills your current
+character has actually learned) and `unlockedAccountSkills` (everything unlocked
+account-wide, e.g. for heroes). Paste it in your conversation and pass the list
+that matches what you're building for as `unlockedSkillIds` to `validate_build` /
+`encode_template`: use `learnedCharacterSkills` for a build your character will
+equip, or `unlockedAccountSkills` for hero bars — proposed skills you don't own
+are flagged. Windows build instructions in
 [gwtoolbox-plugin/README.md](gwtoolbox-plugin/README.md).
 
 ## Roadmap

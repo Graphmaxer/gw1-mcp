@@ -79,7 +79,7 @@ jobs:
           # Client ID (a string, not the numeric App ID) is the non-deprecated
           # input as of create-github-app-token v3.1; stored as a repo var since
           # it is not secret (visible on the App's settings page). The old
-          # AUTOMATION_APP_ID secret is now unused and can be deleted.
+          # (the legacy numeric AUTOMATION_APP_ID secret is no longer referenced).
           client-id: ${{ vars.AUTOMATION_APP_CLIENT_ID }}
           private-key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

@@ -216,6 +216,19 @@ GitHub release and the CHANGELOG entry → the SAME release-please run then
 publishes the new version to the MCP Registry via OIDC (gated on its
 release_created output — GITHUB_TOKEN-created events cannot trigger other
 workflows, so an on-release workflow would never fire).
+
+Commit-type discipline matters mechanically, not just stylistically:
+`type(scope): description` is the ENTIRE grammar release-please's parser
+accepts — `feat(mcp)+docs: ...` (mixing a second type after the scope) is
+invalid Conventional Commits syntax and release-please silently fails to
+credit it as a feat, computing a patch bump instead of the minor one an
+additive feature deserves (discovered 2026-07-21: a multi-topic commit for
+the search_skills `offset` param used exactly this malformed prefix, and the
+pending release PR came out as 0.7.1 instead of 0.8.0 — fixed via a
+`Release-As:` footer rather than rewriting pushed history). When a commit
+spans multiple concern types, pick the SINGLE highest-precedence type
+(feat > fix > everything else) for the prefix and describe the rest in the
+body — never concatenate types.
 Both the registry publish and the plugin DLL build are REUSABLE workflows
 (workflow_call): publish-registry.yml and build-gwtoolbox-plugin.yml are the
 single source for each, invoked by release-please.yml via uses: on release,

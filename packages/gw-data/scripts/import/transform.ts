@@ -73,7 +73,13 @@ export const transformSkills = (upstream: Upstream) =>
     .filter((s) => s.id !== 0) // id 0 = "No Skill" (empty-slot sentinel)
     .map((s) => ({
       id: s.id,
-      name: s.name,
+      // Upstream almost always disambiguates the PvP-side name with a
+      // "(PvP)" suffix (155/156 split pairs do), but occasionally forgets on
+      // a newly added skill (id 3442 "Mighty Throw" shipped with the exact
+      // same name as its PvE counterpart 1547, breaking the name-uniqueness
+      // invariant repository.test.ts checks). Enforce the suffix ourselves
+      // so a future upstream naming gap never silently collides a skill name.
+      name: s.is_pvp && !s.name.includes("(PvP)") ? `${s.name} (PvP)` : s.name,
       description: s.concise || s.description,
       campaignId: s.campaign,
       professionId: s.profession,

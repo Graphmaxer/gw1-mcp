@@ -67,25 +67,31 @@ function json(data: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
 }
 
-const issueSchema = z.object({ code: z.string(), message: z.string() });
+const issueSchema = z.object({
+  code: z.string(),
+  message: z.string(),
+  suggestions: z.array(z.string()).optional().describe("Closest-match names, on resolution errors"),
+});
 /**
- * encode_template output: a successful encode yields a code plus any advisory
- * warnings; a resolution failure yields errors alone. Discriminated so an
-/**
- * encode_template output. Exactly one of two shapes occurs at runtime:
- * { code, warnings? } on success, or { errors } on resolution failure. MCP
- * outputSchema is a plain object shape with no discriminated-union or XOR
- * support, so the fields are individually optional and a hypothetical {} would
- * pass SCHEMA validation — but the handler never emits {} (it always returns
- * either a code or a non-empty errors array). The invariant is enforced in
- * code and covered by tests, not expressible in the schema (GW1-AUD-04).
+ * encode_template output. Three shapes occur at runtime, all declared here
+ * (GW1-RESTE-03 — a prior comment claimed only two, which was itself
+ * inaccurate): { code, warnings? } on success; { valid: false, errors,
+ * warnings } when the build resolves but is illegal; { errors } alone when
+ * name resolution fails before validation even runs (no valid/warnings key).
+ * MCP outputSchema has no discriminated-union/XOR support, so fields stay
+ * individually optional — the exclusivity is a handler+test invariant, not
+ * expressible in the schema.
  */
 const encodeResultSchema = {
   code: z.string().optional().describe("Official in-game template code (present on success)"),
+  valid: z
+    .boolean()
+    .optional()
+    .describe("false when the build resolved but is illegal; absent on the other two shapes"),
   errors: z
     .array(issueSchema)
     .optional()
-    .describe("Present (non-empty) only when resolution failed; mutually exclusive with code"),
+    .describe("Present (non-empty) when resolution failed or the build is invalid"),
   warnings: z.array(issueSchema).optional().describe("Advisories accompanying a successful code"),
 };
 /**

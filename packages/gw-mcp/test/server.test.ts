@@ -299,6 +299,35 @@ describe("remaining tool surfaces", () => {
     expect(res.code).toBe("OgCjkurIrSuXaXPXBYihygvlYcA");
   });
 
+  it("encode_template's third shape (resolved but illegal) declares valid:false", async () => {
+    const client = await connectedClient();
+    const res = payload(
+      await client.callTool({
+        name: "encode_template",
+        arguments: {
+          primary: "Warrior",
+          attributes: [],
+          skills: [
+            "Lightbringer's Gaze",
+            "Lightbringer Signet",
+            "Sunspear Rebirth Signet",
+            "Asuran Scan",
+            null,
+            null,
+            null,
+            null,
+          ],
+        },
+      }),
+    );
+    // Resolved (all names known) but illegal (4 PvE-only skills) — no code,
+    // valid explicitly false, errors non-empty. This is the shape RESTE-03
+    // found undeclared in the schema.
+    expect(res.code).toBeUndefined();
+    expect(res.valid).toBe(false);
+    expect(res.errors.map((e: { code: string }) => e.code)).toContain("TOO_MANY_PVE_SKILLS");
+  });
+
   it("encode_template surfaces resolution errors with isError", async () => {
     const client = await connectedClient();
     const res = await client.callTool({

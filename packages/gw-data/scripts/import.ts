@@ -27,8 +27,22 @@ import {
 } from "./import/transform.js";
 import { mergeProvenance, writeData } from "./import/write.js";
 
+/**
+ * `pnpm run import:data -- <url>` forwards the literal "--" token into this
+ * script's argv (pnpm does not strip it, unlike some other tools) — so
+ * process.argv was ["--", "<url>"], not ["<url>"]. load.ts's source
+ * detection then saw the string "--", which doesn't match /^https?:\/\//,
+ * and treated it as a local clone path, trying to import
+ * "<cwd>/--/es6/constants.js" and crashing. This silently defeated the
+ * Pages import on every single run since the workflow was written; the npm
+ * fallback masked it as "working as designed" for months.
+ */
+export function resolveSourceArg(argv: string[]): string | undefined {
+  return argv.filter((a) => a !== "--")[0];
+}
+
 async function main(): Promise<void> {
-  const upstream = await loadUpstream(process.argv[2]);
+  const upstream = await loadUpstream(resolveSourceArg(process.argv.slice(2)));
 
   const outDir = join(dirname(fileURLToPath(import.meta.url)), "..", "data");
   mkdirSync(outDir, { recursive: true });

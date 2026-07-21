@@ -21,8 +21,10 @@ It copies a JSON snapshot of your account state to the clipboard:
 ```
 
 Paste it into your LLM conversation. The `validate_build` and `encode_template`
-tools of gw1-mcp accept the `unlockedAccountSkills` array as `unlockedSkillIds`
-and will flag any proposed skill you don't actually own.
+tools of gw1-mcp accept either list as `unlockedSkillIds`: use
+`learnedCharacterSkills` for a build your own character will equip, or
+`unlockedAccountSkills` for a hero's bar — proposed skills outside the list
+you pass are flagged.
 
 - `unlockedAccountSkills` = skills unlocked account-wide (what **heroes** can equip)
 - `learnedCharacterSkills` = skills learned by the current character (what **your own bar** can hold)

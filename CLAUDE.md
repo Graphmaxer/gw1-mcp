@@ -120,7 +120,7 @@ to ascending ids (deterministic output, matches the majority of wild codes);
 consequence: string-exact round-trip is only guaranteed for ascending-order
 codes, semantic round-trip always holds and is asserted for every fixture.
 
-## Open codec questions only in-game codes can settle
+## Codec questions settled with in-game codes
 
 1. Zero-attribute bars: which filler value the game writes in the unused
    attribute bit-length field.
@@ -457,7 +457,7 @@ since 2019; see Data maintenance.)
   speculative locale data. Revisit only if a machine-readable FR source
   appears; LLM callers translate French skill names to English well anyway.
 
-## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-07-13)
+## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-07-21)
 
 Everything through distribution is DONE and live: codec (four verification
 layers), 1484 skills Reforged-current, 8 MCP tools + 3 resources, worker

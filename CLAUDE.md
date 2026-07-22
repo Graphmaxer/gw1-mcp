@@ -265,14 +265,14 @@ pnpm 11 defaults `minimumReleaseAge` to 1440 minutes (1 day) — introduced
 platform-wide after the 2025 "Shai-Hulud" npm worm wave — and refuses to
 resolve any package version published more recently than that, lockfile
 entry or not. We never configured this; it is pnpm's own default and we
-deliberately have NOT set `minimumReleaseAge: 0` to opt out. When a
-Dependabot PR's CI fails with `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`
-listing dozens of just-published entries (typically oxfmt/oxlint's
-platform-native binaries, which ship very frequently), this is the policy
-doing its job, not a bug — the fix is patience, not a workaround. Closing
-or leaving the PR alone for ~24h and letting Dependabot's own re-check (or
-a manual re-run) pick it back up once the packages have aged is correct;
-do not relax the policy to make a red check go away.
+deliberately have NOT set `minimumReleaseAge: 0` to opt out. Dependabot's
+npm entry carries a matching `cooldown: default-days: 1` (2026-07-22) so it
+never even proposes a PR pnpm would immediately refuse to resolve — before
+this, `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION` on a Dependabot PR (typically
+oxfmt/oxlint's platform-native binaries, which publish very frequently) was
+the policy doing its job, not a bug, and the fix was patience. Keep the two
+numbers in sync if either changes — a mismatch just brings the same
+guaranteed-red-PR problem back.
 
 MANUAL PINS Dependabot CANNOT see (they live in workflow env:/run:, not a
 manifest — so they drift SILENTLY; this is the maintenance cost we accepted

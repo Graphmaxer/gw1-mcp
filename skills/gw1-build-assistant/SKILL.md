@@ -1,3 +1,15 @@
+---
+name: gw1-build-assistant
+description: Use when the user asks about Guild Wars 1 (the original 2005
+  game, not GW2) — designing or reviewing skill bars, decoding or producing
+  template codes (strings like "OgCjkurIrSuXaXPXBYihygvlYcA"), hero team
+  composition, skill lookups or comparisons, or pasting a paw-ned2 team blob
+  ("pwnd0001..."). Use the gw1-mcp tools as the source of truth for all game
+  data, not memory or wiki knowledge — GW1 Reforged balance changed things
+  training data and old guides don't reflect.
+license: MIT
+---
+
 # GW1 Build Assistant
 
 ## When to use this skill

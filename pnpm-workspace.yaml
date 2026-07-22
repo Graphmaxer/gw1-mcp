@@ -4,3 +4,12 @@ allowBuilds:
   esbuild: true
   sharp: true
   workerd: true
+# @modelcontextprotocol/sdk@1.29.0 pins an internal @hono/node-server@1.19.14
+# (a package.json dependency of the SDK itself, not ours to bump directly).
+# That version has GHSA-frvp-7c67-39w9 (Windows path traversal in
+# serve-static via encoded backslash). We don't call serveStatic anywhere
+# and only ever run @hono/node-server locally for dev, so exposure is
+# already ~nil, but there's no reason to leave a known-vulnerable transitive
+# copy sitting in the tree when our own dependency is already >=2.0.10.
+overrides:
+  "@hono/node-server": "^2.0.10"

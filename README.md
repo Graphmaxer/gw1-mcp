@@ -13,6 +13,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/github/license/Graphmaxer/gw1-mcp" alt="license"></a>
   <a href="https://github.com/Graphmaxer/gw1-mcp/commits/main"><img src="https://img.shields.io/github/last-commit/Graphmaxer/gw1-mcp" alt="last commit"></a>
   <a href="https://gw1mcp.grafana.net/public-dashboards/9002ddf3fb784b46847a65f4afe889fa"><img src="https://img.shields.io/badge/usage-live%20dashboard-orange" alt="live usage dashboard"></a>
+  <a href="https://lobehub.com/mcp/graphmaxer-gw1-mcp"><img src="https://lobehub.com/badge/mcp/graphmaxer-gw1-mcp" alt="LobeHub MCP"></a>
 </p>
 
 An MCP (Model Context Protocol) server that gives any compatible LLM client

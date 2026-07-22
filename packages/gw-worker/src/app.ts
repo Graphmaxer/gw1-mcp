@@ -154,6 +154,16 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
     );
   });
 
+  // Forge registry (forgeregistry.com) domain-verification claim, served the
+  // same way as security.txt above — a well-known file only does its job if
+  // it's actually fetchable at the real domain, not just sitting in git.
+  // Static identity assertion only: no CI or publish-permission changes
+  // involved, unlike the rest of that site's suggested "AI prompt" steps
+  // (npm publish/OIDC), which this project doesn't use and won't add.
+  app.get("/.well-known/forge.json", (c) =>
+    c.json({ publisher: "Graphmaxer" }, 200, { "Content-Type": "application/json; charset=utf-8" }),
+  );
+
   // Origin-header validation (directory technical requirement): when a
   // browser context sends an Origin, require https. Non-browser MCP clients
   // send no Origin and are unaffected. This is the proportionate control for

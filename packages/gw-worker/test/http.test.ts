@@ -116,6 +116,12 @@ describe("directory-readiness routes", () => {
     const expiresValue = expires?.[1] ?? "";
     expect(new Date(expiresValue).getTime()).toBeGreaterThan(Date.now());
   });
+
+  it("serves /.well-known/forge.json with the publisher claim", async () => {
+    const res = await createApp().request("/.well-known/forge.json");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ publisher: "Graphmaxer" });
+  });
 });
 
 describe("favicon", () => {

@@ -13,3 +13,13 @@ allowBuilds:
 # copy sitting in the tree when our own dependency is already >=2.0.10.
 overrides:
   "@hono/node-server": "^2.0.10"
+  # ajv@8.20.0 pulled in by @modelcontextprotocol/sdk itself pins a
+  # vulnerable fast-uri (GHSA-v2hh-gcrm-f6hx, host confusion via a literal
+  # backslash authority delimiter — a URI-parsing/SSRF-adjacent bug). Same
+  # not-ours-to-bump situation as @hono/node-server above.
+  "fast-uri": "^3.1.4"
+  # sharp is pulled in by miniflare (wrangler's local Workers simulator,
+  # dev-only — never runs in the deployed Cloudflare Worker) and inherits
+  # several libvips CVEs below 0.35.0 (GHSA-f88m-g3jw-g9cj). Production
+  # exposure is nil either way, but no reason to leave it unpatched locally.
+  "sharp": "^0.35.0"

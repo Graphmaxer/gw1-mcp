@@ -39,7 +39,7 @@ queries (full notes in `docs/analytics-queries.md`):
    `{meta, data, rows, rows_before_limit_at_least}` envelope; without
    the selector, Infinity surfaces the envelope fields as columns.
 3. **Explicit column types**: `UInt64` aggregates come back as JSON
-   *strings* (`"calls":"81"`), so every numeric column is mapped as
+   _strings_ (`"calls":"81"`), so every numeric column is mapped as
    Number in the query's column mapping.
 
 The underlying queries live in `docs/analytics-queries.md` with the two

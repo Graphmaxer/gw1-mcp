@@ -14,7 +14,7 @@ Requirements: Node >= 22 and pnpm 11.
 ```bash
 pnpm install
 pnpm -r typecheck   # TypeScript 7 (native), zero errors expected
-pnpm -r test        # vitest, ~130 tests
+pnpm -r test        # vitest, all packages (CI reports the count)
 pnpm lint           # oxlint
 pnpm fmt            # oxfmt (CI runs fmt:check)
 pnpm test:coverage  # reference levels are documented in CLAUDE.md
@@ -35,7 +35,7 @@ runs the worker locally.
   fixtures are the reference, the code is the hypothesis.
 - Generated data files (`packages/gw-data/data/*.json`) are never edited
   by hand — see the provenance rules in CLAUDE.md. Hero metadata belongs
-  in `data/heroes-meta.json`.
+  in `data/heroes-overlay.json`.
 - Tool-level failures use the `jsonError` helper (MCP `isError` flag).
 - Importing any module must never trigger I/O; executables guard their
   flow behind `isDirectRun`.

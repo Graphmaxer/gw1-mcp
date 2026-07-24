@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   getAttributeById,
@@ -134,6 +135,21 @@ describe("lookups", () => {
     // wrong matches above — it is the boundary case that fixes the cap at 5.
     expect(suggestSkillNames("Vœu de piété")[0]).toBe("Vow of Piety");
   });
+});
+
+describe("documented counts stay true (mechanical lock)", () => {
+  // The skill count is quoted in prose in three places and drifted to 1484 at
+  // the last import. It changes only through the automated weekly import, so it
+  // can be checked against the data instead of trusted to a human habit.
+  const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
+  for (const doc of ["../../../README.md", "../../../CLAUDE.md"] as const) {
+    it(`${doc} quotes the real skill count`, () => {
+      const text = read(doc);
+      const quoted = [...text.matchAll(/(\d{3,5}) (?:real )?skills/g)].map((m) => Number(m[1]));
+      expect(quoted.length).toBeGreaterThan(0);
+      for (const count of quoted) expect(count).toBe(skills.length);
+    });
+  }
 });
 
 describe("name uniqueness invariant", () => {

@@ -3,6 +3,12 @@
 // -Werror (the Windows plugin workflow keeps proving MSVC integration).
 #include "../AccountExport/AccountExportCore.h"
 
+// Every check below is an assert(), which NDEBUG compiles out — the suite would
+// then exit 0 having verified nothing. Fail the build instead of going silent.
+#ifdef NDEBUG
+#error "core_tests.cpp relies on assert(); do not compile with NDEBUG"
+#endif
+
 #include <cassert>
 #include <fstream>
 #include <sstream>

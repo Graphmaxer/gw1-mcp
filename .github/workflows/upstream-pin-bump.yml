@@ -47,6 +47,14 @@ jobs:
 
           pinned_gwtb=$(grep -oP 'GWTOOLBOX_COMMIT:\s*\K[0-9a-f]+' "$build_wf")
           latest_gwtb=$(gh api repos/gwdevhub/GWToolboxpp/commits/master --jq '.sha')
+          # Both upstream values are interpolated into sed patterns and into the
+          # PR body, so constrain their shape before use: a value carrying a
+          # slash, a newline or the heredoc delimiter would otherwise rewrite an
+          # unintended part of the workflow or inject step outputs.
+          if ! printf '%s' "$latest_gwtb" | grep -qE '^[0-9a-f]{40}$'; then
+            echo "unexpected upstream commit sha: $latest_gwtb" >&2
+            exit 1
+          fi
           if [ "$pinned_gwtb" != "$latest_gwtb" ]; then
             sed -i "s/${pinned_gwtb}/${latest_gwtb}/" "$build_wf"
             compare="https://github.com/gwdevhub/GWToolboxpp/compare/${pinned_gwtb}...${latest_gwtb}"
@@ -56,6 +64,10 @@ jobs:
 
           pinned_pub=$(grep -oP 'VERSION:\s*\Kv[0-9.]+' "$pub_wf")
           latest_pub=$(gh api repos/modelcontextprotocol/registry/releases/latest --jq '.tag_name')
+          if ! printf '%s' "$latest_pub" | grep -qE '^v[0-9]+(\.[0-9]+)*$'; then
+            echo "unexpected upstream release tag: $latest_pub" >&2
+            exit 1
+          fi
           if [ "$pinned_pub" != "$latest_pub" ]; then
             base="https://github.com/modelcontextprotocol/registry/releases/download/${latest_pub}"
             curl --fail --show-error --location "${base}/mcp-publisher_linux_amd64.tar.gz" -o amd64.tgz
@@ -72,10 +84,14 @@ jobs:
 
           echo "changed=${changed}" >> "$GITHUB_OUTPUT"
           if [ "$changed" = "true" ]; then
+            # Random delimiter: a fixed one lets any content that reaches $body
+            # close the heredoc early and inject arbitrary step outputs, which
+            # are then interpolated into the PR body downstream.
+            delim="PINEOF_$(openssl rand -hex 16)"
             {
-              echo "body<<PINEOF"
+              echo "body<<${delim}"
               echo "$body"
-              echo "PINEOF"
+              echo "${delim}"
             } >> "$GITHUB_OUTPUT"
           fi
 

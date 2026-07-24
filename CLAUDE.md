@@ -486,7 +486,7 @@ since 2019; see Data maintenance.)
 ## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-07-21)
 
 Everything through distribution is DONE and live: codec (four verification
-layers), 1484 skills Reforged-current, 8 MCP tools + 3 resources, worker
+layers), 1485 skills Reforged-current, 8 MCP tools + 3 resources, worker
 deployed on Cloudflare (auto-deploy per push), published on the official MCP
 Registry, releases automated (changelog + DLL + registry in cascade), plugin
 compiled clean in CI (/W4 /WX). Bundle size: whatever

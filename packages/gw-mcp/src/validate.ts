@@ -305,8 +305,15 @@ export function validateBuild(
   // it. Reported so the self-correction loop can reclaim the points.
   const usedAttributeIds = new Set(resolved.map(({ skill }) => skill.attributeId));
   for (const { attributeId, rank } of budgeted) {
-    if (rank > 0 && !usedAttributeIds.has(attributeId)) {
-      const attribute = getAttributeById(attributeId);
+    const attribute = getAttributeById(attributeId);
+    // A primary attribute is never wasted: its effect is passive and needs no
+    // skill from its own line (Mysticism returns energy when an enchantment
+    // ends, Divine Favor heals on every healing spell, Soul Reaping gives energy
+    // on every death, Energy Storage raises the pool). Warning about it made the
+    // model pull points out of the single best place it had put them — the
+    // self-correction loop turned a good bar into a worse one, which is more
+    // harmful than staying silent.
+    if (rank > 0 && !attribute?.isPrimary && !usedAttributeIds.has(attributeId)) {
       warnings.push({
         code: "UNUSED_ATTRIBUTE",
         message: `"${attribute?.name ?? attributeId}" is at rank ${rank} (${RANK_COST[rank] ?? 0} points) but no skill on this bar scales with it`,

@@ -436,6 +436,25 @@ is_rp.
    pin-and-wait is the policy if a toolchain regression appears.
 8. Single-maintainer bus factor — mitigated by this file being the actual
    source of truth (kept aligned by the doc-audit habit).
+9. The Cloudflare Free CPU budget has never been measured IN PRODUCTION.
+   Free caps CPU at 10 ms per request; local measurements (Node + tsx, NOT
+   workerd, so an unknown factor off) put tools/list around 17 ms and
+   createServer() near 7 ms, the latter because a fresh set of Zod schemas is
+   rebuilt on every request in stateless mode. README says "Free plan is
+   plenty" and may well be right — nothing has been observed failing.
+   Trigger: Workers & Pages -> the worker -> Metrics -> Errors -> Invocation
+   Statuses -> "Exceeded CPU Time Limits". Zero over 7 days closes this as
+   info; non-zero means hoisting schema construction out of the request path,
+   or the 5 USD plan plus a limits.cpu_ms ceiling (deliberately NOT set today:
+   it has no effect under Free and a rejected value would fail a deploy).
+10. tools/list costs about 18 200 characters (~4 550 tokens) of FIXED context
+    in every conversation, outputSchemas being ~45% of it. That is a
+    deliberate trade — the schemas carry real contracts locked by the golden
+    fixtures — but it is paid by every session, including ones that call a
+    single tool. decode_pawned_team was slimmed (3 192 -> 1 936 chars); the
+    forPvp parameter then took back about half the win. Trigger: if a client's
+    context budget ever matters, check whether that client forwards
+    outputSchema to the model at all before optimising further.
 
 ## Golden tests (non-negotiable)
 

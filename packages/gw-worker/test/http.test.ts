@@ -159,6 +159,24 @@ describe("CORS and method handling on /mcp", () => {
     expect(res.status).toBe(405);
   });
 
+  it("sets the hardening headers on the routes a browser actually visits", async () => {
+    // These were bare while only /mcp was covered — and /, /privacy and
+    // /.well-known/* are exactly what a directory scanner fetches. Hono applies
+    // middleware only to handlers registered after it, so this also locks the
+    // registration order.
+    for (const path of ["/", "/privacy", "/.well-known/security.txt"]) {
+      const res = await createApp().request(path);
+      expect(res.headers.get("x-content-type-options"), path).toBe("nosniff");
+      expect(res.headers.get("referrer-policy"), path).toBe("no-referrer");
+    }
+  });
+
+  it("keeps no-store on /mcp only, so static routes stay cacheable", async () => {
+    const app = createApp();
+    const discovery = await app.request("/");
+    expect(discovery.headers.get("cache-control")).not.toBe("no-store");
+  });
+
   it("sets the response hardening headers on /mcp", async () => {
     const res = await createApp().request("/mcp", {
       method: "POST",

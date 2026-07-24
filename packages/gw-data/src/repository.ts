@@ -85,8 +85,8 @@ export function searchSkills(filters: SkillSearchFilters): Skill[] {
 const MAX_SUGGEST_LEN = 64;
 
 /** Beyond this edit distance a "suggestion" is noise, not a typo correction.
- *  10 keeps every plausible misspelling of a real skill name while cutting the
- *  adversarial cost: capping the input LENGTH (MAX_SUGGEST_LEN) bounded the
+ *  A distance cap is what bounds the adversarial cost: capping the input LENGTH
+ *  (MAX_SUGGEST_LEN) bounded the
  *  input but not the WORK, so a 64-char query still ran a full O(n*m) matrix
  *  against all 1485 names (~109 ms CPU for a ~300-byte request — the very
  *  amplification GW1-AUD-01 set out to close). Returning nothing is also the
@@ -139,22 +139,49 @@ function boundedLevenshtein(a: string, b: string, max: number): number | undefin
   return distance <= max ? distance : undefined;
 }
 
-/** Rank candidates by edit distance, dropping anything past MAX_SUGGEST_DISTANCE. */
+/**
+ * Does every whitespace-separated token of the query prefix the candidate's token
+ * at the same position? ("mystic regen" -> "Mystic Regeneration", "heal sig" ->
+ * "Healing Signet".)
+ *
+ * Abbreviations are not typos, and edit distance handles them badly: "Mystic
+ * Regen" sits 6 edits from "Mystic Regeneration" — past the cap — so the right
+ * answer was dropped while shorter, wrong names won ("Mystic Sweep"), and
+ * "Vow of Rev" resolved to "Vow of Piety". Wrong-but-plausible is the failure
+ * mode that makes a model encode a valid, wrong template, so this is checked
+ * first and ranked above any distance match.
+ */
+function tokenPrefixMatch(needle: string, candidate: string): boolean {
+  const needleTokens = needle.split(" ").filter((t) => t.length > 0);
+  const candidateTokens = candidate.split(" ").filter((t) => t.length > 0);
+  if (needleTokens.length === 0 || needleTokens.length > candidateTokens.length) return false;
+  return needleTokens.every((token, i) => candidateTokens[i]?.startsWith(token) === true);
+}
+
+/** Rank candidates by token-prefix match first, then by bounded edit distance. */
 function closest<T>(
   candidates: readonly T[],
   needle: string,
   nameOf: (item: T) => string,
   count: number,
 ): T[] {
+  const prefixed: { item: T; length: number }[] = [];
   const scored: { item: T; d: number }[] = [];
   for (const item of candidates) {
-    const d = boundedLevenshtein(needle, normalizeName(nameOf(item)), MAX_SUGGEST_DISTANCE);
+    const name = normalizeName(nameOf(item));
+    if (tokenPrefixMatch(needle, name)) {
+      // Shortest first: the least-padded name is the most specific completion.
+      prefixed.push({ item, length: name.length });
+      continue;
+    }
+    const d = boundedLevenshtein(needle, name, MAX_SUGGEST_DISTANCE);
     if (d !== undefined) scored.push({ item, d });
   }
-  return scored
-    .sort((x, y) => x.d - y.d)
-    .slice(0, count)
-    .map(({ item }) => item);
+  const ranked = [
+    ...prefixed.sort((x, y) => x.length - y.length).map(({ item }) => item),
+    ...scored.sort((x, y) => x.d - y.d).map(({ item }) => item),
+  ];
+  return ranked.slice(0, count);
 }
 
 /** Closest skill names to a (possibly misspelled) query — for LLM self-correction. */

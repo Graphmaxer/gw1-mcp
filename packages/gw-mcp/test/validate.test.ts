@@ -163,6 +163,50 @@ describe("validator rule table", () => {
   }
 });
 
+describe("UNUSED_ATTRIBUTE never fires on a primary attribute", () => {
+  // Regression: the first version of this warning flagged primary attributes,
+  // so 4 of 5 canonical bars told the model to remove points from the best
+  // investment on the bar. Primary effects are passive — no skill from the line
+  // is needed for them to work.
+  const canonical: [string, number, number, number, number][] = [
+    ["Dervish Mysticism", 10, 3, 44, 12],
+    ["Monk Divine Favor", 3, 5, 16, 10],
+    ["Necromancer Soul Reaping", 4, 3, 6, 10],
+    ["Elementalist Energy Storage", 6, 3, 12, 12],
+    ["Ranger Expertise", 2, 3, 23, 12],
+  ];
+  for (const [label, primary, secondary, attributeId, rank] of canonical) {
+    it(`stays silent on ${label}`, () => {
+      const r = validateBuild(
+        {
+          primary,
+          secondary,
+          attributes: [{ attributeId, rank }],
+          // Irresistible Sweep scales with Scythe Mastery, so the primary line
+          // genuinely has no skill of its own on the bar.
+          skills: [1489, 0, 0, 0, 0, 0, 0, 0],
+        } as never,
+        {} as never,
+      );
+      expect(r.warnings.map((w) => w.code)).not.toContain("UNUSED_ATTRIBUTE");
+    });
+  }
+
+  it("still flags a non-primary line funded for nothing", () => {
+    // The warning must keep working where it was actually useful.
+    const r = validateBuild(
+      {
+        primary: 10,
+        secondary: 3,
+        attributes: [{ attributeId: 43, rank: 12 }], // Earth Prayers, unused
+        skills: [1489, 0, 0, 0, 0, 0, 0, 0],
+      } as never,
+      {} as never,
+    );
+    expect(r.warnings.map((w) => w.code)).toContain("UNUSED_ATTRIBUTE");
+  });
+});
+
 describe("PvP/PvE split skills (audit I1)", () => {
   // Mind Wrack (PvP) id 2734 is the PvP version of a split skill; Fragility
   // id 19 is a Mesmer PvE skill that HAS a PvP version (id 2998).

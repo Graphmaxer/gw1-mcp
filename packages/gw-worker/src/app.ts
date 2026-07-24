@@ -55,6 +55,15 @@ type AppEnv = {
 export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array()): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
+  // Response hardening (B4), on EVERY route rather than just /mcp: the routes a
+  // browser or a directory scanner actually visits are /, /privacy and
+  // /.well-known/*, and those were the ones left bare.
+  app.use("*", async (c, next) => {
+    await next();
+    c.header("X-Content-Type-Options", "nosniff");
+    c.header("Referrer-Policy", "no-referrer");
+  });
+
   // Single source of truth for cross-endpoint strings (repo URL appeared in
   // three places, the trademark disclaimer in two).
   const REPO_URL = "https://github.com/Graphmaxer/gw1-mcp";
@@ -200,13 +209,12 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
     }),
   );
 
-  // Response hardening (B4). Cheap, and directory reviewers look for them.
-  // no-store matters beyond hygiene: /mcp answers are request-specific and must
-  // never be served from a shared cache.
+  // no-store is /mcp only, and deliberately so: those answers are
+  // request-specific and must never come from a shared cache, whereas the
+  // discovery document, security.txt and the favicon are static and benefit from
+  // being cacheable.
   app.use("/mcp", async (c, next) => {
     await next();
-    c.header("X-Content-Type-Options", "nosniff");
-    c.header("Referrer-Policy", "no-referrer");
     c.header("Cache-Control", "no-store");
   });
 

@@ -130,6 +130,22 @@ describe("lookups", () => {
     expect(suggestSkillNames("zzzzzzzz")).toEqual([]);
   });
 
+  it("resolves abbreviations, which are not typos", () => {
+    // "Mystic Regen" is 6 edits from "Mystic Regeneration" — past the distance
+    // cap — so distance alone dropped the right answer and let shorter, wrong
+    // names win ("Mystic Sweep"), and "Vow of Rev" resolved to "Vow of Piety".
+    expect(suggestSkillNames("Mystic Regen")[0]).toBe("Mystic Regeneration");
+    expect(suggestSkillNames("Vow of Rev")[0]).toBe("Vow of Revolution");
+    expect(suggestSkillNames("Signet of Cap")[0]).toBe("Signet of Capture");
+    expect(suggestSkillNames("heal sig")[0]).toBe("Healing Signet");
+  });
+
+  it("does not let prefix matching reopen the French or padding cases", () => {
+    expect(suggestSkillNames("Signet de guérison")).toEqual([]);
+    expect(suggestSkillNames("Souffle mystique")).toEqual([]);
+    expect(suggestSkillNames("z".repeat(64))).toEqual([]);
+  });
+
   it("keeps a French form that resolves correctly by cognate", () => {
     // The threshold is calibrated to keep this one (d=5) while dropping the
     // wrong matches above — it is the boundary case that fixes the cap at 5.

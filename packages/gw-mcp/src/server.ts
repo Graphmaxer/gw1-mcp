@@ -254,11 +254,16 @@ export function createServer(): McpServer {
       }
       if (name !== undefined) {
         const skill = getSkillByName(name);
-        return skill
-          ? jsonStructured(fullSkill(skill.id) ?? {})
-          : jsonError("NOT_FOUND", `No skill named ${JSON.stringify(name)}`, {
-              suggestions: suggestSkillNames(name),
-            });
+        if (!skill) {
+          return jsonError("NOT_FOUND", `No skill named ${JSON.stringify(name)}`, {
+            suggestions: suggestSkillNames(name),
+          });
+        }
+        // Unreachable today (a name hit implies an id hit), but an empty object
+        // would violate fullSkillShape, whose fields are all required — emit an
+        // error instead of shipping structuredContent that fails its own schema.
+        const full = fullSkill(skill.id);
+        return full ? jsonStructured(full) : jsonError("NOT_FOUND", `No skill with id ${skill.id}`);
       }
       return jsonError("BAD_REQUEST", "Provide name or id");
     },
@@ -597,8 +602,8 @@ export function createServer(): McpServer {
         heroes: z.array(fullHeroSchema),
       },
       inputSchema: {
-        professionName: z.string().optional(),
-        campaignName: z.string().optional(),
+        professionName: z.string().max(64).optional(),
+        campaignName: z.string().max(64).optional(),
       },
     },
     async ({ professionName, campaignName }) => {

@@ -42,11 +42,16 @@ export function validateBuild(
   // 4-bit field but not in-game: the per-attribute check below reports them
   // as RANK_OUT_OF_RANGE, so here they cost 0 and the budget error is
   // suppressed — never sum to Infinity, never double-flag the same cause.
-  const hasOutOfRangeRank = template.attributes.some(({ rank }) => RANK_COST[rank] === undefined);
-  const spentPoints = template.attributes.reduce(
-    (total, { rank }) => total + (RANK_COST[rank] ?? 0),
-    0,
+  // Only templatable attributes consume the budget. Title tracks and the
+  // no-attribute sentinel (ids > MAX_TEMPLATE_ATTRIBUTE_ID) come from account
+  // progress, so a title track at rank 9 used to add 48 phantom points and made
+  // this message state a false total — ATTRIBUTE_NOT_TEMPLATABLE already reports
+  // the real problem below.
+  const budgeted = template.attributes.filter(
+    ({ attributeId }) => attributeId <= MAX_TEMPLATE_ATTRIBUTE_ID,
   );
+  const hasOutOfRangeRank = budgeted.some(({ rank }) => RANK_COST[rank] === undefined);
+  const spentPoints = budgeted.reduce((total, { rank }) => total + (RANK_COST[rank] ?? 0), 0);
   if (!hasOutOfRangeRank && spentPoints > MAX_ATTRIBUTE_POINTS) {
     errors.push({
       code: "ATTRIBUTE_POINTS_EXCEEDED",
@@ -175,14 +180,18 @@ export function validateBuild(
   }
 
   // Signet of Capture cannot be equipped by heroes either (POC3).
+  // Reported once with every offending slot, mirroring DUPLICATE_SKILL: three
+  // copies of Signet of Capture used to emit the same code three times, which
+  // reads to a model as three distinct problems to fix.
   if (options.forHero) {
-    for (const { slot, skill } of resolved) {
-      if (skill.name === SIGNET_OF_CAPTURE) {
-        errors.push({
-          code: "PVE_ONLY_ON_HERO",
-          message: `Slot ${slot + 1}: "${skill.name}" cannot be equipped by heroes`,
-        });
-      }
+    const captureSlots = resolved
+      .filter(({ skill }) => skill.name === SIGNET_OF_CAPTURE)
+      .map(({ slot }) => slot + 1);
+    if (captureSlots.length > 0) {
+      errors.push({
+        code: "PVE_ONLY_ON_HERO",
+        message: `Slot${captureSlots.length > 1 ? "s" : ""} ${captureSlots.join(", ")}: "${SIGNET_OF_CAPTURE}" cannot be equipped by heroes`,
+      });
     }
   }
 
@@ -262,6 +271,21 @@ export function validateBuild(
       warnings.push({
         code: "UNALLOCATED_ATTRIBUTE",
         message: `Slot ${slot + 1}: "${skill.name}" scales with ${attribute?.name ?? "?"}, which has no points allocated`,
+      });
+    }
+  }
+
+  // The mirror of UNALLOCATED_ATTRIBUTE: points spent on a line no skill on the
+  // bar scales with. Legal, but it is the most common way a generated build
+  // wastes its budget — a themed line allocated "for coherence" with nothing on
+  // it. Reported so the self-correction loop can reclaim the points.
+  const usedAttributeIds = new Set(resolved.map(({ skill }) => skill.attributeId));
+  for (const { attributeId, rank } of budgeted) {
+    if (rank > 0 && !usedAttributeIds.has(attributeId)) {
+      const attribute = getAttributeById(attributeId);
+      warnings.push({
+        code: "UNUSED_ATTRIBUTE",
+        message: `"${attribute?.name ?? attributeId}" is at rank ${rank} (${RANK_COST[rank] ?? 0} points) but no skill on this bar scales with it`,
       });
     }
   }

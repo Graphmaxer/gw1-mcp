@@ -20,6 +20,27 @@ describe("attribute point budget", () => {
     expect(report.errors.map((e) => e.code)).toContain("ATTRIBUTE_POINTS_EXCEEDED");
   });
 
+  it("does not charge title-track ranks to the 200-point budget", () => {
+    // A PvE title track at rank 9 used to add 48 phantom points, making the
+    // budget message state a total the build never spent. It is not templatable
+    // at all — ATTRIBUTE_NOT_TEMPLATABLE is the honest report.
+    const report = validateBuild(
+      {
+        primary: 10,
+        secondary: 0,
+        attributes: [
+          { attributeId: 41, rank: 12 }, // Scythe (97)
+          { attributeId: 44, rank: 12 }, // Mysticism (97) -> 194, within budget
+          { attributeId: 102, rank: 9 }, // Sunspear title track: 48 phantom points
+        ],
+        skills: [1518, 0, 0, 0, 0, 0, 0, 0],
+      },
+      {},
+    );
+    expect(report.errors.map((e) => e.code)).not.toContain("ATTRIBUTE_POINTS_EXCEEDED");
+    expect(report.errors.map((e) => e.code)).toContain("ATTRIBUTE_NOT_TEMPLATABLE");
+  });
+
   it("accepts a standard 11/10/8 spread (175 points)", () => {
     const report = validateBuild(
       {
@@ -116,6 +137,22 @@ const cases: Array<{
       skills: [1518, 1489, 0, 0, 0, 0, 0, 0],
     },
   },
+  {
+    rule: "UNUSED_ATTRIBUTE",
+    kind: "warnings",
+    // Mysticism funded at 12 (77 points) while the only skill on the bar,
+    // Mystic Regeneration (1518), scales with Earth Prayers — the mirror of
+    // UNALLOCATED_ATTRIBUTE, and the most common way a generated build burns
+    // its budget.
+    template: {
+      ...base,
+      attributes: [
+        { attributeId: 43, rank: 12 },
+        { attributeId: 44, rank: 12 },
+      ],
+      skills: [1518, 0, 0, 0, 0, 0, 0, 0],
+    },
+  },
 ];
 describe("validator rule table", () => {
   for (const c of cases) {
@@ -124,6 +161,25 @@ describe("validator rule table", () => {
       expect(report[c.kind].map((i) => i.code)).toContain(c.rule);
     });
   }
+});
+
+describe("Signet of Capture on a hero bar", () => {
+  it("reports PVE_ONLY_ON_HERO once, listing every slot", () => {
+    // Three copies used to emit the same code three times, reading as three
+    // separate problems; DUPLICATE_SKILL already reports once by convention.
+    const report = validateBuild(
+      {
+        primary: 10,
+        secondary: 0,
+        attributes: [],
+        skills: [3, 3, 3, 1518, 0, 0, 0, 0],
+      },
+      { forHero: true },
+    );
+    const captureErrors = report.errors.filter((e) => e.code === "PVE_ONLY_ON_HERO");
+    expect(captureErrors).toHaveLength(1);
+    expect(captureErrors[0]?.message).toContain("1, 2, 3");
+  });
 });
 
 describe("structural validator rules", () => {

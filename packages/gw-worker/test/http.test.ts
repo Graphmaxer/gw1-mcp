@@ -124,6 +124,87 @@ describe("directory-readiness routes", () => {
   });
 });
 
+describe("CORS and method handling on /mcp", () => {
+  it("answers the CORS preflight instead of 405ing browser clients", async () => {
+    const res = await createApp().request("/mcp", {
+      method: "OPTIONS",
+      headers: {
+        Origin: "https://inspector.example",
+        "Access-Control-Request-Method": "POST",
+      },
+    });
+    expect(res.status).toBeLessThan(300);
+    expect(res.headers.get("access-control-allow-origin")).toBe("*");
+    expect(res.headers.get("access-control-allow-methods")).toContain("POST");
+  });
+
+  it("exposes the MCP session header to browser callers", async () => {
+    const res = await createApp().request("/mcp", {
+      method: "OPTIONS",
+      headers: { Origin: "https://inspector.example", "Access-Control-Request-Method": "POST" },
+    });
+    expect(res.headers.get("access-control-expose-headers")).toContain("Mcp-Session-Id");
+  });
+
+  it("405s GET rather than opening an SSE body that never closes", async () => {
+    // Stateless: nothing to stream. The old 200 + text/event-stream held a
+    // socket open per request and the limiter only counted the opening call.
+    const res = await createApp().request("/mcp", { method: "GET" });
+    expect(res.status).toBe(405);
+    expect(res.headers.get("allow")).toContain("POST");
+  });
+
+  it("405s DELETE rather than pretending to end a session", async () => {
+    const res = await createApp().request("/mcp", { method: "DELETE" });
+    expect(res.status).toBe(405);
+  });
+
+  it("sets the response hardening headers on /mcp", async () => {
+    const res = await createApp().request("/mcp", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(res.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(res.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("accepts the project's own loopback dev origin", async () => {
+    // `dev:node` serves on http://localhost:3000; rejecting it was a false
+    // negative against our own workflow.
+    const res = await createApp().request("/mcp", {
+      method: "POST",
+      headers: { "content-type": "application/json", Origin: "http://localhost:3000" },
+      body: "{}",
+    });
+    expect(res.status).not.toBe(403);
+  });
+});
+
+describe("security.txt reproducibility", () => {
+  it("derives Canonical from the serving host, not a hardcoded workers.dev URL", async () => {
+    const body = await (
+      await createApp().request("https://gw1-mcp.example.org/.well-known/security.txt")
+    ).text();
+    expect(body).toContain("Canonical: https://gw1-mcp.example.org/.well-known/security.txt");
+  });
+
+  it("serves a byte-identical file across requests (cacheable, reproducible)", async () => {
+    const app = createApp();
+    const a = await (await app.request("/.well-known/security.txt")).text();
+    const b = await (await app.request("/.well-known/security.txt")).text();
+    expect(a).toBe(b);
+  });
+
+  it("fails while there is still time to bump Expires, not after it lapses", async () => {
+    const body = await (await createApp().request("/.well-known/security.txt")).text();
+    const expires = new Date(body.match(/^Expires: (.+)$/m)?.[1] ?? "").getTime();
+    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+    expect(expires - Date.now()).toBeGreaterThan(thirtyDays);
+  });
+});
+
 describe("favicon", () => {
   it("serves the injected favicon bytes as image/png", async () => {
     // Inject fake PNG-magic bytes; the real PNG is wired in index.ts, not here.

@@ -84,41 +84,86 @@ export function searchSkills(filters: SkillSearchFilters): Skill[] {
  *  (GW1-AUD-01): a real skill name is well under this. */
 const MAX_SUGGEST_LEN = 64;
 
-function levenshtein(a: string, b: string): number {
+/** Beyond this edit distance a "suggestion" is noise, not a typo correction.
+ *  10 keeps every plausible misspelling of a real skill name while cutting the
+ *  adversarial cost: capping the input LENGTH (MAX_SUGGEST_LEN) bounded the
+ *  input but not the WORK, so a 64-char query still ran a full O(n*m) matrix
+ *  against all 1485 names (~109 ms CPU for a ~300-byte request — the very
+ *  amplification GW1-AUD-01 set out to close). Returning nothing is also the
+ *  better answer for the caller: an LLM handed no suggestion asks, whereas an
+ *  LLM handed a confidently wrong one (e.g. "Signet of Creation" for the French
+ *  "Signet de guérison") encodes a valid-but-wrong template.
+ *
+ *  5 is calibrated on measured distances against the real 1485 names, not picked
+ *  round: genuine misspellings land at d<=2 ("mystik regenaration" -> 2,
+ *  "Vow of Revoltion" -> 1), French names land at 7-11 ("Signet de guérison" ->
+ *  7 from the wrong "Signet of Creation"), and padding attacks at d>=7 with a
+ *  distance/length ratio above 0.85. 5 is the widest cap that still drops the
+ *  French noise while keeping the one French form that resolves CORRECTLY by
+ *  cognate ("Vœu de piété" -> "Vow of Piety", d=5). */
+const MAX_SUGGEST_DISTANCE = 5;
+
+/** Levenshtein restricted to a diagonal band of width `max`, abandoning a row
+ *  as soon as every cell in it exceeds `max`. Returns undefined when the true
+ *  distance is > max — callers drop those candidates. Distances <= max are
+ *  exact, so ranking among real typos is unchanged. */
+function boundedLevenshtein(a: string, b: string, max: number): number | undefined {
   const m = a.length;
   const n = b.length;
-  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  // A length gap alone already exceeds the budget: no alignment can recover.
+  if (Math.abs(m - n) > max) return undefined;
+  const prev = Array.from<number>({ length: n + 1 }).fill(0);
+  const curr = Array.from<number>({ length: n + 1 }).fill(0);
+  for (let j = 0; j <= n; j++) prev[j] = j <= max ? j : max + 1;
   for (let i = 1; i <= m; i++) {
-    const curr = [i, ...Array.from({ length: n }, () => 0)];
-    for (let j = 1; j <= n; j++) {
-      curr[j] = Math.min(
-        (prev[j] ?? 0) + 1,
-        (curr[j - 1] ?? 0) + 1,
-        (prev[j - 1] ?? 0) + (a[i - 1] === b[j - 1] ? 0 : 1),
+    curr[0] = i;
+    const lo = Math.max(1, i - max);
+    const hi = Math.min(n, i + max);
+    if (lo > 1) curr[lo - 1] = max + 1;
+    let rowMin = i <= max ? i : max + 1;
+    for (let j = lo; j <= hi; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      const value = Math.min(
+        (prev[j] ?? max + 1) + 1,
+        (curr[j - 1] ?? max + 1) + 1,
+        (prev[j - 1] ?? max + 1) + cost,
       );
+      curr[j] = value;
+      if (value < rowMin) rowMin = value;
     }
-    prev = curr;
+    for (let j = hi + 1; j <= n; j++) curr[j] = max + 1;
+    if (rowMin > max) return undefined;
+    for (let j = 0; j <= n; j++) prev[j] = curr[j] ?? max + 1;
   }
-  return prev[n] ?? 0;
+  const distance = prev[n] ?? max + 1;
+  return distance <= max ? distance : undefined;
+}
+
+/** Rank candidates by edit distance, dropping anything past MAX_SUGGEST_DISTANCE. */
+function closest<T>(
+  candidates: readonly T[],
+  needle: string,
+  nameOf: (item: T) => string,
+  count: number,
+): T[] {
+  const scored: { item: T; d: number }[] = [];
+  for (const item of candidates) {
+    const d = boundedLevenshtein(needle, normalizeName(nameOf(item)), MAX_SUGGEST_DISTANCE);
+    if (d !== undefined) scored.push({ item, d });
+  }
+  return scored
+    .sort((x, y) => x.d - y.d)
+    .slice(0, count)
+    .map(({ item }) => item);
 }
 
 /** Closest skill names to a (possibly misspelled) query — for LLM self-correction. */
 export function suggestAttributeNames(name: string, count = 3): string[] {
   if (name.length > MAX_SUGGEST_LEN) return [];
-  const needle = normalizeName(name);
-  return attributes
-    .map((a) => ({ a, d: levenshtein(needle, normalizeName(a.name)) }))
-    .sort((x, y) => x.d - y.d)
-    .slice(0, count)
-    .map(({ a }) => a.name);
+  return closest(attributes, normalizeName(name), (a) => a.name, count).map((a) => a.name);
 }
 
 export function suggestSkillNames(name: string, count = 3): string[] {
   if (name.length > MAX_SUGGEST_LEN) return [];
-  const needle = normalizeName(name);
-  return skills
-    .map((s) => ({ s, d: levenshtein(needle, normalizeName(s.name)) }))
-    .sort((a, b) => a.d - b.d)
-    .slice(0, count)
-    .map((x) => x.s.name);
+  return closest(skills, normalizeName(name), (s) => s.name, count).map((s) => s.name);
 }

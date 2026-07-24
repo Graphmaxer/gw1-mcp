@@ -105,6 +105,35 @@ describe("lookups", () => {
     // A multi-kilobyte name must not trigger the O(n*m) scan over every skill.
     expect(suggestSkillNames("a".repeat(5000))).toEqual([]);
   });
+
+  it("still resolves realistic misspellings after the distance cap", () => {
+    expect(suggestSkillNames("mystik regenaration")[0]).toBe("Mystic Regeneration");
+    expect(suggestSkillNames("Vow of Revoltion")[0]).toBe("Vow of Revolution");
+    expect(suggestSkillNames("healing bréeze")[0]).toBe("Healing Breeze");
+  });
+
+  it("suggests nothing rather than a plausible wrong skill (GW1-AUD-01, FR names)", () => {
+    // A French skill name is not a typo of an English one. Returning three real
+    // English signets for "Signet de guérison" is what makes an LLM encode a
+    // valid-but-wrong template; an empty list makes it ask or search instead.
+    expect(suggestSkillNames("Signet de guérison")).toEqual([]);
+    expect(suggestSkillNames("Régénération mystique")).toEqual([]);
+    expect(suggestSkillNames("Souffle mystique")).toEqual([]);
+  });
+
+  it("suggests nothing for padding that merely fits the length cap", () => {
+    // Under the length-only guard these returned real skills (e.g. "Verata's
+    // Gaze") at ~109 ms CPU per request; the band now abandons them.
+    expect(suggestSkillNames("z".repeat(64))).toEqual([]);
+    expect(suggestSkillNames("q".repeat(32))).toEqual([]);
+    expect(suggestSkillNames("zzzzzzzz")).toEqual([]);
+  });
+
+  it("keeps a French form that resolves correctly by cognate", () => {
+    // The threshold is calibrated to keep this one (d=5) while dropping the
+    // wrong matches above — it is the boundary case that fixes the cap at 5.
+    expect(suggestSkillNames("Vœu de piété")[0]).toBe("Vow of Piety");
+  });
 });
 
 describe("name uniqueness invariant", () => {

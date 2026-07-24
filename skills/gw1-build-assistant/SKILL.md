@@ -35,7 +35,17 @@ historical wiki knowledge and from training data.
    balance patch.
 4. When a tool returns an error, read its message: it contains
    closest-match suggestions for misspelled skill or attribute names. Use
-   them and retry instead of giving up or improvising.
+   them and retry instead of giving up or improvising. An empty suggestion
+   list means the name was not close to anything — ask or search, do not
+   guess.
+5. Skill and attribute names are **English only**. Guild Wars 1 is
+   localised, so a French, German or Spanish player will give you names
+   the tools cannot resolve — and a translated guess is the one way to
+   produce a template that encodes cleanly and is still wrong. Translate
+   it yourself, then **confirm with `get_skill` before using it**, and
+   show the user the English name you settled on. If `get_skill` misses,
+   use `search_skills` on the attribute line rather than picking the
+   nearest-looking English skill.
 
 ## Build-design workflow
 

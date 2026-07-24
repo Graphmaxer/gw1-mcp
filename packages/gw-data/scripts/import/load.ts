@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createRequire } from "node:module";
 import { execSync } from "node:child_process";
@@ -49,8 +49,12 @@ export async function loadUpstream(source: string | undefined): Promise<Upstream
     // the same channel as the data (SKILLTYPES evolves): the Pages-served
     // node bundle is built by their CI from the same commit. Executing it is
     // the same trust level as our npm dependency on the same author.
+    // mkdtempSync, not a Date.now()-named file in a shared tmpdir: the old path
+    // was predictable, so on a multi-user machine another process could win the
+    // race and have OUR require() execute ITS file. Same character count, no
+    // TOCTOU.
     const { tmpdir } = await import("node:os");
-    const bundlePath = join(tmpdir(), `gw-skilldata-${Date.now()}.cjs`);
+    const bundlePath = join(mkdtempSync(join(tmpdir(), "gw-skilldata-")), "bundle.cjs");
     writeFileSync(bundlePath, bundle);
     const require = createRequire(import.meta.url);
     const constants = require(bundlePath) as Record<string, unknown>;

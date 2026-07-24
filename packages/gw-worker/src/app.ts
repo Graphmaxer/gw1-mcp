@@ -346,6 +346,14 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
     const server = createServer();
     const transport = new StreamableHTTPTransport();
     await server.connect(transport);
+    // Deliberately NO try/finally { server.close() } here, despite the pair
+    // being per-request. Measured 2026-07-24: adding it empties every response
+    // (get_skill 1290 bytes -> 0, tools/list 19159 -> 0) while still returning
+    // 200, because handleRequest hands back a Response whose body is produced
+    // lazily after this function returns — closing the server closes the stream
+    // before anything is written. @hono/mcp owns that lifecycle in stateless
+    // mode. The repo's own tests do catch this (3 failures in test/http.test.ts),
+    // which is the guardrail; this comment is so nobody "fixes" it again.
     return transport.handleRequest(c);
   });
 

@@ -68,3 +68,34 @@ WHERE timestamp > NOW() - INTERVAL '2' DAY
 GROUP BY hour
 ORDER BY hour
 ```
+
+## Grafana (Infinity datasource) specifics
+
+The public dashboard (`grafana/gw1-mcp-usage.json`) runs these same
+queries through the **Infinity** plugin (generic HTTP+JSON — a native
+ClickHouse plugin cannot connect, Analytics Engine only implements a
+partial dialect over HTTP). Three adaptations apply there, and only
+there:
+
+1. **Time range**: no `$timeFilter` macro. Use Infinity's backend
+   macros, divided to seconds (`toDateTime()` takes epoch seconds,
+   the macros emit milliseconds — this exact pair was verified against
+   the live API, `fromUnixTimestamp64Milli` does **not** exist in
+   Cloudflare's dialect):
+
+   ```sql
+   WHERE timestamp > toDateTime(${__timeFrom} / 1000)
+     AND timestamp < toDateTime(${__timeTo} / 1000)
+   ```
+
+2. **Response envelope**: the SQL API returns
+   `{"meta": [...], "data": [...], "rows": N, "rows_before_limit_at_least": N}`.
+   Set the query's **root selector to `data`**, otherwise Infinity maps
+   the envelope fields themselves as columns (a Stat panel then shows
+   `rows_before_limit_at_least` — misleadingly plausible numbers).
+
+3. **UInt64 as strings**: aggregates like `SUM(_sample_interval)` are
+   serialized as JSON strings (`"calls":"81"`). Map each numeric column
+   explicitly as **Number** (and time buckets as **Timestamp**, format
+   `2006-01-02 15:04:05`) in the query's column mapping; parser must be
+   **Backend** for root selector + column mapping + macros to work.

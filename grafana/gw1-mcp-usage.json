@@ -1,7 +1,7 @@
 {
   "uid": "gw1-mcp-usage",
-  "title": "gw1-mcp \u2014 public usage",
-  "description": "Live, anonymous usage of the gw1-mcp MCP server. Only the invoked tool's NAME is ever recorded \u2014 never arguments, never identities (see the worker's /privacy page). This dashboard is code: grafana/gw1-mcp-usage.json in the repository.",
+  "title": "gw1-mcp — public usage",
+  "description": "Live, anonymous usage of the gw1-mcp MCP server. Only the invoked tool's NAME is ever recorded — never arguments, never identities (see the worker's /privacy page). This dashboard is code: grafana/gw1-mcp-usage.json in the repository.",
   "tags": [
     "gw1-mcp",
     "public"
@@ -30,7 +30,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "## gw1-mcp \u2014 what the server actually does, live\nAnonymous per-tool call counts from the [gw1-mcp](https://github.com/Graphmaxer/gw1-mcp) MCP server (Guild Wars 1 build compiler for LLMs). **Tool names only \u2014 never arguments, never identities** ([privacy](https://gw1-mcp.graphmaxer.workers.dev/privacy)). Data: Cloudflare Workers Analytics Engine, 90-day retention, sampled (totals use `SUM(_sample_interval)`). This dashboard is versioned code \u2014 [see the JSON](https://github.com/Graphmaxer/gw1-mcp/blob/main/grafana/gw1-mcp-usage.json)."
+        "content": "## gw1-mcp — what the server actually does, live\nAnonymous per-tool call counts from the [gw1-mcp](https://github.com/Graphmaxer/gw1-mcp) MCP server (Guild Wars 1 build compiler for LLMs). **Tool names only — never arguments, never identities** ([privacy](https://gw1-mcp.graphmaxer.workers.dev/privacy)). Data: Cloudflare Workers Analytics Engine, 90-day retention, sampled (totals use `SUM(_sample_interval)`). This dashboard is versioned code — [see the JSON](https://github.com/Graphmaxer/gw1-mcp/blob/main/grafana/gw1-mcp-usage.json)."
       }
     },
     {
@@ -45,25 +45,40 @@
         "h": 5
       },
       "datasource": {
-        "type": "vertamedia-clickhouse-datasource",
-        "uid": "dfs49zyrglywwf"
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "aft354s7rt3wgf"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
-            "type": "vertamedia-clickhouse-datasource",
-            "uid": "dfs49zyrglywwf"
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "aft354s7rt3wgf"
           },
-          "query": "SELECT SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%'",
-          "rawQuery": "SELECT SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%'",
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
           "format": "table",
-          "database": "default",
-          "table": "gw1_mcp_usage",
-          "dateTimeType": "DATETIME",
-          "dateTimeColDataType": "timestamp",
-          "round": "0s",
-          "intervalFactor": 1
+          "url": "",
+          "url_options": {
+            "method": "POST",
+            "body_type": "raw",
+            "body_content_type": "text/plain",
+            "data": "SELECT SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000) AND blob1 LIKE 'tool:%'"
+          },
+          "root_selector": "data",
+          "columns": [
+            {
+              "selector": "calls",
+              "text": "calls",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "global_query_id": "",
+          "computed_columns": [],
+          "filterExpression": "",
+          "summarizeExpression": ""
         }
       ],
       "options": {
@@ -100,25 +115,40 @@
         "h": 5
       },
       "datasource": {
-        "type": "vertamedia-clickhouse-datasource",
-        "uid": "dfs49zyrglywwf"
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "aft354s7rt3wgf"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
-            "type": "vertamedia-clickhouse-datasource",
-            "uid": "dfs49zyrglywwf"
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "aft354s7rt3wgf"
           },
-          "query": "SELECT COUNT(DISTINCT blob1) AS tools FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%'",
-          "rawQuery": "SELECT COUNT(DISTINCT blob1) AS tools FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%'",
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
           "format": "table",
-          "database": "default",
-          "table": "gw1_mcp_usage",
-          "dateTimeType": "DATETIME",
-          "dateTimeColDataType": "timestamp",
-          "round": "0s",
-          "intervalFactor": 1
+          "url": "",
+          "url_options": {
+            "method": "POST",
+            "body_type": "raw",
+            "body_content_type": "text/plain",
+            "data": "SELECT COUNT(DISTINCT blob1) AS tools FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000) AND blob1 LIKE 'tool:%'"
+          },
+          "root_selector": "data",
+          "columns": [
+            {
+              "selector": "tools",
+              "text": "tools",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "global_query_id": "",
+          "computed_columns": [],
+          "filterExpression": "",
+          "summarizeExpression": ""
         }
       ],
       "options": {
@@ -155,25 +185,40 @@
         "h": 5
       },
       "datasource": {
-        "type": "vertamedia-clickhouse-datasource",
-        "uid": "dfs49zyrglywwf"
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "aft354s7rt3wgf"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
-            "type": "vertamedia-clickhouse-datasource",
-            "uid": "dfs49zyrglywwf"
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "aft354s7rt3wgf"
           },
-          "query": "SELECT SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE timestamp > NOW() - INTERVAL '1' DAY AND blob1 LIKE 'tool:%'",
-          "rawQuery": "SELECT SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE timestamp > NOW() - INTERVAL '1' DAY AND blob1 LIKE 'tool:%'",
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
           "format": "table",
-          "database": "default",
-          "table": "gw1_mcp_usage",
-          "dateTimeType": "DATETIME",
-          "dateTimeColDataType": "timestamp",
-          "round": "0s",
-          "intervalFactor": 1
+          "url": "",
+          "url_options": {
+            "method": "POST",
+            "body_type": "raw",
+            "body_content_type": "text/plain",
+            "data": "SELECT SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE timestamp > NOW() - INTERVAL '1' DAY AND blob1 LIKE 'tool:%'"
+          },
+          "root_selector": "data",
+          "columns": [
+            {
+              "selector": "calls",
+              "text": "calls",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "global_query_id": "",
+          "computed_columns": [],
+          "filterExpression": "",
+          "summarizeExpression": ""
         }
       ],
       "options": {
@@ -210,25 +255,40 @@
         "h": 5
       },
       "datasource": {
-        "type": "vertamedia-clickhouse-datasource",
-        "uid": "dfs49zyrglywwf"
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "aft354s7rt3wgf"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
-            "type": "vertamedia-clickhouse-datasource",
-            "uid": "dfs49zyrglywwf"
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "aft354s7rt3wgf"
           },
-          "query": "SELECT round(100 * SUM(if(blob1 NOT LIKE 'tool:%', _sample_interval, 0)) / SUM(_sample_interval), 1) AS pct FROM gw1_mcp_usage WHERE $timeFilter",
-          "rawQuery": "SELECT round(100 * SUM(if(blob1 NOT LIKE 'tool:%', _sample_interval, 0)) / SUM(_sample_interval), 1) AS pct FROM gw1_mcp_usage WHERE $timeFilter",
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
           "format": "table",
-          "database": "default",
-          "table": "gw1_mcp_usage",
-          "dateTimeType": "DATETIME",
-          "dateTimeColDataType": "timestamp",
-          "round": "0s",
-          "intervalFactor": 1
+          "url": "",
+          "url_options": {
+            "method": "POST",
+            "body_type": "raw",
+            "body_content_type": "text/plain",
+            "data": "SELECT round(100 * SUM(if(blob1 NOT LIKE 'tool:%', _sample_interval, 0)) / SUM(_sample_interval), 1) AS pct FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000)"
+          },
+          "root_selector": "data",
+          "columns": [
+            {
+              "selector": "pct",
+              "text": "pct",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "global_query_id": "",
+          "computed_columns": [],
+          "filterExpression": "",
+          "summarizeExpression": ""
         }
       ],
       "options": {
@@ -266,25 +326,45 @@
         "h": 9
       },
       "datasource": {
-        "type": "vertamedia-clickhouse-datasource",
-        "uid": "dfs49zyrglywwf"
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "aft354s7rt3wgf"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
-            "type": "vertamedia-clickhouse-datasource",
-            "uid": "dfs49zyrglywwf"
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "aft354s7rt3wgf"
           },
-          "query": "SELECT substring(blob1, 6, 64) AS tool, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%' GROUP BY tool ORDER BY calls DESC",
-          "rawQuery": "SELECT substring(blob1, 6, 64) AS tool, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%' GROUP BY tool ORDER BY calls DESC",
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
           "format": "table",
-          "database": "default",
-          "table": "gw1_mcp_usage",
-          "dateTimeType": "DATETIME",
-          "dateTimeColDataType": "timestamp",
-          "round": "0s",
-          "intervalFactor": 1
+          "url": "",
+          "url_options": {
+            "method": "POST",
+            "body_type": "raw",
+            "body_content_type": "text/plain",
+            "data": "SELECT substring(blob1, 6, 64) AS tool, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000) AND blob1 LIKE 'tool:%' GROUP BY tool ORDER BY calls DESC"
+          },
+          "root_selector": "data",
+          "columns": [
+            {
+              "selector": "tool",
+              "text": "tool",
+              "type": "string"
+            },
+            {
+              "selector": "calls",
+              "text": "calls",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "global_query_id": "",
+          "computed_columns": [],
+          "filterExpression": "",
+          "summarizeExpression": ""
         }
       ],
       "options": {
@@ -311,7 +391,7 @@
       "id": 4,
       "type": "timeseries",
       "title": "Hourly pulse",
-      "description": "All RPC traffic per hour \u2014 spikes are launch or discovery moments.",
+      "description": "All RPC traffic per hour — spikes are launch or discovery moments.",
       "gridPos": {
         "x": 12,
         "y": 8,
@@ -319,25 +399,46 @@
         "h": 9
       },
       "datasource": {
-        "type": "vertamedia-clickhouse-datasource",
-        "uid": "dfs49zyrglywwf"
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "aft354s7rt3wgf"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
-            "type": "vertamedia-clickhouse-datasource",
-            "uid": "dfs49zyrglywwf"
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "aft354s7rt3wgf"
           },
-          "query": "SELECT toStartOfInterval(timestamp, INTERVAL '1' HOUR) AS t, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter GROUP BY t ORDER BY t",
-          "rawQuery": "SELECT toStartOfInterval(timestamp, INTERVAL '1' HOUR) AS t, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter GROUP BY t ORDER BY t",
-          "format": "time_series",
-          "database": "default",
-          "table": "gw1_mcp_usage",
-          "dateTimeType": "DATETIME",
-          "dateTimeColDataType": "timestamp",
-          "round": "0s",
-          "intervalFactor": 1
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "",
+          "url_options": {
+            "method": "POST",
+            "body_type": "raw",
+            "body_content_type": "text/plain",
+            "data": "SELECT toStartOfInterval(timestamp, INTERVAL '1' HOUR) AS t, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000) GROUP BY t ORDER BY t"
+          },
+          "root_selector": "data",
+          "columns": [
+            {
+              "selector": "t",
+              "text": "t",
+              "type": "timestamp",
+              "timestampFormat": "2006-01-02 15:04:05"
+            },
+            {
+              "selector": "calls",
+              "text": "calls",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "global_query_id": "",
+          "computed_columns": [],
+          "filterExpression": "",
+          "summarizeExpression": ""
         }
       ],
       "fieldConfig": {
@@ -362,25 +463,51 @@
         "h": 10
       },
       "datasource": {
-        "type": "vertamedia-clickhouse-datasource",
-        "uid": "dfs49zyrglywwf"
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "aft354s7rt3wgf"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
-            "type": "vertamedia-clickhouse-datasource",
-            "uid": "dfs49zyrglywwf"
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "aft354s7rt3wgf"
           },
-          "query": "SELECT toStartOfInterval(timestamp, INTERVAL '1' DAY) AS t, substring(blob1, 6, 64) AS tool, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%' GROUP BY t, tool ORDER BY t",
-          "rawQuery": "SELECT toStartOfInterval(timestamp, INTERVAL '1' DAY) AS t, substring(blob1, 6, 64) AS tool, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE $timeFilter AND blob1 LIKE 'tool:%' GROUP BY t, tool ORDER BY t",
-          "format": "time_series",
-          "database": "default",
-          "table": "gw1_mcp_usage",
-          "dateTimeType": "DATETIME",
-          "dateTimeColDataType": "timestamp",
-          "round": "0s",
-          "intervalFactor": 1
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "",
+          "url_options": {
+            "method": "POST",
+            "body_type": "raw",
+            "body_content_type": "text/plain",
+            "data": "SELECT toStartOfInterval(timestamp, INTERVAL '1' DAY) AS t, substring(blob1, 6, 64) AS tool, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000) AND blob1 LIKE 'tool:%' GROUP BY t, tool ORDER BY t"
+          },
+          "root_selector": "data",
+          "columns": [
+            {
+              "selector": "t",
+              "text": "t",
+              "type": "timestamp",
+              "timestampFormat": "2006-01-02 15:04:05"
+            },
+            {
+              "selector": "tool",
+              "text": "tool",
+              "type": "string"
+            },
+            {
+              "selector": "calls",
+              "text": "calls",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "global_query_id": "",
+          "computed_columns": [],
+          "filterExpression": "",
+          "summarizeExpression": ""
         }
       ],
       "fieldConfig": {

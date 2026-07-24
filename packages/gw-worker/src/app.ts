@@ -1,5 +1,7 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { bodyLimit } from "hono/body-limit";
+import { cors } from "hono/cors";
 import { StreamableHTTPTransport } from "@hono/mcp";
 import { createServer, TOOL_NAMES } from "@gw1-mcp/gw-mcp";
 
@@ -37,7 +39,6 @@ const KNOWN_METHODS = new Set([
   "resources/list",
   "resources/read",
   "resources/templates/list",
-  "prompts/list",
   "notifications/initialized",
   "notifications/cancelled",
 ]);
@@ -62,6 +63,12 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
   // Security contact derives from the same place SECURITY.md points to:
   // GitHub private vulnerability reporting. No email to duplicate or scrape.
   const SECURITY_CONTACT = `${REPO_URL}/security/advisories/new`;
+  // RFC 9116 requires Expires, but a value recomputed per request made the
+  // response uncacheable and non-reproducible (every fetch returned a different
+  // file). A fixed date is the conformant form; a test in test/http.test.ts
+  // fails once it is under 30 days away, so CI asks for the bump instead of the
+  // file silently expiring.
+  const SECURITY_TXT_EXPIRES = "2027-07-01T00:00:00.000Z";
 
   app.get("/", (c) =>
     c.json({
@@ -138,16 +145,17 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
   // vulnerability reporting SECURITY.md uses — Contact is a URL, not an email,
   // so nothing is duplicated or exposed to scrapers.
   app.get("/.well-known/security.txt", (c) => {
-    // Expires is REQUIRED by RFC 9116; compute a rolling ~1-year horizon so the
-    // file never serves a stale/expired date.
-    const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+    // Canonical must match the URL the file is actually served from, so derive
+    // it from the request instead of hardcoding the workers.dev host — the
+    // hardcoded value silently became wrong the moment a custom domain existed.
+    const canonical = `${new URL(c.req.url).origin}/.well-known/security.txt`;
     return c.text(
       [
         `Contact: ${SECURITY_CONTACT}`,
-        `Expires: ${expires}`,
+        `Expires: ${SECURITY_TXT_EXPIRES}`,
         `Policy: ${REPO_URL}/blob/main/SECURITY.md`,
         "Preferred-Languages: en, fr",
-        `Canonical: https://gw1-mcp.graphmaxer.workers.dev/.well-known/security.txt`,
+        `Canonical: ${canonical}`,
       ].join("\n"),
       200,
       { "Content-Type": "text/plain; charset=utf-8" },
@@ -174,6 +182,34 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
   // hono/body-limit counts bytes actually read from the stream — unlike a
   // Content-Length check, it can't be bypassed by omitting/forging that header
   // or using chunked transfer encoding (GW1-RESTE-02).
+  // CORS (B1). The previous state was the worst of both worlds: no CORS headers
+  // at all AND a 405 on preflight, so no browser MCP client (web playgrounds,
+  // MCP Inspector in a tab, some directory validators) could reach the server —
+  // while the Origin check let every https origin through anyway. Opening it is
+  // safe *here* specifically: the service is public, read-only and
+  // credential-free, so "*" grants a browser nothing curl does not already have.
+  // There is no cookie, no session and no Authorization header to ride on.
+  app.use(
+    "/mcp",
+    cors({
+      origin: "*",
+      allowMethods: ["POST", "GET", "OPTIONS"],
+      allowHeaders: ["Content-Type", "Accept", "Mcp-Session-Id", "Mcp-Protocol-Version"],
+      exposeHeaders: ["Mcp-Session-Id", "Mcp-Protocol-Version"],
+      maxAge: 86400,
+    }),
+  );
+
+  // Response hardening (B4). Cheap, and directory reviewers look for them.
+  // no-store matters beyond hygiene: /mcp answers are request-specific and must
+  // never be served from a shared cache.
+  app.use("/mcp", async (c, next) => {
+    await next();
+    c.header("X-Content-Type-Options", "nosniff");
+    c.header("Referrer-Policy", "no-referrer");
+    c.header("Cache-Control", "no-store");
+  });
+
   const MAX_BODY_BYTES = 512 * 1024;
   app.use(
     "/mcp",
@@ -237,7 +273,12 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
       let ok = false;
       try {
         const u = new URL(origin);
-        ok = u.protocol === "https:" && u.hostname.length > 0;
+        // Loopback over http is the project's own `dev:node` flow; rejecting it
+        // was a false negative against ourselves. The MCP spec's DNS-rebinding
+        // advice targets servers bound to localhost, which this is not.
+        const isLoopback =
+          u.protocol === "http:" && (u.hostname === "localhost" || u.hostname === "127.0.0.1");
+        ok = (u.protocol === "https:" && u.hostname.length > 0) || isLoopback;
       } catch {
         ok = false;
       }
@@ -247,6 +288,28 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
     }
     await next();
   });
+
+  // B2/B3. In stateless mode there is no session to resume and no server->client
+  // notification to stream, so a GET opened an SSE body that never closed (100
+  // danglers per IP per minute, since the limiter only counts the opening
+  // request) and a DELETE 200'd on a session that does not exist. The Streamable
+  // HTTP spec explicitly allows 405 for both; that is the honest answer.
+  const methodNotAllowed = (c: Context<AppEnv>) =>
+    c.json(
+      {
+        jsonrpc: "2.0",
+        id: null,
+        error: {
+          code: -32000,
+          message:
+            "This server is stateless: only POST /mcp is supported (no SSE stream, no sessions to delete).",
+        },
+      },
+      405,
+      { Allow: "POST, OPTIONS" },
+    );
+  app.get("/mcp", methodNotAllowed);
+  app.delete("/mcp", methodNotAllowed);
 
   app.all("/mcp", async (c) => {
     // Usage analytics: count tool invocations by NAME only — never arguments,

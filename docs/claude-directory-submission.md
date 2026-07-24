@@ -95,9 +95,23 @@ None needed — no authentication. Reviewer test script:
 
 - HTTPS: yes (Cloudflare Workers)
 - OAuth: N/A (no authenticated service)
-- Origin-header validation: yes — browser-context requests with a
-  non-https Origin are rejected with 403 on /mcp; clients without an
-  Origin header (standard MCP clients) are unaffected
+- CORS: open (`Access-Control-Allow-Origin: *`) with preflight handled on
+  /mcp, so browser-based MCP clients and web playgrounds work. This is a
+  deliberate decision, not an oversight: the service is public, read-only
+  and credential-free — there is no cookie, session or Authorization
+  header, so a permissive CORS policy grants a browser nothing that a
+  plain `curl` does not already have.
+- Origin-header validation: a well-formedness check, NOT an allowlist. A
+  malformed or non-https Origin is rejected with 403 (loopback http is
+  allowed for local development); any well-formed https Origin is
+  accepted. It is deliberately not an origin restriction — with no
+  session or credential to ride on, there is no CSRF surface to protect,
+  and DNS-rebinding advice targets servers bound to localhost.
+- Method handling on /mcp: POST only. GET and DELETE return 405 (the
+  server is stateless — no SSE stream to resume, no session to delete),
+  as the Streamable HTTP spec permits.
+- Response headers: X-Content-Type-Options, Referrer-Policy,
+  Cache-Control: no-store on /mcp
 - Tool annotations: title + readOnlyHint on every tool, values served
   by the server itself
 - Skills: optionally bundle the gw1-build-assistant skill (also part of

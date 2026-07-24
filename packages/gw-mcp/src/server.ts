@@ -164,7 +164,15 @@ const pwndEntrySchema = z.object({
   inGamePlayerName: z.string().nullable(),
   skillsCode: z.string().describe("This entry's individual template code"),
   equipmentCode: z.string().nullable(),
-  build: z.object(decodedBuildShape).optional().describe("Decoded bar (absent if decoding failed)"),
+  // Passthrough rather than re-inlining decodedBuildShape (audit H1). Inlining it
+  // made this one tool 2383 of the 19447 characters every conversation pays for
+  // tools/list — for the least-called tool — and duplicated a contract that
+  // decode_template already declares in full and the golden fixtures already
+  // lock. Same shape at runtime, declared once.
+  build: z
+    .looseObject({})
+    .optional()
+    .describe("Decoded bar (absent if decoding failed). Same shape as decode_template's output."),
   error: z.object({ code: z.string(), message: z.string() }).optional(),
 });
 
@@ -497,6 +505,12 @@ export function createServer(): McpServer {
           .boolean()
           .default(false)
           .describe("Set true if this bar is for a hero (PvE-only skills are flagged)"),
+        forPvp: z
+          .boolean()
+          .default(false)
+          .describe(
+            "Set true for a PvP character's bar. PvP versions of split skills are only valid when this is true, and a PvP bar is expected to use them.",
+          ),
         unlockedSkillIds: z
           .array(z.number().int().min(0).max(65535))
           .max(8192)
@@ -506,12 +520,13 @@ export function createServer(): McpServer {
           ),
       },
     },
-    async ({ forHero, unlockedSkillIds, ...build }) => {
+    async ({ forHero, forPvp, unlockedSkillIds, ...build }) => {
       const resolution = resolveNamedBuild(build);
       if (!resolution.template) return jsonStructured({ errors: resolution.errors });
 
       const validation = validateBuild(resolution.template, {
         forHero,
+        forPvp,
         ...(unlockedSkillIds !== undefined ? { unlockedSkillIds } : {}),
       });
       if (!validation.valid) return jsonStructured(validation);
@@ -541,6 +556,12 @@ export function createServer(): McpServer {
       inputSchema: {
         ...namedBuildSchema,
         forHero: z.boolean().default(false),
+        forPvp: z
+          .boolean()
+          .default(false)
+          .describe(
+            "Set true for a PvP character's bar (PvP versions of split skills are only valid then).",
+          ),
         unlockedSkillIds: z
           .array(z.number().int().min(0).max(65535))
           .max(8192)
@@ -550,7 +571,7 @@ export function createServer(): McpServer {
           ),
       },
     },
-    async ({ forHero, unlockedSkillIds, ...build }) => {
+    async ({ forHero, forPvp, unlockedSkillIds, ...build }) => {
       const resolution = resolveNamedBuild(build);
       if (!resolution.template) {
         return jsonStructured({ valid: false, errors: resolution.errors, warnings: [] });
@@ -558,6 +579,7 @@ export function createServer(): McpServer {
       return jsonStructured(
         validateBuild(resolution.template, {
           forHero,
+          forPvp,
           ...(unlockedSkillIds !== undefined ? { unlockedSkillIds } : {}),
         }),
       );

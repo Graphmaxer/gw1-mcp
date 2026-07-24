@@ -163,6 +163,48 @@ describe("validator rule table", () => {
   }
 });
 
+describe("PvP/PvE split skills (audit I1)", () => {
+  // Mind Wrack (PvP) id 2734 is the PvP version of a split skill; Fragility
+  // id 19 is a Mesmer PvE skill that HAS a PvP version (id 2998).
+  const mesmer = { primary: 5, secondary: 0, attributes: [] };
+
+  it("raises PVP_VERSION_ON_PVE_BUILD", () => {
+    // Previously: valid=true, no remark, and an encodable code that does not
+    // produce the shown bar on a PvE character.
+    const r = validateBuild(
+      { ...mesmer, skills: [2734, 0, 0, 0, 0, 0, 0, 0] } as never,
+      {} as never,
+    );
+    expect(r.errors.map((e) => e.code)).toContain("PVP_VERSION_ON_PVE_BUILD");
+  });
+
+  it("accepts the PvP version once the caller says it is a PvP bar", () => {
+    const r = validateBuild(
+      { ...mesmer, skills: [2734, 0, 0, 0, 0, 0, 0, 0] } as never,
+      { forPvp: true } as never,
+    );
+    expect(r.errors.map((e) => e.code)).not.toContain("PVP_VERSION_ON_PVE_BUILD");
+  });
+
+  it("raises PVE_VERSION_ON_PVP_BUILD", () => {
+    const r = validateBuild(
+      { ...mesmer, skills: [19, 0, 0, 0, 0, 0, 0, 0] } as never,
+      { forPvp: true } as never,
+    );
+    expect(r.errors.map((e) => e.code)).toContain("PVE_VERSION_ON_PVP_BUILD");
+  });
+
+  it("leaves unsplit skills alone on a PvP bar", () => {
+    // Symmetry must not overreach: a skill with no PvP version is the same
+    // skill in both formats.
+    const r = validateBuild(
+      { primary: 10, secondary: 0, attributes: [], skills: [1518, 0, 0, 0, 0, 0, 0, 0] } as never,
+      { forPvp: true } as never,
+    );
+    expect(r.errors.map((e) => e.code)).not.toContain("PVE_VERSION_ON_PVP_BUILD");
+  });
+});
+
 describe("Signet of Capture on a hero bar", () => {
   it("reports PVE_ONLY_ON_HERO once, listing every slot", () => {
     // Three copies used to emit the same code three times, reading as three

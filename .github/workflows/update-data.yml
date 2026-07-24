@@ -89,6 +89,22 @@ jobs:
           path: /tmp
       - name: Apply the imported data
         run: git apply /tmp/data-update.patch
+      # Numeric balance changes are what justifies a zero-touch weekly import;
+      # description changes are a different risk class. Descriptions travel
+      # verbatim into an LLM's context via get_skill/search_skills, so a
+      # vandalised upstream needs no code execution to attack a consumer — and no
+      # invariant test can catch it, since the suite checks ids and types, not
+      # the semantics of free text. Those diffs get a human.
+      - name: Flag description changes (prompt-injection channel)
+        id: desc
+        run: |
+          set -euo pipefail
+          if git diff -- packages/gw-data/data/ | grep -qE '^[+-][[:space:]]*"description"'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Description text changed — auto-merge withheld."
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Open pull request
         id: data-pr
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
@@ -103,8 +119,13 @@ jobs:
 
             CI runs the full golden-fixture suite against the new data.
 
-      - name: Enable auto-merge (zero-touch when CI passes)
-        if: ${{ steps.data-pr.outputs.pull-request-number }}
+            Descriptions changed: ${{ steps.desc.outputs.changed }}. When true,
+            auto-merge is withheld and this PR needs a human read of the
+            description diff — that text reaches an LLM's context verbatim, and
+            no test asserts anything about its meaning.
+
+      - name: Enable auto-merge (zero-touch when CI passes, numeric diffs only)
+        if: ${{ steps.data-pr.outputs.pull-request-number && steps.desc.outputs.changed == 'false' }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: gh pr merge ${{ steps.data-pr.outputs.pull-request-number }} --auto --squash

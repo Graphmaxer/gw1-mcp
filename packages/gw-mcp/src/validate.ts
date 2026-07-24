@@ -31,7 +31,7 @@ const MAX_ATTRIBUTE_POINTS = 200;
 
 export function validateBuild(
   template: SkillTemplate,
-  options: { forHero?: boolean; unlockedSkillIds?: number[] } = {},
+  options: { forHero?: boolean; forPvp?: boolean; unlockedSkillIds?: number[] } = {},
 ): ValidationResult {
   const errors: ValidationIssue[] = [];
   const warnings: ValidationIssue[] = [];
@@ -191,6 +191,30 @@ export function validateBuild(
       errors.push({
         code: "PVE_ONLY_ON_HERO",
         message: `Slot${captureSlots.length > 1 ? "s" : ""} ${captureSlots.join(", ")}: "${SIGNET_OF_CAPTURE}" cannot be equipped by heroes`,
+      });
+    }
+  }
+
+  // PvP/PvE split skills. The data has always carried isPvpVersion, searchSkills
+  // hides those versions by default and fullSkillShape shows the flag to the
+  // model — but the validator never read it, so a "(PvP)" skill encoded into a
+  // PvE bar came back valid with no remark. In game the PvP versions exist only
+  // on PvP characters, so that template does not produce the bar the player was
+  // shown. Mirrors forHero: the caller states the context, the validator checks
+  // it, in both directions.
+  for (const { slot, skill } of resolved) {
+    if (skill.isPvpVersion && !options.forPvp) {
+      errors.push({
+        code: "PVP_VERSION_ON_PVE_BUILD",
+        message: `Slot ${slot + 1}: "${skill.name}" is the PvP version of a split skill and only exists on PvP characters. Use the PvE version, or pass forPvp: true.`,
+      });
+    }
+    // Symmetric case, but only where a split actually exists: an unsplit skill
+    // is the same skill in both formats and is correct on a PvP bar.
+    if (options.forPvp && !skill.isPvpVersion && skill.pvpSplit) {
+      errors.push({
+        code: "PVE_VERSION_ON_PVP_BUILD",
+        message: `Slot ${slot + 1}: "${skill.name}" has a separate PvP version (skill id ${skill.splitId}); a PvP bar should use that one.`,
       });
     }
   }

@@ -60,6 +60,55 @@ export const transformSkillTypes = (SKILLTYPES: unknown) =>
     name: t.name.en,
   }));
 
+/** Tags upstream legitimately uses inside skill descriptions. */
+const ALLOWED_DESCRIPTION_TAGS = new Set(["<gray>", "</gray>", "<sic/>"]);
+/** No real skill description comes close; the longest observed is well under this. */
+const MAX_DESCRIPTION_LENGTH = 600;
+
+/**
+ * Plausibility check on upstream skill descriptions (audit C1).
+ *
+ * Descriptions travel verbatim into an LLM's context through get_skill,
+ * search_skills and decode_template. A compromised or vandalised upstream does
+ * not need code execution to attack this project: a sentence phrased as an
+ * instruction is enough. No golden-fixture test can catch that, because the
+ * invariants check ids, uniqueness and types — never the semantics of free text.
+ *
+ * This does not attempt to detect "a prompt injection" (undecidable). It asserts
+ * the narrow shape real descriptions have always had, so anything structurally
+ * novel stops the import instead of being auto-merged.
+ */
+export function assertPlausibleDescription(id: number, name: string, description: string): void {
+  const fail = (why: string) => {
+    throw new Error(
+      `Implausible description on skill ${id} ("${name}"): ${why}. ` +
+        `Upstream may be compromised or its format changed — review by hand before importing. ` +
+        `Text: ${JSON.stringify(description.slice(0, 200))}`,
+    );
+  };
+  if (description.length > MAX_DESCRIPTION_LENGTH) {
+    fail(`${description.length} characters, over the ${MAX_DESCRIPTION_LENGTH} limit`);
+  }
+  for (const tag of description.match(/<[^>]*>/g) ?? []) {
+    if (!ALLOWED_DESCRIPTION_TAGS.has(tag)) fail(`unexpected tag ${tag}`);
+  }
+  if (/\bhttps?:\/\//i.test(description) || /\bwww\./i.test(description)) {
+    fail("contains a URL");
+  }
+  // Second-person imperatives aimed at a reader/model, not at the player. Real
+  // descriptions are third-person effect text ("Target foe takes...").
+  const instructionPattern =
+    /\b(ignore (all |any )?(previous|prior|above)|disregard (all |the )?(previous|prior)|system prompt|you are (now )?an? |instead(,)? (call|use|reply|respond|output)|do not (tell|mention|reveal)|reveal your|print your)\b/i;
+  if (instructionPattern.test(description)) fail("reads as an instruction to a model");
+}
+
+/** The description we ship, after the plausibility gate above. */
+function checkedDescription(s: UpstreamSkill): string {
+  const description = s.concise || s.description;
+  assertPlausibleDescription(s.id, s.name, description);
+  return description;
+}
+
 // --- skills ------------------------------------------------------------------
 export const transformSkills = (upstream: Upstream) =>
   Object.keys(upstream.skilldata)
@@ -80,7 +129,7 @@ export const transformSkills = (upstream: Upstream) =>
       // invariant repository.test.ts checks). Enforce the suffix ourselves
       // so a future upstream naming gap never silently collides a skill name.
       name: s.is_pvp && !s.name.includes("(PvP)") ? `${s.name} (PvP)` : s.name,
-      description: s.concise || s.description,
+      description: checkedDescription(s),
       campaignId: s.campaign,
       professionId: s.profession,
       attributeId: s.attribute,

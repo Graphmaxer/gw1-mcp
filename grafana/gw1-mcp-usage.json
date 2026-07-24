@@ -531,7 +531,7 @@
             ],
             "keepFields": false,
             "naming": {
-              "asLabels": false
+              "asLabels": true
             }
           }
         }

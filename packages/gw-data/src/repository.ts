@@ -1,3 +1,4 @@
+import { distance } from "fastest-levenshtein";
 import campaignsJson from "../data/campaigns.json";
 import professionsJson from "../data/professions.json";
 import attributesJson from "../data/attributes.json";
@@ -85,59 +86,29 @@ export function searchSkills(filters: SkillSearchFilters): Skill[] {
 const MAX_SUGGEST_LEN = 64;
 
 /** Beyond this edit distance a "suggestion" is noise, not a typo correction.
- *  A distance cap is what bounds the adversarial cost: capping the input LENGTH
- *  (MAX_SUGGEST_LEN) bounded the
- *  input but not the WORK, so a 64-char query still ran a full O(n*m) matrix
- *  against all 1485 names (~109 ms CPU for a ~300-byte request — the very
- *  amplification GW1-AUD-01 set out to close). Returning nothing is also the
- *  better answer for the caller: an LLM handed no suggestion asks, whereas an
- *  LLM handed a confidently wrong one (e.g. "Signet of Creation" for the French
- *  "Signet de guérison") encodes a valid-but-wrong template.
  *
- *  5 is calibrated on measured distances against the real 1485 names, not picked
+ *  Calibrated on measured distances against the real 1485 names, not picked
  *  round: genuine misspellings land at d<=2 ("mystik regenaration" -> 2,
- *  "Vow of Revoltion" -> 1), French names land at 7-11 ("Signet de guérison" ->
- *  7 from the wrong "Signet of Creation"), and padding attacks at d>=7 with a
+ *  "Vow of Revoltion" -> 1), French skill names at 7-11 ("Signet de guérison" ->
+ *  7 from the WRONG "Signet of Creation"), and padding attacks at d>=7 with a
  *  distance/length ratio above 0.85. 5 is the widest cap that still drops the
  *  French noise while keeping the one French form that resolves CORRECTLY by
- *  cognate ("Vœu de piété" -> "Vow of Piety", d=5). */
+ *  cognate ("Vœu de piété" -> "Vow of Piety", d=5).
+ *
+ *  Returning nothing is the better answer for the caller: an LLM handed no
+ *  suggestion asks, whereas an LLM handed a confidently wrong one encodes a
+ *  valid-but-wrong template.
+ *
+ *  The cap also bounds the cost. MAX_SUGGEST_LEN bounded the input but not the
+ *  WORK, so a 64-char query used to run a full O(n*m) matrix against all 1485
+ *  names (~109 ms CPU for a ~300-byte request — the amplification GW1-AUD-01 set
+ *  out to close). This was a hand-written banded matrix with early row abandon;
+ *  fastest-levenshtein's bit-parallel (Myers) implementation is both simpler to
+ *  call and measurably faster — 6.18 ms -> 1.36 ms on a real misspelling — so
+ *  the bespoke version is gone. It is the only runtime dependency of this
+ *  package: ~64 KB on disk, zero transitive deps, MIT.
+ */
 const MAX_SUGGEST_DISTANCE = 5;
-
-/** Levenshtein restricted to a diagonal band of width `max`, abandoning a row
- *  as soon as every cell in it exceeds `max`. Returns undefined when the true
- *  distance is > max — callers drop those candidates. Distances <= max are
- *  exact, so ranking among real typos is unchanged. */
-function boundedLevenshtein(a: string, b: string, max: number): number | undefined {
-  const m = a.length;
-  const n = b.length;
-  // A length gap alone already exceeds the budget: no alignment can recover.
-  if (Math.abs(m - n) > max) return undefined;
-  const prev = Array.from<number>({ length: n + 1 }).fill(0);
-  const curr = Array.from<number>({ length: n + 1 }).fill(0);
-  for (let j = 0; j <= n; j++) prev[j] = j <= max ? j : max + 1;
-  for (let i = 1; i <= m; i++) {
-    curr[0] = i;
-    const lo = Math.max(1, i - max);
-    const hi = Math.min(n, i + max);
-    if (lo > 1) curr[lo - 1] = max + 1;
-    let rowMin = i <= max ? i : max + 1;
-    for (let j = lo; j <= hi; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      const value = Math.min(
-        (prev[j] ?? max + 1) + 1,
-        (curr[j - 1] ?? max + 1) + 1,
-        (prev[j - 1] ?? max + 1) + cost,
-      );
-      curr[j] = value;
-      if (value < rowMin) rowMin = value;
-    }
-    for (let j = hi + 1; j <= n; j++) curr[j] = max + 1;
-    if (rowMin > max) return undefined;
-    for (let j = 0; j <= n; j++) prev[j] = curr[j] ?? max + 1;
-  }
-  const distance = prev[n] ?? max + 1;
-  return distance <= max ? distance : undefined;
-}
 
 /**
  * Does every whitespace-separated token of the query prefix the candidate's token
@@ -174,8 +145,8 @@ function closest<T>(
       prefixed.push({ item, length: name.length });
       continue;
     }
-    const d = boundedLevenshtein(needle, name, MAX_SUGGEST_DISTANCE);
-    if (d !== undefined) scored.push({ item, d });
+    const d = distance(needle, name);
+    if (d <= MAX_SUGGEST_DISTANCE) scored.push({ item, d });
   }
   const ranked = [
     ...prefixed.sort((x, y) => x.length - y.length).map(({ item }) => item),

@@ -42,15 +42,14 @@ wrong.
 
 ## Tools
 
-| Tool                       | Purpose                                                                                           |
-| -------------------------- | ------------------------------------------------------------------------------------------------- |
-| `get_skill`                | Full record for one skill (by exact name or template id), with closest-match suggestions on typos |
-| `search_skills`            | Filtered search: profession, attribute, campaign, elite, name substring                           |
-| `decode_template`          | In-game template code → professions, attributes, 8 skills with stats                              |
-| `encode_template`          | Named build → validated, official in-game template code                                           |
-| `validate_build`           | GW1 rule check: one elite max, profession/attribute ownership, primary attributes, duplicates     |
-| `get_hero` / `list_heroes` | Heroes with professions, campaigns and unlock notes                                               |
-| `decode_pawned_team`       | paw-ned2 team blobs (PvXwiki team pages) → every bar decoded                                      |
+- `get_skill` — full record for one skill (by exact name or template id), with closest-match suggestions on typos
+- `search_skills` — filtered search: profession, attribute, campaign, elite, name substring
+- `decode_template` — in-game template code → professions, attributes, 8 skills with stats
+- `encode_template` — named build → validated, official in-game template code
+- `validate_build` — GW1 rule check: one elite max, profession/attribute ownership, primary attributes, duplicates
+- `get_hero` — hero record by exact name or GWCA id
+- `list_heroes` — hero roster with professions, campaigns and unlock notes, filterable by profession/campaign
+- `decode_pawned_team` — paw-ned2 team blobs (PvXwiki team pages) → every bar decoded
 
 Resources: `gw1://guide/build-workflow` (methodology for the LLM), `gw1://meta` (professions, attribute lines, campaigns, skill-type list and data import date) and `gw1://heroes`.
 

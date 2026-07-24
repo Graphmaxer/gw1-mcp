@@ -89,22 +89,22 @@ jobs:
           path: /tmp
       - name: Apply the imported data
         run: git apply /tmp/data-update.patch
-      # Numeric balance changes are what justifies a zero-touch weekly import;
-      # description changes are a different risk class. Descriptions travel
-      # verbatim into an LLM's context via get_skill/search_skills, so a
-      # vandalised upstream needs no code execution to attack a consumer — and no
-      # invariant test can catch it, since the suite checks ids and types, not
-      # the semantics of free text. Those diffs get a human.
-      - name: Flag description changes (prompt-injection channel)
+      # Descriptions travel verbatim into an LLM's context via get_skill and
+      # search_skills, so a vandalised upstream needs no code execution to attack
+      # a consumer, and no invariant test can catch it: the suite checks ids and
+      # types, never the meaning of free text.
+      #
+      # Flagging *any* description change was measured against upstream history
+      # and rejected: 97% of descriptions embed the numbers a balance patch
+      # edits, and legitimate commits reword text wholesale (6e05969 changed 301
+      # description fields at once). A gate that fires weekly is rubber-stamping.
+      # This flags added text instead — the shape an injected instruction has —
+      # at a threshold no commit in upstream history would have tripped.
+      - name: Flag suspicious description growth (prompt-injection channel)
         id: desc
-        run: |
-          set -euo pipefail
-          if git diff -- packages/gw-data/data/ | grep -qE '^[+-][[:space:]]*"description"'; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "Description text changed — auto-merge withheld."
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          fi
+        # Bare node: this job has no pnpm install and must not gain one (it holds
+        # contents:write). The script has zero dependencies for that reason.
+        run: node packages/gw-data/scripts/check-description-growth.mjs >> "$GITHUB_OUTPUT"
       - name: Open pull request
         id: data-pr
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
@@ -119,10 +119,12 @@ jobs:
 
             CI runs the full golden-fixture suite against the new data.
 
-            Descriptions changed: ${{ steps.desc.outputs.changed }}. When true,
-            auto-merge is withheld and this PR needs a human read of the
-            description diff — that text reaches an LLM's context verbatim, and
-            no test asserts anything about its meaning.
+            Suspicious description growth: ${{ steps.desc.outputs.changed }}.
+            When true, auto-merge is withheld: a description gained more added
+            text than any legitimate upstream commit ever has, and that text
+            reaches an LLM's context verbatim. Read the description diff — the
+            job log names the skills. Numeric balance edits and upstream
+            rewording do not trip this.
 
       - name: Enable auto-merge (zero-touch when CI passes, numeric diffs only)
         if: ${{ steps.data-pr.outputs.pull-request-number && steps.desc.outputs.changed == 'false' }}

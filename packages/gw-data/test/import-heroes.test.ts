@@ -41,6 +41,37 @@ describe("GWCA HeroID enum parsing", () => {
     expect(parsed.get(38)).toBe("Devona");
     expect(parsed.get(39)).toBe("GhostOfAlthea");
   });
+  // Regression: upstream Constants.h is re-read weekly by update-data.yml, so a
+  // comment added there must not be able to drop a hero or shift ids. Both
+  // styles used to corrupt the map silently; block comments used to throw.
+  it("ignores a // comment trailing an entry without swallowing the next hero", () => {
+    const enumSrc = `enum HeroID : uint32_t {NoHero, Norgu, Goren, // the warrior\n Tahlkora, MasterOfWhispers, Count};`;
+    expect([...parseHeroEnum(enumSrc)]).toEqual([
+      [1, "Norgu"],
+      [2, "Goren"],
+      [3, "Tahlkora"],
+      [4, "MasterOfWhispers"],
+    ]);
+  });
+  it("ignores comments on their own line and keeps ids contiguous", () => {
+    const enumSrc = `enum HeroID : uint32_t {NoHero, Norgu,\n// Reforged additions\nGoren, Tahlkora, Count};`;
+    expect([...parseHeroEnum(enumSrc)]).toEqual([
+      [1, "Norgu"],
+      [2, "Goren"],
+      [3, "Tahlkora"],
+    ]);
+  });
+  it("ignores block comments instead of throwing on them", () => {
+    const enumSrc = `enum HeroID : uint32_t {NoHero, Norgu, /* note */ Goren, Count};`;
+    expect([...parseHeroEnum(enumSrc)]).toEqual([
+      [1, "Norgu"],
+      [2, "Goren"],
+    ]);
+  });
+  it("still refuses explicit values rather than mis-numbering heroes", () => {
+    const enumSrc = `enum HeroID : uint32_t {NoHero, Norgu = 4, Goren, Count};`;
+    expect(() => parseHeroEnum(enumSrc)).toThrowError(/Update the parser/);
+  });
   it("splits camel case and applies overrides", () => {
     expect(identifierToName("PyreFierceshot")).toBe("Pyre Fierceshot");
     expect(identifierToName("AcolyteJin")).toBe("Acolyte Jin");

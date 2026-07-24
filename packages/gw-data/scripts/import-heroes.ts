@@ -61,10 +61,19 @@ export function identifierToName(identifier: string): string {
 export function parseHeroEnum(header: string): Map<number, string> {
   const match = header.match(/enum HeroID : uint32_t \{([\s\S]*?)\};/);
   if (!match?.[1]) throw new Error("HeroID enum not found in upstream header — format changed?");
+  // Comments must go BEFORE the split, not after. A `//` comment sitting on the
+  // same line as an entry used to be dropped together with the identifier that
+  // followed it on the next line ("Goren, // warrior\n Tahlkora" -> the token
+  // "// warrior\n Tahlkora" was filtered out whole), which silently removed a
+  // hero AND shifted every implicit id after it. Stripping first also restores
+  // the /^[A-Za-z0-9]+$/ guard below to its intended role: it now sees the real
+  // entries instead of never firing.
   const entries = match[1]
+    .replace(/\/\/[^\n]*/g, "")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
     .split(",")
     .map((token) => token.trim())
-    .filter((token) => token.length > 0 && !token.startsWith("//"));
+    .filter((token) => token.length > 0);
   const heroes = new Map<number, string>();
   entries.forEach((identifier, id) => {
     if (NON_HEROES.has(identifier) || MERC_PATTERN.test(identifier)) return;

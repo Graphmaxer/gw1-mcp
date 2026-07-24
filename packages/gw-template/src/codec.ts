@@ -84,11 +84,40 @@ export function encodeTemplate(template: SkillTemplate): string {
     );
   }
 
+  // Reject non-integers instead of silently truncating them: `1.5 >> 0` is 1, so
+  // a fractional skill id used to encode as a different, valid skill. Legality
+  // (unknown ids, duplicate attributes) stays the validator's job — this only
+  // guarantees the input is the kind of number the bit writer can represent.
+  for (const [label, values] of [
+    ["skill id", template.skills],
+    ["profession id", [template.primary, template.secondary]],
+    ["attribute id", template.attributes.map((a) => a.attributeId)],
+    ["attribute rank", template.attributes.map((a) => a.rank)],
+  ] as const) {
+    for (const value of values) {
+      if (!Number.isInteger(value) || value < 0) {
+        throw new TemplateError(
+          "VALUE_OUT_OF_RANGE",
+          `Invalid ${label} ${value}: expected a non-negative integer`,
+        );
+      }
+    }
+  }
+
   // The in-game encoder uses the smallest bit widths that fit the content;
   // matching that choice is what makes encode(decode(code)) === code.
   const maxProfession = Math.max(template.primary, template.secondary);
   const professionCode = Math.max(0, Math.ceil((bitLength(maxProfession) - 4) / 2));
   const professionBits = professionCode * 2 + 4;
+  // professionCode occupies 2 bits, so the format tops out at 10-bit profession
+  // ids. Without this the failure surfaced as "Value 4 does not fit in 2 bits",
+  // which names an internal field rather than the caller's actual mistake.
+  if (professionCode > 3) {
+    throw new TemplateError(
+      "VALUE_OUT_OF_RANGE",
+      `Profession id ${maxProfession} exceeds what a skill template can encode (max 10 bits)`,
+    );
+  }
 
   const maxAttribute = template.attributes.reduce((m, a) => Math.max(m, a.attributeId), 0);
   const attributeBits = Math.max(4, bitLength(maxAttribute));

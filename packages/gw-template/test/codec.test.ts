@@ -71,6 +71,40 @@ describe("errors", () => {
       encodeTemplate({ primary: 1, secondary: 0, attributes: [], skills: [0] }),
     ).toThrowError(TemplateError);
   });
+
+  it("rejects fractional ids instead of truncating them to another skill", () => {
+    // `1.5 >> 0` is 1, so this used to encode silently as skill 1.
+    expect(() =>
+      encodeTemplate({
+        primary: 1,
+        secondary: 0,
+        attributes: [],
+        skills: [1.5, 0, 0, 0, 0, 0, 0, 0],
+      }),
+    ).toThrowError(/expected a non-negative integer/);
+  });
+
+  it("rejects negative ids", () => {
+    expect(() =>
+      encodeTemplate({
+        primary: 1,
+        secondary: 0,
+        attributes: [{ attributeId: -1, rank: 0 }],
+        skills: [0, 0, 0, 0, 0, 0, 0, 0],
+      }),
+    ).toThrowError(/expected a non-negative integer/);
+  });
+
+  it("names the profession id, not an internal bit field, when it cannot fit", () => {
+    expect(() =>
+      encodeTemplate({
+        primary: 4096,
+        secondary: 0,
+        attributes: [],
+        skills: [0, 0, 0, 0, 0, 0, 0, 0],
+      }),
+    ).toThrowError(/Profession id 4096 exceeds/);
+  });
 });
 
 describe("malformed input rejection", () => {

@@ -23,3 +23,8 @@ overrides:
   # several libvips CVEs below 0.35.0 (GHSA-f88m-g3jw-g9cj). Production
   # exposure is nil either way, but no reason to leave it unpatched locally.
   "sharp": "^0.35.0"
+  # postcss <= 8.5.17 is reachable only through vitest -> vite (
+  # GHSA-r28c-9q8g-f849, path traversal via a crafted previous source map).
+  # Dev-only, zero production exposure — same reasoning as the three above, and
+  # the same conclusion: no reason to keep a vulnerable copy in the tree.
+  "postcss": "^8.5.18"

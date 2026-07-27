@@ -45,6 +45,30 @@ queries (full notes in `docs/analytics-queries.md`):
 The underlying queries live in `docs/analytics-queries.md` with the two
 rules that matter (`SUM(_sample_interval)`, 90-day retention).
 
+## Grafana Cloud Free tier: retention does NOT apply here
+
+Grafana Cloud Free caps retention at 14 days for metrics, logs, traces and
+profiles. **That limit is irrelevant to this dashboard, and the panels must
+not be shortened to match it.**
+
+Nothing here is ingested into Grafana. Infinity is a query-time data source:
+every panel issues an HTTP POST to Cloudflare's Analytics Engine SQL API and
+renders the response. No series are stored, no Loki streams are written, and
+none of the Free-tier usage meters are touched. The only retention that binds
+is **Cloudflare Analytics Engine's 90 days**, which is a property of the
+worker's `analytics_engine_datasets` binding — not of the Grafana plan.
+
+So the dashboard's `now-30d` default is fine and could go to `now-90d`. Past
+90 days the API returns nothing regardless of plan.
+
+What a Free plan _can_ affect is the delivery mechanism rather than the data:
+if Git Sync turns out to be gated to a paid tier, this folder stops being
+live-provisioned. Check Administration -> Provisioning in the instance. The
+fallback needs no plan at all: the dashboard JSON here is a plain export, so
+Dashboards -> New -> Import (paste the file) reproduces it, and "Export for
+sharing externally" produces the file to commit back. Manual, but the repo
+stays the source of truth.
+
 **Formatting note:** oxfmt deliberately ignores `grafana/*.json`. Grafana is
 the owning serializer of these files — a Save in the UI commits back its own
 export format (bidirectional Git Sync), and two formatters fighting over one

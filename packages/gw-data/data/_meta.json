@@ -1,12 +1,13 @@
 {
  "skills": {
   "source": "https://github.com/build-wars/gw-skilldata (npm: @buildwars/gw-skilldata)",
-  "sourceVersion": "pages@445d3abc3a2f (sha256 skilldata:868901efcb00870e desc:6d636519acdb97c0 skilldataSchema:0e1cb51189d0dd8c descSchema:5779171e35e6f56c bundle:13377c2f426251e4)",
-  "importedAt": "2026-07-21"
+  "sourceVersion": "pages@b407e45e9f57 (sha256 skilldata:2f4bcec2bdec14fd desc:7af3a68fbf7dabc8 skilldataSchema:0e1cb51189d0dd8c descSchema:5779171e35e6f56c bundle:16b23d3da9fd0e24)",
+  "importedAt": "2026-07-27",
+  "freshness": "Upstream is actively maintained and tracks Guild Wars Reforged balance updates (stat changes and newly added skills). Data is only as fresh as the installed package version; run the update workflow or `pnpm update @buildwars/gw-skilldata` to refresh. Recent balance notes: https://wiki.guildwars.com/wiki/Game_updates"
  },
  "heroes": {
   "source": "https://raw.githubusercontent.com/gwdevhub/GWToolboxpp/master/Dependencies/GWCA/include/GWCA/Constants/Constants.h (GWCA HeroID enum, vendored in GWToolboxpp — the living source; standalone gwdevhub/GWCA is gone)",
-  "generatedAt": "2026-07-21",
+  "generatedAt": "2026-07-27",
   "curatedOverlay": "data/heroes-overlay.json (professionId/campaignId/unlock — human knowledge, no machine-readable source exists)"
  }
 }

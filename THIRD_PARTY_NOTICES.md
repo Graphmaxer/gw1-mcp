@@ -40,6 +40,25 @@ from its code** (`build-wars/gw-skilldata`, `tools/Builder/Builder.php` and
   this file attributed content to that wiki under CC BY-NC-SA 2.5. That was
   wrong on the source, and consequently wrong on the license and the version.
 
+### Why `LICENSES/GFDL-1.3.txt` stays, despite the open question below
+
+Tempting to delete it once you conclude the wiki licenses may not govern the
+text. Don't. The GFDL requires it: section 4.H says "Include an unaltered copy
+of this License." So if it applies to anything shipped here, vendoring the text
+is a compliance obligation, not a courtesy.
+
+The risk is asymmetric. Keeping the file costs 20 KB, and is either compliance
+or a harmless spare. Deleting it saves nothing, and is a breach of 4.H if the
+license does apply. A license text is not removed because its applicability is
+in doubt — it is removed once the doubt is resolved against it, in writing, by
+someone qualified to resolve it. That has not happened.
+
+Note too that tracing the pipeline made the GFDL MORE relevant, not less: all
+English text here comes from the official wiki, which is the GFDL one. And the
+open question does not clear the whole import — even if descriptions are verbatim
+in-game strings, fields such as `type` plausibly reflect wiki editors' own
+classification.
+
 ### The constraint that probably actually governs
 
 Both wikis state plainly that in-game material is not theirs to license.

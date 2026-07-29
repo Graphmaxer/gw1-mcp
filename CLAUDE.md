@@ -604,7 +604,35 @@ Tool design rules:
 ## Later milestones (context, not current work)
 
 1. ~~MCP `resources`~~ — gw1://guide/build-workflow and gw1://heroes are live; mission threat summaries still to do.
-2. `heroes_from_progression` tool: compute available heroes deterministically from campaign progress.
+2. `heroes_from_progression` tool — **DECLINED 2026-07-29**, kept here as a
+   documented decision rather than pending work, so the analysis is not redone.
+   The obstacle is not implementation difficulty, it is that the data the tool
+   would need does not exist anywhere in this project:
+   - The 31 unlock notes in `heroes.json` are prose ("Nightfall — story branch
+     in Kourna (mutually exclusive with Margrid)"). They are not machine
+     decidable: no quest or mission identifiers, no ordering, and at least one
+     genuinely branching condition.
+   - Making them decidable means adding a quests/missions dataset. That is a new
+     data domain, and it walks into the non-goal about not becoming a guide or
+     strategy database.
+   - There is no trustworthy input either. The AccountExport plugin exports
+     `unlockedAccountSkills` and nothing about quest, mission or campaign
+     progress, so the input would be the player describing their progress in
+     prose — which is exactly what an LLM already handles well from the notes.
+   - Reforged is still adding content, so any curated unlock table would need
+     maintaining against a moving target.
+   - And every added tool widens `tools/list`, whose ~4 550 tokens are paid by
+     every conversation (debt #10).
+
+   The prose notes are already the right interface for the consumer this server
+   actually has: a model reading "mutually exclusive with Margrid", plus a user
+   saying which branch they took, reaches the correct answer without any of the
+   above.
+
+   Reopen if either of these changes: the export plugin gains real progression
+   state (quest or mission completion), or an upstream dataset makes unlock
+   conditions available structurally rather than as curated prose.
+
 3. Cloudflare Workers deployment + custom connector on claude.ai; then Anthropic connectors directory submission.
 4. ~~GWToolbox export plugin~~ — written in gwtoolbox-plugin/AccountExport; needs first Windows build, then consider upstreaming as a PR to GWToolbox's Completion window.
 

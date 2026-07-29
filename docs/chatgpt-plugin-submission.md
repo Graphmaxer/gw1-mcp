@@ -26,8 +26,12 @@ redeploy needed).
   before a code is produced. All tools are read-only; no account or
   authentication needed.
 - Category: Entertainment (or Gaming if available)
-- Logo: upload assets/brand/logo-1024.png (1024x1024 PNG). ChatGPT accepts a
-  raster logo directly — no need to vectorize.
+- Logo: upload assets/brand/logo-1024.png (1024x1024 PNG, transparent
+  background). ChatGPT accepts a raster logo directly — no need to
+  vectorize. If the listing preview shows the mark washed out on a light
+  surface, swap in assets/brand/logo-1024-tile.png, which keeps the dark
+  charcoal tile: the mark is gold and measures 1.77:1 against white versus
+  9.17:1 against dark. See assets/brand/README.md.
 - Website / support: https://github.com/Graphmaxer/gw1-mcp
 - Privacy policy: https://gw1-mcp.graphmaxer.workers.dev/privacy
 - Terms: repository MIT license page

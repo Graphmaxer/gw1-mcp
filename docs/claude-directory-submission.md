@@ -84,9 +84,12 @@ None needed — no authentication. Reviewer test script:
 
 ## Branding
 
-- Logo (upload): assets/brand/logo-1024.png (1024x1024 PNG — the scythe +
-  8-slot skill-bar badge; directory forms prefer a raster logo). A 512px
-  copy sits beside it. The worker also serves a 32px PNG favicon derived from this same logo at
+- Logo (upload): assets/brand/logo-1024.png (1024x1024 PNG, transparent
+  background — the scythe + 8-slot skill-bar badge; directory forms prefer
+  a raster logo). 512px and 256px copies sit beside it, plus
+  logo-*-tile.png variants that keep the dark charcoal tile for surfaces
+  where the gold mark needs the contrast (1.77:1 on white vs 9.17:1 on
+  dark). See assets/brand/README.md. The worker also serves a 32px PNG favicon derived from this same logo at
   /favicon.ico and /logo.png, but upload the 1024px PNG on the form.
 - Favicon: /favicon.ico on the MCP hostname (32px PNG derived from the logo)
 - Screenshots: N/A — not an MCP App (no interactive UI); the directory

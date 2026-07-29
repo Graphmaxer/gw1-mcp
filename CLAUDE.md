@@ -425,6 +425,18 @@ is_rp.
    (docs/upstream-gw-templates-bug.md, report ready to file). Our sentinel
    test pins the buggy behavior: when upstream fixes it, the sentinel FAILS
    on purpose — update the sentinel and delete this line.
+   VERIFIED NOT EXPOSED, 2026-07-29 — do not let this line scare anyone into
+   reimplementing the dependency (it nearly did). Three independent reasons:
+   the bug is on the ENCODE side (getPadSize is called only from
+   SkillTemplate.encode and EquipmentTemplate.encode) and we only ever call
+   decode; it lives in SkillTemplate/EquipmentTemplate while we import only
+   PwndTemplate, which neither uses getPadSize nor delegates to those
+   encoders; and PwndTemplate.decode hands back each slot's skill code as an
+   opaque string that OUR codec decodes. Demonstrated on the real PvX fixture:
+   slot 0 decodes to 2358,1035,2235,2353 — and 2235 is one of the very ids the
+   bug report names as corruptible. The report is still worth filing for other
+   consumers; the report itself notes gw1builds.com depends on this library in
+   production, where the encode path IS used.
 5. heroes.json is GENERATED (scripts/import-heroes.ts): ids/names are
    derived at import time from the GWCA HeroID enum (vendored in GWToolboxpp
    — the standalone gwdevhub/GWCA repo 404s since ~2026, the vendored copy

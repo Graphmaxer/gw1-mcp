@@ -502,20 +502,45 @@ since 2019; see Data maintenance.)
   speculative locale data. Revisit only if a machine-readable FR source
   appears; LLM callers translate French skill names to English well anyway.
 
-## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-07-21)
+## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-07-29)
 
 Everything through distribution is DONE and live: codec (four verification
-layers), 1485 skills Reforged-current, 8 MCP tools + 3 resources, worker
-deployed on Cloudflare (auto-deploy per push), published on the official MCP
-Registry, releases automated (changelog + DLL + registry in cascade), plugin
-compiled clean in CI (/W4 /WX). Bundle size: whatever
+layers), skills Reforged-current (count lives in the data, not in prose —
+see the doc-count locks in gw-data/test/repository.test.ts), 8 MCP tools + 3
+resources, worker deployed on Cloudflare (auto-deploy per push), published on
+the official MCP Registry, releases automated (changelog + DLL + registry in
+cascade), plugin compiled clean in CI (/W4 /WX). Bundle size: whatever
 `pnpm --filter @gw1-mcp/gw-worker check` prints — do not hardcode it here.
-NEXT (maintainer-gated only): file the upstream bug report (debt #4,
-report ready in docs/), submit to the ChatGPT and Claude directories
-(kits in docs/). Debts #2 and #3 were CLOSED 2026-07-16: the DLL exported
-a real account in production (hero names from the generated table, export
-fed validate_build end-to-end) and nine in-game codes settled every codec
-question.
+
+A three-part external audit was worked through on 2026-07-24..29 and closed 24
+of its actionable findings. What changed structurally, so the shape of the code
+is not a surprise:
+
+- `parseHeroEnum` strips comments BEFORE splitting — an upstream `//` used to
+  swallow the next hero and shift every HeroID after it.
+- Suggestions: token-prefix match first, then bounded edit distance capped at 5
+  (calibrated on measured distances, see the comment). Abbreviations resolve;
+  French names return nothing rather than a confident wrong answer. The distance
+  kernel is `fastest-levenshtein` — gw-data's first and only runtime dependency,
+  taken on purpose to delete a hand-written banded matrix.
+- Validator: `forPvp` mirrors `forHero` in both directions; `UNUSED_ATTRIBUTE`
+  exists but never fires on a primary attribute (a primary is never wasted).
+- HTTP surface: CORS is open (`*`) because the service is public, read-only and
+  credential-free; GET and DELETE on /mcp answer 405 because the server is
+  stateless. MCP 2026-07-28 makes that stateless core the default model, so this
+  aged well. There is deliberately NO `server.close()` in the /mcp handler — see
+  the comment; adding it empties every response.
+- Upstream data imports pass a plausibility gate, and auto-merge is withheld
+  when a description grows more than any legitimate upstream commit ever has
+  (+80 chars; largest observed is +56).
+
+NEXT (maintainer-gated only): file the upstream bug report (debt #4, report
+ready in docs/), submit to the ChatGPT and Claude directories (kits in docs/,
+refreshed 2026-07-29 against the current forms), and read the `exceededCpu`
+counter that debt #9 hangs on. Debts #2 and #3 were CLOSED 2026-07-16: the DLL
+exported a real account in production (hero names from the generated table,
+export fed validate_build end-to-end) and nine in-game codes settled every
+codec question.
 
 ## MCP tools (MVP scope — do not add more without discussion)
 

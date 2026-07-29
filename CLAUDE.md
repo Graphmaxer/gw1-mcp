@@ -372,14 +372,21 @@ Levenshtein length guard, 512 KiB body limit); data licensing (AUD-02 —
 THIRD_PARTY_NOTICES.md: descriptions are GFDL/CC-BY-NC-SA, not MIT — LEGAL
 SIGN-OFF STILL OWED before any commercial redistribution, and note that
 submitting to a public directory is arguably the distribution event that
-trigger names. Refined 2026-07-29: the notice previously asserted CC BY-NC-SA
-**2.5** with no source, while GuildWiki's own copyright page names **2.0**; and
-the deeper open question is whether the descriptions are wiki-authored text at
-all, since upstream @buildwars/gw-skilldata ships MIT with zero wiki
-attribution. If those strings come from the game client they are ArenaNet
-copyright under fan-site terms and neither wiki license is the right
-instrument. No CC text is vendored under LICENSES/ until that is settled —
-committing the wrong version would assert materially different terms); privacy/security
+trigger names. TRACED from upstream code 2026-07-29 and the notice
+corrected: the CC BY-NC-SA attribution pointed at guildwars.fandom.com, which
+is NOT in the pipeline. build-wars/gw-skilldata has exactly two fetchers —
+English from wiki.guildwars.com (official, GFDL 1.3, which PERMITS commercial
+use) and German from guildwiki.de (BY-NC-SA). KEYS_DESC (name, description,
+concise) comes from the language's own wiki, so all English text we ship is
+GFDL; guildwiki.de contributes only the seven numeric stat fields via
+USE_FIELDS. So the NonCommercial clause this sign-off was feared for does not
+appear to touch the text at all. The sharper question, and the one for counsel:
+both wikis state that in-game names and texts are ArenaNet/NCsoft copyright
+used under the Community Fansite Program and NOT covered by their own content
+license — and a skill description is a verbatim in-game string, not editor
+prose. So neither GFDL nor CC may be the operative instrument. No CC text is
+vendored under LICENSES/ because it is not established that a CC license
+applies to anything we ship as prose); privacy/security
 text accuracy (AUD-06); provenance hashes all 5 artifacts (AUD-05); export
 doc learned-vs-unlocked (AUD-10); encode schema honesty (AUD-04); pagination
 offset + fixture-count drift (P2). Two findings kept as documented

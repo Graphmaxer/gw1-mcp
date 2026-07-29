@@ -99,3 +99,58 @@ there:
    explicitly as **Number** (and time buckets as **Timestamp**, format
    `2006-01-02 15:04:05`) in the query's column mapping; parser must be
    **Backend** for root selector + column mapping + macros to work.
+
+## Who actually calls this server (Workers Logs, measured 2026-07-29)
+
+The Analytics Engine dataset records a method/tool label and nothing about the
+caller, by design. Caller identity lives in Workers Logs instead, queryable in
+the dashboard under Observability with `$workers.event.request.headers.user-agent`.
+Over 7 days:
+
+| Caller                          | Requests | What it is                                                                                                                                              |
+| ------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SentinelOracle/0.1`            | 5 662    | uptime monitor; `initialize` → `notifications/initialized` → `tools/list` every ~5 min, and it says so in its UA ("liveness-only, never invokes tools") |
+| `python-httpx/0.28.1`           | 1 276    | unattributed generic client                                                                                                                             |
+| `node`                          | 1 178    | unattributed generic client                                                                                                                             |
+| `aisec-registry/0.2`            | 1 044    | security scanner (sec.sqrx.io)                                                                                                                          |
+| `AgenstryBot/0.3.0`             | 330      | self-identified crawler                                                                                                                                 |
+| `agent-tools.cloud-crawler/0.1` | 280      | directory crawler                                                                                                                                       |
+| `ClaudeBot/1.0`                 | 147      | Anthropic's **web** crawler, not MCP traffic                                                                                                            |
+| `MCPScoringEngine/1.0`          | 135      | scores MCP servers                                                                                                                                      |
+| `402explorer/0.1`               | 121      | probes for payment-required support                                                                                                                     |
+| `io.verifymcp/probe`            | 72       | source of the `tool:__verifymcp_auth_probe_*` labels in Grafana                                                                                         |
+
+**This is why the "Protocol overhead share" panel reads ~97.5%.** One uptime
+monitor is roughly 65% of all traffic and never calls a tool. The panel is
+accurate but easy to misread as "directories are evaluating us": it is mostly a
+health check. Reading real usage requires excluding monitors, which needs a
+client dimension in the dataset that does not exist yet.
+
+### The 404s in the logs are correct — do not "fix" them
+
+`aisec-registry` probes three paths, 261 times each, all 404:
+
+```
+/mcp/.well-known/oauth-authorization-server
+/mcp/.well-known/oauth-protected-resource
+/mcp/.well-known/mcp
+```
+
+The first two are MCP authorization discovery (correctly probed relative to the
+`/mcp` endpoint path, not the domain root). **This server has no authentication,
+so it is not a protected resource and has no authorization server to advertise.**
+404 is the answer that tells a client "no auth required", and the same crawler's
+261 `POST /mcp` calls all return 200 — its functional request works.
+
+Serving those documents would be worse than a 404: it would advertise an
+authorization server that does not exist, and a client following that pointer
+would try to authenticate and fail. If auth is ever added, these are the
+endpoints to implement — not before.
+
+### The 405s are not a problem either
+
+250 over 7 days (~36/day against ~1 600/day), from `GET /mcp`, which returns 405
+because the server is stateless (see the B2 note in the app). `node` receives
+405s on GET **and** succeeds with 760 POSTs — clients fall back correctly. This
+was investigated as a possible directory-health-check failure and the data does
+not support it.

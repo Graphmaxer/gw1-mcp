@@ -158,14 +158,25 @@ describe("documented counts stay true (mechanical lock)", () => {
   // It changes only through the automated weekly import, so it can be checked
   // against the data instead of trusted to a human habit.
   const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
-  for (const doc of ["../../../README.md", "../../../CLAUDE.md"] as const) {
-    it(`${doc} quotes the real skill count`, () => {
-      const text = read(doc);
-      const quoted = [...text.matchAll(/(\d{3,5}) (?:real )?skills/g)].map((m) => Number(m[1]));
-      expect(quoted.length).toBeGreaterThan(0);
-      for (const count of quoted) expect(count).toBe(skills.length);
-    });
-  }
+  const quotedCounts = (text: string) =>
+    [...text.matchAll(/(\d{3,5}) (?:real )?skills/g)].map((m) => Number(m[1]));
+
+  // README advertises the count on purpose, so here the count must exist AND be
+  // right — that also keeps the check non-vacuous.
+  it("README.md quotes the real skill count", () => {
+    const quoted = quotedCounts(read("../../../README.md"));
+    expect(quoted.length).toBeGreaterThan(0);
+    for (const count of quoted) expect(count).toBe(skills.length);
+  });
+
+  // Everywhere else the rule is only "if you quote it, be right". Requiring a
+  // count to be present was an accident of writing this check, and it fired
+  // when the status section legitimately stopped quoting one.
+  it("CLAUDE.md quotes no stale skill count", () => {
+    for (const count of quotedCounts(read("../../../CLAUDE.md"))) {
+      expect(count).toBe(skills.length);
+    }
+  });
 
   // Inverse lock for the submission kits. Their text is copy-pasted into public
   // store listings, and once published a description is part of a versioned

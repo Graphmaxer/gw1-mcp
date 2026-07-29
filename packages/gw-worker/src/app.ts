@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import type { Context } from "hono";
+import type { Context, MiddlewareHandler } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { StreamableHTTPTransport } from "@hono/mcp";
@@ -54,6 +54,20 @@ type AppEnv = {
 
 export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array()): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
+
+  // The endpoint answers on both spellings. Hono routes "/mcp/" as a distinct
+  // path from "/mcp", so a client that builds its URL by joining a trailing
+  // slash got a 404 and failed outright — measured 21 times in 7 days in Workers
+  // Logs. Unlike the discovery documents we deliberately do not serve, the
+  // capability here exists and only the path spelling differed, so accepting
+  // both is interoperability rather than a false claim. Every middleware below
+  // (CORS, hardening headers, body limit, origin check, analytics) is registered
+  // against this same list so the two paths cannot drift apart.
+  const MCP_PATHS = ["/mcp", "/mcp/"] as const;
+  /** Register a middleware on every spelling of the endpoint at once. */
+  const useOnMcp = (mw: MiddlewareHandler<AppEnv>) => {
+    for (const path of MCP_PATHS) app.use(path, mw);
+  };
 
   // Response hardening (B4), on EVERY route rather than just /mcp: the routes a
   // browser or a directory scanner actually visits are /, /privacy and
@@ -217,8 +231,7 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
   // safe *here* specifically: the service is public, read-only and
   // credential-free, so "*" grants a browser nothing curl does not already have.
   // There is no cookie, no session and no Authorization header to ride on.
-  app.use(
-    "/mcp",
+  useOnMcp(
     cors({
       origin: "*",
       allowMethods: ["POST", "GET", "OPTIONS"],
@@ -232,7 +245,7 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
   // request-specific and must never come from a shared cache, whereas the
   // discovery document, security.txt and the favicon are static and benefit from
   // being cacheable.
-  app.use("/mcp", async (c, next) => {
+  useOnMcp(async (c, next) => {
     await next();
     c.header("Cache-Control", "no-store");
   });
@@ -256,7 +269,7 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
 
   // Optional binding (absent in dev/tests -> fail-open), same philosophy as
   // MCP_ANALYTICS: protection must never break the service it protects.
-  app.use("/mcp", async (c, next) => {
+  useOnMcp(async (c, next) => {
     const limiter = c.env?.RATE_LIMITER;
     if (limiter) {
       const key = c.req.header("CF-Connecting-IP") ?? "unknown";
@@ -289,7 +302,7 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
     await next();
   });
 
-  app.use("/mcp", async (c, next) => {
+  useOnMcp(async (c, next) => {
     const origin = c.req.header("Origin");
     // Parse the Origin rather than string-prefixing (GW1-12): startsWith
     // "https://" accepts "https://evil.example" and even "https://" as a
@@ -335,10 +348,12 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
       405,
       { Allow: "POST, OPTIONS" },
     );
-  app.get("/mcp", methodNotAllowed);
-  app.delete("/mcp", methodNotAllowed);
+  for (const path of MCP_PATHS) {
+    app.get(path, methodNotAllowed);
+    app.delete(path, methodNotAllowed);
+  }
 
-  app.all("/mcp", async (c) => {
+  const handleMcp = async (c: Context<AppEnv>) => {
     // Usage analytics: count tool invocations by NAME only — never arguments,
     // never identities (see /privacy). Fail-soft by design: the binding is
     // optional (absent in local dev/tests) and any parse error is swallowed;
@@ -382,7 +397,8 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
     // mode. The repo's own tests do catch this (3 failures in test/http.test.ts),
     // which is the guardrail; this comment is so nobody "fixes" it again.
     return transport.handleRequest(c);
-  });
+  };
+  for (const path of MCP_PATHS) app.all(path, handleMcp);
 
   return app;
 }

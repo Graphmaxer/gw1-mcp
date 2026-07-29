@@ -160,11 +160,34 @@ checks, missing manifests, directories hammering us) all dissolved under
 measurement, and the one real defect was something nobody suspected, visible only
 because a crawler kept retrying.
 
+### The other real bug: `/mcp/` with a trailing slash 404'd
+
+21 requests in 7 days hit `/mcp` and got a 404, which should have been
+impossible: POST works, GET and DELETE answer 405, and `app.all` catches the
+rest. Reproduced locally — Hono routes **`/mcp/` as a path distinct from
+`/mcp`**, so any client that builds its URL by joining a trailing slash fell
+through every route and got a bare 404. It failed outright; there was no
+fallback. (`/MCP` also 404s, correctly: paths are case-sensitive.)
+
+Fixed by registering every middleware and handler against both spellings through
+a single list, so the two cannot drift apart, with tests asserting identical
+behaviour on both for the tool call, the hardening headers, the GET 405, the
+preflight and the origin rejection.
+
+Note the contrast with the section below: here the capability existed and only
+the path spelling differed, so accepting both is interoperability. Serving a
+discovery document for an interface that does not exist would be a false claim.
+
 ### Manifests deliberately NOT served
 
-`AgenstryBot` probes four agent-manifest conventions, 11 times each:
-`/.well-known/ai-plugin.json`, `/a2a.json`, `/agent-card.json`,
-`/.well-known/mcp.json`. None are served, on purpose: the ChatGPT plugin manifest
+One scanner brute-forces roughly twenty agent-discovery conventions, ~11 hits
+each: `/.well-known/ai-plugin.json`, `/a2a.json`, `/agent-card.json`,
+`/agent.json`, `/agent`, `/.well-known/agent.json`, `/.well-known/agents.json`,
+`/.well-known/ai-agent.json`, `/.well-known/mcp.json`, `/.well-known/did.json`,
+`/.well-known/x402`, `/openrpc.json`, `/api/agent.json`, `/api/agent-card.json`,
+`/agents/agent-card.json`, `/a2a/.well-known/agent-card.json`,
+`/agent/authenticatedExtendedCard` and more. The uniform count reveals a single
+crawler working through a path list, not many directories each wanting a file. None are served, on purpose: the ChatGPT plugin manifest
 is superseded by Apps/MCP, the A2A agent cards would describe an agent this is
 not, and `/.well-known/mcp.json` has no schema in the MCP specification. Same
 rule as the OAuth endpoints — do not advertise an interface you do not implement.

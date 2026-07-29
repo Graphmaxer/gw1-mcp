@@ -200,6 +200,51 @@ describe("CORS and method handling on /mcp", () => {
   });
 });
 
+describe("the endpoint answers with and without a trailing slash", () => {
+  // Hono routes "/mcp/" as a distinct path, so a client joining a trailing slash
+  // used to get a plain 404 and fail outright — 21 times in 7 days of production
+  // logs. Both spellings must stay identical across the whole middleware chain,
+  // which is what these assertions lock.
+  const call = JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" });
+  const headers = {
+    "Content-Type": "application/json",
+    Accept: "application/json, text/event-stream",
+  };
+
+  for (const path of ["/mcp", "/mcp/"] as const) {
+    it(`serves a tool call on ${path}`, async () => {
+      const res = await createApp().request(path, { method: "POST", headers, body: call });
+      expect(res.status).toBe(200);
+      expect((await res.text()).length).toBeGreaterThan(100);
+    });
+
+    it(`applies the hardening headers on ${path}`, async () => {
+      const res = await createApp().request(path, { method: "POST", headers, body: call });
+      expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+      expect(res.headers.get("cache-control")).toBe("no-store");
+    });
+
+    it(`still 405s GET and answers preflight on ${path}`, async () => {
+      const app = createApp();
+      expect((await app.request(path, { method: "GET" })).status).toBe(405);
+      const pre = await app.request(path, {
+        method: "OPTIONS",
+        headers: { Origin: "https://inspector.example", "Access-Control-Request-Method": "POST" },
+      });
+      expect(pre.headers.get("access-control-allow-origin")).toBe("*");
+    });
+
+    it(`still rejects a non-loopback http origin on ${path}`, async () => {
+      const res = await createApp().request(path, {
+        method: "POST",
+        headers: { ...headers, Origin: "http://evil.example" },
+        body: call,
+      });
+      expect(res.status).toBe(403);
+    });
+  }
+});
+
 describe("robots.txt", () => {
   it("is served, and tells crawlers not to fetch the JSON-RPC endpoint", async () => {
     const res = await createApp().request("/robots.txt");

@@ -18,12 +18,39 @@ originates from the Guild Wars community wikis and carries their licenses:
   are under the **GNU Free Documentation License 1.3 (GFDL)** — full text at
   [`LICENSES/GFDL-1.3.txt`](./LICENSES/GFDL-1.3.txt).
 - Text and data derived from the **[GuildWiki](https://guildwars.fandom.com)**
-  are under **Creative Commons Attribution-NonCommercial-ShareAlike 2.5
-  (CC BY-NC-SA 2.5)** — canonical text at
-  <https://creativecommons.org/licenses/by-nc-sa/2.5/legalcode>.
+  are under a **Creative Commons Attribution-NonCommercial-ShareAlike**
+  license. The exact version is NOT settled, and this file previously asserted
+  2.5 without a source. What can be cited (checked 2026-07-29):
+  - GuildWiki's own
+    [copyright page](https://guildwars.fandom.com/wiki/GuildWars_Wiki:Copyright)
+    states the **2.0** license by name.
+  - Its
+    [community history](https://guildwars.fandom.com/wiki/GuildWars_Wiki:Community_History)
+    also says "CC 2.0 by-nc-sa", and a 2010 community discussion quotes
+    "Creative Commons BY-NC-SA 2.0 §4.c" when arguing the license's terms.
+  - The Fandom page footer states only "CC-BY-NC-SA unless otherwise noted",
+    with no version.
 
-This project does not currently distinguish, field by field, which English
-skill descriptions trace to the Guild Wars Wiki versus GuildWiki — that
+  No license text is vendored under `LICENSES/` for this one on purpose:
+  committing the wrong version's text would assert terms that differ
+  materially from the ones actually granted (2.x terminates automatically on
+  breach where 4.0 grants a 30-day cure period, and 4.0 covers sui generis
+  database rights, which matters for a project that ships a database). A
+  citation that is honest about the ambiguity is better than a file that is
+  confidently wrong.
+
+A deeper gap sits above the version question, and it should be resolved first:
+**it is not established that the skill descriptions are wiki-authored text at
+all.** The upstream package `@buildwars/gw-skilldata` ships under **MIT with no
+wiki attribution whatsoever** — its README describes "skill data and skill
+descriptions" with no provenance statement. If those strings were extracted from
+the game client rather than written by wiki editors, they are ArenaNet/NCSoft
+copyright used under fan-site terms, and neither wiki license is the right
+instrument. The GFDL/CC framing in this file is a conservative assumption made
+downstream, not a fact inherited from upstream.
+
+This project also does not distinguish, field by field, which English skill
+descriptions would trace to the Guild Wars Wiki versus GuildWiki — that
 attribution lives further upstream than this repository controls. Treat the
 whole `skilldata`/`skilldesc` import as subject to BOTH licenses' obligations
 until a field-level provenance split is established.

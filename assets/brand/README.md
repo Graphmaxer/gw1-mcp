@@ -33,3 +33,32 @@ mark does not touch the edges — and the colour is then _unmatted_:
 Without that last step the anti-aliased edge pixels keep the dark background
 mixed into them and show as a dirty fringe on light backgrounds. Verified by
 compositing over white, near-white and dark.
+
+## `social-preview.png` (1280×640)
+
+GitHub's Open Graph card. **It cannot be committed into place** — upload it at
+Settings → General → Social preview. The file lives here for provenance and so
+it can be regenerated.
+
+Design notes, so a future change stays deliberate:
+
+- **The content is real, and the product made it.** The template code
+  `OgCjkyrKLOu3mL0dAzcZvmXxL` is not decorative filler: it is the actual output
+  of `encodeTemplate` for a Dervish scythe bar (Avatar of Balthazar, Eremite's
+  Attack, Victorious Sweep, Chilling Victory, Mystic Sweep, Mystic Regeneration,
+  Sand Shards, Vital Boon; Scythe 12 / Earth Prayers 10 / Mysticism 8). It
+  passes `validateBuild` with zero errors and zero warnings, and round-trips
+  through `decodeTemplate` back to the same bar. The first two drafts did not:
+  the validator rejected MULTIPLE_ELITES, then ATTRIBUTE_POINTS_EXCEEDED at
+  224/200. A card advertising a validator should not show a build its own
+  validator refuses.
+- **The eight slots are the logo's device, reused.** Exactly one is gold —
+  the single elite the validator allows. The structure encodes a game rule
+  rather than decorating the space.
+- **Type pairs a renaissance serif with a monospace** (TeX Gyre Pagella +
+  DejaVu Sans Mono). That tension is the project: a 2005 game meeting an LLM
+  protocol. A geometric sans would have read as generic developer-tool.
+- **Margins are 72px** so the 1.91:1 crop Facebook and LinkedIn apply takes
+  only empty ground. Verified at 590px feed scale, where the code is still
+  legible — which is why the code is set large and the skill names are not on
+  the card at all.

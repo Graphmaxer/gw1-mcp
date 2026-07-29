@@ -603,7 +603,29 @@ Tool design rules:
 
 ## Later milestones (context, not current work)
 
-1. ~~MCP `resources`~~ — gw1://guide/build-workflow and gw1://heroes are live; mission threat summaries still to do.
+1. ~~MCP `resources`~~ — gw1://guide/build-workflow, gw1://meta and gw1://heroes
+   are live. **Mission threat summaries: DECLINED 2026-07-29**, same treatment as
+   item 2 — a written decision rather than a leftover that reads like planned
+   work.
+   - There is no missions dataset here, so it would mean curating one by hand,
+     against a game Reforged is still changing.
+   - It is the non-goal, not an exception to it: "storing or reproducing GWPvX
+     build pages, guides, or strategy content — game data only". A threat
+     summary is an interpretation of a mission, which is strategy content.
+   - And it is the one place where the licensing actually would bite. The
+     provenance work of 2026-07-29 concluded that skill descriptions are
+     transcriptions of ArenaNet's own in-game strings, which is why the wiki
+     copyleft has little purchase on them. Mission threat summaries have **no
+     in-game equivalent to transcribe** — they exist only as wiki editors' own
+     prose, which is precisely the category the GFDL and CC BY-NC-SA
+     unambiguously cover. Importing them would move this project from "arguable"
+     to "clearly carrying copyleft obligations", and would do it voluntarily.
+
+   The capability already exists without the data: a model can ask the player
+   which mission they are attempting and reason about the bar from
+   `search_skills` plus its own knowledge of the game. Reopen only if an
+   openly-licensed mission dataset appears — not by transcribing wiki articles.
+
 2. `heroes_from_progression` tool — **DECLINED 2026-07-29**, kept here as a
    documented decision rather than pending work, so the analysis is not redone.
    The obstacle is not implementation difficulty, it is that the data the tool

@@ -107,7 +107,7 @@
       "id": 12,
       "type": "stat",
       "title": "Distinct tools used",
-      "description": "Of the 8 tools the server exposes.",
+      "description": "How many of the server's own tools were exercised (max 8). Excludes tool:_unknown, the bucket every unrecognised name collapses into — counting it made scanners look like a ninth tool.",
       "gridPos": {
         "x": 6,
         "y": 3,
@@ -134,7 +134,7 @@
             "method": "POST",
             "body_type": "raw",
             "body_content_type": "text/plain",
-            "data": "SELECT COUNT(DISTINCT blob1) AS tools FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000) AND blob1 LIKE 'tool:%'"
+            "data": "SELECT COUNT(DISTINCT blob1) AS tools FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000) AND blob1 LIKE 'tool:%' AND blob1 != 'tool:_unknown'"
           },
           "root_selector": "data",
           "columns": [

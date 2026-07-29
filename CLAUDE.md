@@ -436,17 +436,20 @@ is_rp.
    pin-and-wait is the policy if a toolchain regression appears.
 8. Single-maintainer bus factor — mitigated by this file being the actual
    source of truth (kept aligned by the doc-audit habit).
-9. The Cloudflare Free CPU budget has never been measured IN PRODUCTION.
-   Free caps CPU at 10 ms per request; local measurements (Node + tsx, NOT
-   workerd, so an unknown factor off) put tools/list around 17 ms and
-   createServer() near 7 ms, the latter because a fresh set of Zod schemas is
-   rebuilt on every request in stateless mode. README says "Free plan is
-   plenty" and may well be right — nothing has been observed failing.
-   Trigger: Workers & Pages -> the worker -> Metrics -> Errors -> Invocation
-   Statuses -> "Exceeded CPU Time Limits". Zero over 7 days closes this as
-   info; non-zero means hoisting schema construction out of the request path,
-   or the 5 USD plan plus a limits.cpu_ms ceiling (deliberately NOT set today:
-   it has no effect under Free and a rejected value would fail a deploy).
+9. ~~The Cloudflare Free CPU budget has never been measured IN PRODUCTION.~~
+   CLOSED 2026-07-29, measured in the dashboard: over 24h, **2k invocations,
+   0 errors, CPU Time 7.66 ms** against the Free cap of 10 ms per request. No
+   "Exceeded CPU Time Limits" events, so the README's "Free plan is plenty" is
+   correct and this drops to info.
+   Two things worth keeping from the exercise. First, the method caveat was
+   right: local measurements (Node + tsx, not workerd) put tools/list near
+   17 ms, and real workerd averages 7.66 ms — do not size Workers decisions on
+   Node numbers. Second, 7.66 ms is a MEAN, not a maximum, and it sits at 77%
+   of the cap: individual heavy requests may still approach it, and Cloudflare
+   allows some flexibility for infrequent overages. Re-read the counter if the
+   tool surface grows or if a hot path gains work. `limits.cpu_ms` stays unset
+   deliberately: it has no effect under Free and a rejected value would fail a
+   deploy.
 10. tools/list costs about 18 200 characters (~4 550 tokens) of FIXED context
     in every conversation, outputSchemas being ~45% of it. That is a
     deliberate trade — the schemas carry real contracts locked by the golden
@@ -536,8 +539,9 @@ is not a surprise:
 
 NEXT (maintainer-gated only): file the upstream bug report (debt #4, report
 ready in docs/), submit to the ChatGPT and Claude directories (kits in docs/,
-refreshed 2026-07-29 against the current forms), and read the `exceededCpu`
-counter that debt #9 hangs on. Debts #2 and #3 were CLOSED 2026-07-16: the DLL
+refreshed 2026-07-29 against the current forms). Debt #9 was CLOSED 2026-07-29
+by reading the Workers dashboard: 2k invocations in 24h, 0 errors, 7.66 ms mean
+CPU against the 10 ms Free cap. Debts #2 and #3 were CLOSED 2026-07-16: the DLL
 exported a real account in production (hero names from the generated table,
 export fed validate_build end-to-end) and nine in-game codes settled every
 codec question.

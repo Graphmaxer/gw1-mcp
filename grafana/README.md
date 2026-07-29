@@ -61,13 +61,30 @@ worker's `analytics_engine_datasets` binding — not of the Grafana plan.
 So the dashboard's `now-30d` default is fine and could go to `now-90d`. Past
 90 days the API returns nothing regardless of plan.
 
-What a Free plan _can_ affect is the delivery mechanism rather than the data:
-if Git Sync turns out to be gated to a paid tier, this folder stops being
-live-provisioned. Check Administration -> Provisioning in the instance. The
-fallback needs no plan at all: the dashboard JSON here is a plain export, so
-Dashboards -> New -> Import (paste the file) reproduces it, and "Export for
-sharing externally" produces the file to commit back. Manual, but the repo
-stays the source of truth.
+Git Sync itself **does work on the Free plan** — verified 2026-07-29: the
+repository reports "Up-to-date" with 1 dashboard and 1 folder synced. Free
+applies quotas rather than a paywall: **1 connected repository, 20 synced
+resources per repository**. Comfortable for this folder, but that is the ceiling
+to watch if more dashboards are ever added here.
+
+If those quotas are ever reached, the fallback needs no plan at all: the
+dashboard JSON here is a plain export, so Dashboards -> New -> Import (paste the
+file) reproduces it, and "Export for sharing externally" produces the file to
+commit back. Manual, but the repo stays the source of truth.
+
+## Known residue in the data (not a bug)
+
+"Calls per tool" shows two `tool:__verifymcp_auth_probe_<hex>` entries at one
+call each. Those are pre-existing rows, not a live leak: the worker has bucketed
+every unrecognised tool name into `tool:_unknown` since 2026-07-15 (commit
+0254efc), precisely so that probing a public endpoint cannot inject labels into
+this dashboard. The probe rows predate that fix, and Analytics Engine is
+append-only, so they cannot be deleted — they age out of the 90-day window on
+their own.
+
+"Distinct tools used" now excludes `tool:_unknown`, so scanners no longer inflate
+it. The two legacy rows will still add 2 until they fall outside the selected
+range.
 
 **Formatting note:** oxfmt deliberately ignores `grafana/*.json`. Grafana is
 the owning serializer of these files — a Save in the UI commits back its own

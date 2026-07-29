@@ -200,6 +200,25 @@ describe("CORS and method handling on /mcp", () => {
   });
 });
 
+describe("privacy policy covers what the directory requires", () => {
+  // The connectors directory lists five mandatory topics and states that a
+  // missing or incomplete privacy policy is an immediate rejection. Retention
+  // was the one absent: the counters were described without a duration.
+  const topics: [string, RegExp][] = [
+    ["collection", /collect/i],
+    ["usage and storage", /stor|usage/i],
+    ["third-party sharing", /third[- ]part|Cloudflare/i],
+    ["retention", /retention|retain/i],
+    ["contact", /Contact:/],
+  ];
+  for (const [topic, pattern] of topics) {
+    it(`states ${topic}`, async () => {
+      const body = await (await createApp().request("/privacy")).text();
+      expect(pattern.test(body), topic).toBe(true);
+    });
+  }
+});
+
 describe("security.txt reproducibility", () => {
   it("derives Canonical from the serving host, not a hardcoded workers.dev URL", async () => {
     const body = await (

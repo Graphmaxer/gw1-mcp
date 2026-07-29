@@ -44,14 +44,15 @@ the form's "What you'll need" list.
 - Category: Entertainment / Gaming
 - Allowed link URIs: N/A (the connector opens no links)
 
-## Tools (all with human-readable titles and annotations)
+## Tools, resources & prompts (form asks for all three)
 
 All 8 tools carry title + readOnlyHint: true, destructiveHint: false
 (accurate: pure lookups/computations). get_skill, search_skills,
 get_hero, list_heroes, decode_template, decode_pawned_team,
 validate_build, encode_template. 3 resources (meta, professions guide,
-build workflow guide). Server-level instructions declare the
-code-integrity rules.
+build workflow guide). No prompts — the `prompts` capability is not
+declared, so `prompts/list` correctly returns -32601. Server-level
+instructions declare the code-integrity rules.
 
 ## Documentation & support
 
@@ -116,3 +117,33 @@ None needed — no authentication. Reviewer test script:
   by the server itself
 - Skills: optionally bundle the gw1-build-assistant skill (also part of
   the ChatGPT submission) via the plugins flow
+
+## Before submitting (verified against the docs, 2026-07-29)
+
+- Submit via the **MCP directory submission form**
+  (https://clau.de/mcp-directory-submission), which covers remote MCP
+  servers and MCP Apps. The form is always open; Anthropic notes it is
+  _moving to a native Claude.ai surface_, and third-party write-ups
+  describe that surface as living in Team/Enterprise admin settings. If
+  that becomes the only route, an individual plan may not be able to
+  submit — check before investing more time in the kit.
+- Run the **pre-submission checklist / review criteria** page first:
+  https://claude.com/docs/connectors/building/review-criteria
+- Submitting means agreeing to the Anthropic Software Directory **Terms**
+  and **Policy**, plus commitments to maintain security and functionality,
+  respond to security issues promptly, and keep descriptions accurate.
+  Read both before filing — and note this is the moment debt #4 in
+  CLAUDE.md is triggered: the skill descriptions are GFDL / CC BY-NC-SA,
+  and listing in a distribution channel is the event that register says
+  needs legal sign-off first. That is a decision for the maintainer, not a
+  technical blocker.
+- Reviewers explicitly tick `Origin`-header validation as a technical
+  requirement. Ours is a well-formedness check, not an allowlist (see
+  above), which is accurate but may prompt a question. The MCP 2026-07-28
+  stateless core makes the reasoning easier to defend: with no session to
+  protect, an origin allowlist protects nothing.
+- Privacy policy must cover collection, usage and storage, third-party
+  sharing, **retention**, and contact. All five are now served at /privacy
+  and locked by tests in packages/gw-worker/test/http.test.ts — retention
+  was missing until 2026-07-29, and an incomplete policy is an immediate
+  rejection.

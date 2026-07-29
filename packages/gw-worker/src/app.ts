@@ -46,7 +46,6 @@ const KNOWN_METHODS = new Set([
 type AppEnv = {
   Bindings: {
     OPENAI_APPS_CHALLENGE?: string;
-    GLAMA_MAINTAINER_EMAIL?: string;
     RATE_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> };
     MCP_ANALYTICS?: AnalyticsEngineDataset;
   };
@@ -157,19 +156,16 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
     return token ? c.text(token) : c.notFound();
   });
 
-  // Glama connector ownership verification: Glama fetches this file from the
-  // server's own domain and matches the email against the Glama account that
-  // claims the listing. Email lives in a var (GLAMA_MAINTAINER_EMAIL) — it is
-  // public by design, not a secret. Absent var → 404, same as the challenge.
-  app.get("/.well-known/glama.json", (c) => {
-    const email = c.env?.["GLAMA_MAINTAINER_EMAIL"];
-    return email
-      ? c.json({
-          $schema: "https://glama.ai/mcp/schemas/connector.json",
-          maintainers: [{ email }],
-        })
-      : c.notFound();
-  });
+  // NO /.well-known/glama.json here, and it must not come back. Glama's only
+  // ownership verification is an email in that file matching the Glama account's
+  // email — no DNS record, no opaque token like OpenAI's challenge. Publishing an
+  // address at a predictable public URL is a more direct scraping target than git
+  // metadata (no API, no .patch, just a GET), and the maintainer decided against
+  // it on 2026-07-29 and deleted the Glama account. Nothing is lost: Glama
+  // indexes and health-checks the server from the official MCP Registry anyway —
+  // the listing was live and scoring A with the route already 404ing. Claiming
+  // would only have added listing-copy control and usage reports that Cloudflare
+  // and this project's own analytics already cover.
 
   // robots.txt. ClaudeBot and other web crawlers ask for it ~10x/day and were
   // getting 404s. Disallowing /mcp is the useful part: it is a JSON-RPC endpoint

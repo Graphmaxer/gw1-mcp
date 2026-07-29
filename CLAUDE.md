@@ -407,35 +407,24 @@ is_rp.
    re-apply those two settings first. GitHub CI and Workers Builds both run
    the test suite per push — deliberate redundancy (PR signal vs deploy
    gate).
-   **A dash-side var was found MISSING in production, 2026-07-29 — this debt
-   has now cost something real.** Workers Logs show Glama's crawler (`undici`)
-   requesting `/.well-known/glama.json` 43 times in 7 days and receiving 404.
-   The only code path that 404s there is `GLAMA_MAINTAINER_EMAIL` being unset,
-   so connector ownership verification has never worked in production.
-   NOT simply an action to take — a trade-off, decided 2026-07-29. Glama's only
-   documented verification is an email in that file matching the Glama account's
-   email: no DNS TXT record, no token file like OpenAI's challenge. So claiming
-   the listing REQUIRES publishing an address at a predictable public URL, which
-   is a more direct scraping target than git metadata (no API, no .patch, just a
-   GET). Options, in order of preference:
-   1. If the Glama account was created via GitHub sign-in, its email may already
-      be 16637307+Graphmaxer@users.noreply.github.com — public already, receives
-      no mail, safe to publish. CHECK THIS FIRST; it costs nothing.
-   2. A dedicated address, with the Glama account changed to match. Note that
-      plus-addressing (…+glama@) protects nothing: the base strips trivially.
-   3. Leave it unclaimed. The listing is indexed either way; claiming adds
-      control over the description, usage reports, health status and the option
-      to feature the server — all modest here, since Cloudflare already provides
-      monitoring and this project has its own analytics.
-      Do NOT move the value into wrangler.jsonc to make it IaC-visible: that
-      publishes it in a public repository, which is the exposure being avoided.
-      If option 3 is chosen, DELETE the route rather than leaving it to 404 — dead
-      code that a future reader will try to "fix" by publishing a personal address.
-      Dash-side settings this project depends on, so they can be checked:
-      Workers Builds root directory, `GLAMA_MAINTAINER_EMAIL`,
-      `OPENAI_APPS_CHALLENGE` (set only during a submission), the
-      `MCP_ANALYTICS` and `RATE_LIMITER` bindings, and the Infinity datasource
-      credentials on the Grafana side.
+   **A dash-side var was found missing in production, 2026-07-29, and the
+   feature was then REMOVED rather than fixed.** Workers Logs showed Glama's
+   crawler (`undici`) requesting `/.well-known/glama.json` 43 times in 7 days and
+   getting 404: `GLAMA_MAINTAINER_EMAIL` had never been set, so connector
+   ownership verification had never worked. Investigating it turned up the real
+   issue — Glama's only verification is an email in that file matching the
+   account's email (no DNS record, no opaque token like OpenAI's challenge), so
+   claiming the listing means publishing an address at a predictable public URL.
+   The maintainer signed in via GitHub, found the account still held his personal
+   address, declined, and DELETED the Glama account. The route, its env field and
+   its test are gone; a test now asserts the 404 so nobody "restores" it after
+   reading that 404 as a bug. Nothing was lost: Glama indexes and health-checks
+   from the official MCP Registry regardless — the listing was live and scoring A
+   the whole time the route was 404ing.
+   Dash-side settings this project still depends on, so they can be checked:
+   Workers Builds root directory, `OPENAI_APPS_CHALLENGE` (set only during a
+   submission), the `MCP_ANALYTICS` and `RATE_LIMITER` bindings, and the Infinity
+   datasource credentials on the Grafana side.
 2. The C++ plugin compiled clean on the first CI run (/W4 /WX, zero
    warnings — 2026-07-11) but has never been loaded in-game. Trigger:
    the maintainer runs /exportaccount with the artifact DLL.

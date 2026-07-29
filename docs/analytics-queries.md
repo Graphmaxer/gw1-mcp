@@ -147,18 +147,27 @@ authorization server that does not exist, and a client following that pointer
 would try to authenticate and fail. If auth is ever added, these are the
 endpoints to implement — not before.
 
-### One 404 that IS a bug: `/.well-known/glama.json`
+### The 404 that was a bug, and is now a decision
 
-`undici` (Node's HTTP client, i.e. Glama's crawler) requested
-`/.well-known/glama.json` 43 times in 7 days and got 404 every time. The only
-code path that 404s there is `GLAMA_MAINTAINER_EMAIL` being unset, so **connector
-ownership verification has never worked in production** — a dash-side variable
-that was never set, failing silently. See debt #1.
+`undici` (Glama's crawler) requested `/.well-known/glama.json` 43 times in 7 days
+and got 404 every time, because `GLAMA_MAINTAINER_EMAIL` had never been set — a
+dash-side variable failing silently, so ownership verification had never worked.
 
-This is the lesson of the whole exercise: three suspicions (405s breaking health
-checks, missing manifests, directories hammering us) all dissolved under
-measurement, and the one real defect was something nobody suspected, visible only
-because a crawler kept retrying.
+Chasing it surfaced the actual question rather than a missing value. Glama
+verifies ownership only by an email in that file matching the account's email:
+no DNS record, no opaque token like OpenAI's challenge. Claiming therefore means
+publishing an address at a predictable public URL, which is a more direct
+scraping target than git metadata. The maintainer declined and deleted the Glama
+account, so **the route was removed** and a test now asserts its absence.
+
+Nothing was lost: the Glama listing stayed live and scored A throughout, because
+Glama indexes and health-checks from the official MCP Registry. Claiming would
+only have added listing-copy control and usage reports already covered elsewhere.
+
+The lesson worth keeping: three suspicions (405s breaking health checks, missing
+manifests, directories hammering the server) all dissolved under measurement, and
+the two real defects — this one and the trailing slash below — were things nobody
+suspected, visible only because crawlers kept retrying.
 
 ### The other real bug: `/mcp/` with a trailing slash 404'd
 

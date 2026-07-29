@@ -90,18 +90,13 @@ describe("directory-readiness routes", () => {
     );
     expect(await res.text()).toBe("tok123");
   });
-  it("serves the Glama ownership file only when configured", async () => {
-    const app = createApp();
-    expect((await app.request("/.well-known/glama.json")).status).toBe(404);
-    const res = await app.request(
-      "/.well-known/glama.json",
-      {},
-      { GLAMA_MAINTAINER_EMAIL: "owner@example.com" },
-    );
-    expect(await res.json()).toEqual({
-      $schema: "https://glama.ai/mcp/schemas/connector.json",
-      maintainers: [{ email: "owner@example.com" }],
-    });
+  it("does not serve a Glama ownership file, and must not start", async () => {
+    // Removed deliberately (2026-07-29): verification requires publishing an
+    // email at a public URL, the maintainer declined, and the Glama account is
+    // deleted. This asserts the absence so the route is not "restored" by someone
+    // reading a 404 in the logs as a bug — which is how it was nearly fixed by
+    // publishing a personal address.
+    expect((await createApp().request("/.well-known/glama.json")).status).toBe(404);
   });
   it("serves an RFC 9116 security.txt pointing at GitHub private reporting", async () => {
     const app = createApp();

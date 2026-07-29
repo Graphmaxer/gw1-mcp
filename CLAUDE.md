@@ -507,7 +507,7 @@ is_rp.
    tool surface grows or if a hot path gains work. `limits.cpu_ms` stays unset
    deliberately: it has no effect under Free and a rejected value would fail a
    deploy.
-10. tools/list costs about 18 200 characters (~4 550 tokens) of FIXED context
+10. tools/list costs about 18 600 characters (~4 650 tokens) of FIXED context
     in every conversation, outputSchemas being ~45% of it. That is a
     deliberate trade — the schemas carry real contracts locked by the golden
     fixtures — but it is paid by every session, including ones that call a

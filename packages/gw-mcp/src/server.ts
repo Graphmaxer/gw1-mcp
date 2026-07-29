@@ -555,7 +555,10 @@ export function createServer(): McpServer {
       outputSchema: validateResultSchema,
       inputSchema: {
         ...namedBuildSchema,
-        forHero: z.boolean().default(false),
+        forHero: z
+          .boolean()
+          .default(false)
+          .describe("Set true if this bar is for a hero (PvE-only skills are flagged)"),
         forPvp: z
           .boolean()
           .default(false)
@@ -624,8 +627,25 @@ export function createServer(): McpServer {
         heroes: z.array(fullHeroSchema),
       },
       inputSchema: {
-        professionName: z.string().max(64).optional(),
-        campaignName: z.string().max(64).optional(),
+        // Both filters REJECT unknown values (UNKNOWN_PROFESSION /
+        // UNKNOWN_CAMPAIGN), so the accepted spellings belong in the schema:
+        // without them a caller guesses "EotN" and burns a round-trip. The lists
+        // are the values that actually match a hero — every profession has
+        // heroes except None, and Core has none.
+        professionName: z
+          .string()
+          .max(64)
+          .optional()
+          .describe(
+            "Filter by the hero's profession, exact English name: Warrior, Ranger, Monk, Necromancer, Mesmer, Elementalist, Assassin, Ritualist, Paragon or Dervish.",
+          ),
+        campaignName: z
+          .string()
+          .max(64)
+          .optional()
+          .describe(
+            "Filter by the campaign the hero is recruited in, exact English name: Prophecies, Factions, Nightfall or Eye of the North.",
+          ),
       },
     },
     async ({ professionName, campaignName }) => {

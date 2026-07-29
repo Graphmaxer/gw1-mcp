@@ -22,6 +22,32 @@ describe("conventions: every error code has a triggering test", () => {
   }
 });
 
+describe("input documentation (mechanical lock)", () => {
+  it("every z field in a tool inputSchema carries a .describe()", () => {
+    // Tool schemas are the manual an LLM reads, and directories publish them
+    // verbatim — Glama renders a blank Description cell for anything missing one.
+    // Worse, list_heroes' two filters REJECT unknown values, so an undocumented
+    // enum costs the caller a failed round-trip. Found by reading the published
+    // listing rather than the code, which is exactly why this is now mechanical.
+    const source = read("../src/server.ts");
+    const schemas = [...source.matchAll(/inputSchema:\s*\{([\s\S]*?)\n {6}\}/g)].map(
+      (m) => m[1] ?? "",
+    );
+    expect(schemas.length).toBeGreaterThan(0);
+    const undocumented: string[] = [];
+    for (const block of schemas) {
+      // Split on top-level field starts so each field carries its own chain.
+      const fields = block.split(/\n {8}(?=[a-zA-Z_]\w*:)/);
+      for (const field of fields) {
+        const name = /^\s*([a-zA-Z_]\w*):/.exec(field)?.[1];
+        if (!name || !/\bz\./.test(field)) continue;
+        if (!field.includes(".describe(")) undocumented.push(name);
+      }
+    }
+    expect(undocumented).toEqual([]);
+  });
+});
+
 describe("input length bounds (mechanical lock)", () => {
   it("every z.string() in a tool inputSchema carries a .max()", () => {
     // An unbounded string reaches normalizeName() (NFD + three regexes) on every

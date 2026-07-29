@@ -157,6 +157,18 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
       : c.notFound();
   });
 
+  // robots.txt. ClaudeBot and other web crawlers ask for it ~10x/day and were
+  // getting 404s. Disallowing /mcp is the useful part: it is a JSON-RPC endpoint
+  // that only answers POST, so a crawler fetching it gets a 405 and learns
+  // nothing — telling it not to bother saves both sides the request. No sitemap
+  // is served on purpose: four static routes do not need one, and pointing at a
+  // sitemap that does not exist would be worse than omitting the line.
+  app.get("/robots.txt", (c) =>
+    c.text(["User-agent: *", "Allow: /", "Disallow: /mcp", ""].join("\n"), 200, {
+      "Cache-Control": "public, max-age=86400",
+    }),
+  );
+
   // security.txt (RFC 9116): points researchers to the same GitHub private
   // vulnerability reporting SECURITY.md uses — Contact is a URL, not an email,
   // so nothing is duplicated or exposed to scrapers.

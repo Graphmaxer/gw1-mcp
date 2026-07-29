@@ -200,6 +200,23 @@ describe("CORS and method handling on /mcp", () => {
   });
 });
 
+describe("robots.txt", () => {
+  it("is served, and tells crawlers not to fetch the JSON-RPC endpoint", async () => {
+    const res = await createApp().request("/robots.txt");
+    expect(res.status).toBe(200);
+    const body = await res.text();
+    expect(body).toContain("User-agent: *");
+    expect(body).toContain("Disallow: /mcp");
+  });
+
+  it("advertises no sitemap, since none is served", async () => {
+    // Pointing at a missing sitemap is worse than omitting the line.
+    const body = await (await createApp().request("/robots.txt")).text();
+    expect(body.toLowerCase()).not.toContain("sitemap");
+    expect((await createApp().request("/sitemap.xml")).status).toBe(404);
+  });
+});
+
 describe("privacy policy covers what the directory requires", () => {
   // The connectors directory lists five mandatory topics and states that a
   // missing or incomplete privacy policy is an immediate rejection. Retention

@@ -147,6 +147,33 @@ authorization server that does not exist, and a client following that pointer
 would try to authenticate and fail. If auth is ever added, these are the
 endpoints to implement — not before.
 
+### One 404 that IS a bug: `/.well-known/glama.json`
+
+`undici` (Node's HTTP client, i.e. Glama's crawler) requested
+`/.well-known/glama.json` 43 times in 7 days and got 404 every time. The only
+code path that 404s there is `GLAMA_MAINTAINER_EMAIL` being unset, so **connector
+ownership verification has never worked in production** — a dash-side variable
+that was never set, failing silently. See debt #1.
+
+This is the lesson of the whole exercise: three suspicions (405s breaking health
+checks, missing manifests, directories hammering us) all dissolved under
+measurement, and the one real defect was something nobody suspected, visible only
+because a crawler kept retrying.
+
+### Manifests deliberately NOT served
+
+`AgenstryBot` probes four agent-manifest conventions, 11 times each:
+`/.well-known/ai-plugin.json`, `/a2a.json`, `/agent-card.json`,
+`/.well-known/mcp.json`. None are served, on purpose: the ChatGPT plugin manifest
+is superseded by Apps/MCP, the A2A agent cards would describe an agent this is
+not, and `/.well-known/mcp.json` has no schema in the MCP specification. Same
+rule as the OAuth endpoints — do not advertise an interface you do not implement.
+
+`robots.txt` IS now served (ClaudeBot asked ~10x/day), disallowing `/mcp` since a
+crawler fetching a POST-only JSON-RPC endpoint gets a 405 and learns nothing. No
+`sitemap.xml`: four static routes do not warrant one, and advertising a sitemap
+that does not exist would be worse than the 404.
+
 ### The 405s are not a problem either
 
 250 over 7 days (~36/day against ~1 600/day), from `GET /mcp`, which returns 405

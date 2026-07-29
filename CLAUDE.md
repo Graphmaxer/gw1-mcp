@@ -407,6 +407,22 @@ is_rp.
    re-apply those two settings first. GitHub CI and Workers Builds both run
    the test suite per push — deliberate redundancy (PR signal vs deploy
    gate).
+   **A dash-side var was found MISSING in production, 2026-07-29 — this debt
+   has now cost something real.** Workers Logs show Glama's crawler (`undici`)
+   requesting `/.well-known/glama.json` 43 times in 7 days and receiving 404.
+   The only code path that 404s there is `GLAMA_MAINTAINER_EMAIL` being unset,
+   so connector ownership verification has never worked in production. ACTION:
+   set that var in the Cloudflare dashboard (Workers & Pages -> gw1-mcp ->
+   Settings -> Variables). Do NOT move it into wrangler.jsonc to make it
+   IaC-visible: the value is an email address and this repository is public,
+   which is exactly the scraping exposure documented in THIRD_PARTY_NOTICES
+   work. The fix for the class of problem is a periodic check of the live
+   well-known routes, not committing the value.
+   Dash-side settings this project depends on, so they can be checked:
+   Workers Builds root directory, `GLAMA_MAINTAINER_EMAIL`,
+   `OPENAI_APPS_CHALLENGE` (set only during a submission), the
+   `MCP_ANALYTICS` and `RATE_LIMITER` bindings, and the Infinity datasource
+   credentials on the Grafana side.
 2. The C++ plugin compiled clean on the first CI run (/W4 /WX, zero
    warnings — 2026-07-11) but has never been loaded in-game. Trigger:
    the maintainer runs /exportaccount with the artifact DLL.

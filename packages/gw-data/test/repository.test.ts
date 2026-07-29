@@ -157,24 +157,30 @@ describe("documented counts stay true (mechanical lock)", () => {
   // The skill count is quoted in prose and drifted to 1484 at an earlier import.
   // It changes only through the automated weekly import, so it can be checked
   // against the data instead of trusted to a human habit.
-  //
-  // The submission kits matter MORE than the README, not less: their text is
-  // copy-pasted into public store listings, where a wrong number is a wrong
-  // public claim. Covering only README/CLAUDE.md is exactly how both kits kept
-  // saying 1484 after the others were fixed.
   const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
-  const docs = [
-    "../../../README.md",
-    "../../../CLAUDE.md",
-    "../../../docs/claude-directory-submission.md",
-    "../../../docs/chatgpt-plugin-submission.md",
-  ] as const;
-  for (const doc of docs) {
+  for (const doc of ["../../../README.md", "../../../CLAUDE.md"] as const) {
     it(`${doc} quotes the real skill count`, () => {
       const text = read(doc);
       const quoted = [...text.matchAll(/(\d{3,5}) (?:real )?skills/g)].map((m) => Number(m[1]));
       expect(quoted.length).toBeGreaterThan(0);
       for (const count of quoted) expect(count).toBe(skills.length);
+    });
+  }
+
+  // Inverse lock for the submission kits. Their text is copy-pasted into public
+  // store listings, and once published a description is part of a versioned
+  // review snapshot: correcting a number there costs a scan -> review ->
+  // republish cycle, triggered by nothing more than an upstream data import. So
+  // the kits must not quote a count at all — the fix is to make the drift
+  // impossible, not merely detectable. Tool and resource counts are fine and
+  // stay: those change only deliberately, and already require a new review.
+  for (const kit of [
+    "../../../docs/claude-directory-submission.md",
+    "../../../docs/chatgpt-plugin-submission.md",
+  ] as const) {
+    it(`${kit} quotes no skill count that could go stale`, () => {
+      const offenders = [...read(kit).matchAll(/\b\d{3,5} (?:real )?skills\b/g)].map((m) => m[0]);
+      expect(offenders).toEqual([]);
     });
   }
 });

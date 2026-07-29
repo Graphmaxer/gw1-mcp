@@ -17,7 +17,7 @@ redeploy needed).
 - Long description: A deterministic build compiler for the original Guild
   Wars. Unofficial fan-made tool — Guild Wars is a registered trademark of
   NCSoft Corporation; not affiliated with or endorsed by NCSoft or
-  ArenaNet. Look up any of the game's 1485 skills with current
+  ArenaNet. Look up any skill in the game with current
   Guild Wars Reforged stats, search by profession/attribute/campaign,
   browse the full hero roster, decode any in-game template code or
   paw-ned2 team blob, and compile builds into official template codes —
@@ -83,8 +83,9 @@ routes carry an explicit non-affiliation disclaimer.
    encode_template with forHero true; a code is produced, then verified
    via decode_template before being presented.
 4. Prompt: "List the Nightfall heroes and how to unlock them."
-   Expected: list_heroes with campaignName Nightfall; 13 heroes with
-   professions and unlock notes.
+   Expected: list_heroes with campaignName Nightfall; the campaign's
+   roster, each hero with profession and unlock notes. (Deliberately no
+   count: the roster comes from upstream data and a count would go stale.)
 5. Prompt: "Look up the skill 'Mystic Regenration'" (misspelled).
    Expected: get_skill returns closest-match suggestions; the assistant
    follows them and answers about Mystic Regeneration.

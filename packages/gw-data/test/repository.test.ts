@@ -154,11 +154,22 @@ describe("lookups", () => {
 });
 
 describe("documented counts stay true (mechanical lock)", () => {
-  // The skill count is quoted in prose in three places and drifted to 1484 at
-  // the last import. It changes only through the automated weekly import, so it
-  // can be checked against the data instead of trusted to a human habit.
+  // The skill count is quoted in prose and drifted to 1484 at an earlier import.
+  // It changes only through the automated weekly import, so it can be checked
+  // against the data instead of trusted to a human habit.
+  //
+  // The submission kits matter MORE than the README, not less: their text is
+  // copy-pasted into public store listings, where a wrong number is a wrong
+  // public claim. Covering only README/CLAUDE.md is exactly how both kits kept
+  // saying 1484 after the others were fixed.
   const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
-  for (const doc of ["../../../README.md", "../../../CLAUDE.md"] as const) {
+  const docs = [
+    "../../../README.md",
+    "../../../CLAUDE.md",
+    "../../../docs/claude-directory-submission.md",
+    "../../../docs/chatgpt-plugin-submission.md",
+  ] as const;
+  for (const doc of docs) {
     it(`${doc} quotes the real skill count`, () => {
       const text = read(doc);
       const quoted = [...text.matchAll(/(\d{3,5}) (?:real )?skills/g)].map((m) => Number(m[1]));

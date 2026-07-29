@@ -17,7 +17,7 @@ redeploy needed).
 - Long description: A deterministic build compiler for the original Guild
   Wars. Unofficial fan-made tool — Guild Wars is a registered trademark of
   NCSoft Corporation; not affiliated with or endorsed by NCSoft or
-  ArenaNet. Look up any of the game's 1484 skills with current
+  ArenaNet. Look up any of the game's 1485 skills with current
   Guild Wars Reforged stats, search by profession/attribute/campaign,
   browse the full hero roster, decode any in-game template code or
   paw-ned2 team blob, and compile builds into official template codes —
@@ -130,12 +130,30 @@ terms — see THIRD_PARTY_NOTICES.md: https://github.com/Graphmaxer/gw1-mcp
 - The Scan Tools step also imports the MCP server-level `instructions`
   (now set: code-integrity hard rules) and all annotations directly from
   the server — justifications explain them, they never override them.
+- TEST ON MOBILE TOO: the docs require every test case to pass on ChatGPT
+  web AND the mobile apps, not just one surface. Our five positive cases
+  are text-only (no UI), so this should be a re-run rather than new work —
+  but it has to actually be done before submitting.
+- Cannot point at an existing published integration: even for a server
+  already listed elsewhere, the plugin submission supplies the MCP URL and
+  review material from scratch, and the portal rescans it.
+- The domain-challenge route must return ONLY the raw token — not JSON, not
+  a list, not several tokens from one URL. Ours already does
+  (`c.text(token)`, 404 when the var is unset); do not "improve" it into a
+  JSON payload, which is the shape that fails verification.
 
 ## Remaining human steps
 
 1. Verify individual developer identity (platform.openai.com organization
    settings) and ensure the submitting role has Apps Management: Write.
 2. Zip the skill: `cd skills && zip -r gw1-build-assistant.zip
-gw1-build-assistant/` and upload it on the Skills tab.
+gw1-build-assistant/` and upload it on the Skills tab. A bundled skill is
+   the right vehicle on both directories — OpenAI's form has a dedicated
+   bundled-skills field, and Anthropic states skills are not a standalone
+   submission type and must be bundled in a plugin. MCP `prompts` are NOT a
+   substitute: they are user-invoked templates rather than
+   relevance-activated guidance, and exposing the same content there would
+   be a fourth copy of it (after server `instructions`, the
+   gw1://guide/build-workflow resource, and this skill).
 3. Set the domain-challenge token when the portal reveals it, run Scan
    Tools, fix anything it flags, submit.

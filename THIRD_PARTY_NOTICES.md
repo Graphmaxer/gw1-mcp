@@ -76,10 +76,37 @@ GFDL nor any Creative Commons license is the operative instrument for them. The
 wiki licenses would cover the editors' original prose — which is not what a
 skill description is.
 
-This is the question to put to counsel first, ahead of any version detail: not
-"which CC version applies" but "does a wiki license apply to this text at all,
-or are we redistributing ArenaNet strings under fansite terms?" Nothing here is
-legal advice, and this repository is not in a position to answer it.
+### The position this project takes, and its basis
+
+Nobody is likely to hand us an authoritative provenance statement — plausibly not
+even the upstream maintainer. That is not a reason to guess: the text carries
+evidence, so this is a documented finding rather than an assumption.
+
+- **`<sic/>` appears in 34 descriptions**, e.g. "Your next 0...6 signet[s]
+  interrupt `<sic/>` and deal 15...60 damage". `sic` is written when
+  transcribing someone else's text and preserving its error. An editor writing
+  their own description would have nothing to mark.
+- **`<gray>` appears in 403**, wrapping exactly the clauses the game renders in
+  gray in its own tooltip ("You have -40 armor while using this skill"). The
+  markup mirrors in-game presentation.
+- The `signet[s]` / `spell[s] do[es] not` bracket notation and the leading
+  `(20 seconds.)` are Guild Wars' own in-game conventions for variable values
+  and concise descriptions.
+
+**Position:** the descriptions are transcriptions of ArenaNet/NCsoft in-game
+strings, carrying light editorial markup added by wiki contributors. What the
+wiki licenses can cover is that markup, the arrangement and the surrounding
+article prose — not the underlying text, which the wikis themselves place under
+ArenaNet copyright used within the Community Fansite Program.
+
+This is decidable if it ever needs to be: the strings can be compared against
+the game client's own data through GWCA, which this project already links
+against in `gwtoolbox-plugin/`. Not done, not currently needed.
+
+Nothing here is legal advice. The question for counsel is therefore not "which CC
+version applies" but "is redistributing transcribed in-game strings within
+fansite terms acceptable for the distribution we intend", with the evidence above
+as the factual basis.
 
 Note also that the published package `@buildwars/gw-skilldata` ships under
 **MIT with no wiki attribution whatsoever** — its README states no provenance.

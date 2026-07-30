@@ -247,3 +247,66 @@ version only adds fingerprinting. A missing name records `_unnamed` rather than
 attribution rather than guaranteeing it. And the `Protocol overhead share` panel
 still counts monitors — computing it net of monitors is now possible, but the
 panel has not been changed, because it needs weeks of `blob2` data first.
+
+## Domain events (`event:tool_call`, added 2026-07-29)
+
+Tool outcomes are recorded as a **separate data point** under
+`blob1 = 'event:tool_call'`. Reusing `tool:<name>` would double every count in
+the six panels that sum `blob1 LIKE 'tool:%'` — a test asserts exactly one
+`tool:` point per call.
+
+Blob layout for this dataset; each position carries one meaning, unused positions
+are simply absent:
+
+| blob | meaning                                                  |
+| ---- | -------------------------------------------------------- |
+| 1    | kind: `tool:<name>` / `rpc:<method>` / `event:tool_call` |
+| 2    | client name, on `rpc:initialize` only                    |
+| 3    | tool that ran                                            |
+| 4    | `ok` / `error`                                           |
+| 5    | our own error or first validation code                   |
+| 6    | canonical entity resolved from our data                  |
+| 7    | context flags the caller set, space separated            |
+
+### The boundary, and why it is shaped this way
+
+`gw-mcp` exposes `createServer({ onToolCall })` emitting a `ToolCallEvent`, and
+knows **nothing** about Analytics Engine, blobs or dashboards — it reports what
+happened; the worker decides how to store it. That keeps gw-mcp usable over stdio
+and in tests with no Cloudflare types anywhere. The tests for this live in gw-mcp
+and mention no infrastructure at all: if they ever need a Cloudflare type, the
+boundary has been broken.
+
+Registration goes through one wrapper, so instrumentation cannot be forgotten when
+a ninth tool is added, and all eight call sites keep their exact types. The
+observer is wrapped in try/catch: an observer must never break a tool call.
+
+### Why events are derived from the RESULT, not the request
+
+An entity name taken from `structuredContent` has been resolved against our
+dataset; the argument is whatever the caller typed. Same for codes, which come
+from our own enums. That is what makes these values safe to store somewhere
+public — the same rule that buckets unknown tool names into `tool:_unknown`.
+
+Deliberately **not** captured: the template code `encode_template` produces. It is
+derived from caller input and carries no aggregate meaning; a test asserts no long
+base64-ish string ever appears in an event.
+
+Note that a requested report is a successful call: `validate_build` returning
+`valid: false` means the caller asked for a verdict and got one, so `ok` stays
+true and the first error code is recorded. That mirrors the isError policy the
+server already documents.
+
+### What each panel is actually for
+
+- **Name lookups: resolved vs missed** — the one metric that decides an open
+  question. The `error` share measures in production how often callers ask for
+  something unresolvable (French names, abbreviations), which is the evidence the
+  French alias table decision has been waiting for.
+- **Top validation failures** — which GW1 rules assistants get wrong most, by our
+  own codes. Actionable: it is what the bundled skill and the tool descriptions
+  should pre-empt.
+- **Context flags used** — whether hero bars, PvP bars and account exports are
+  actually exercised.
+- **Most requested skills and heroes** — curiosity, not a decision input, and
+  noisy until real usage outweighs probes. Recorded because it is free.

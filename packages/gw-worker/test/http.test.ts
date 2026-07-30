@@ -428,19 +428,31 @@ describe("usage analytics hook", () => {
       },
       env,
     );
-    // blob2 is empty for anything but initialize: clientInfo only exists there.
+    // Two points per tool call, and the second MUST NOT reuse "tool:<name>":
+    // the six panels that sum `blob1 LIKE 'tool:%'` would double every count.
+    // blob2 is empty for anything but initialize — clientInfo only exists there.
     expect(points).toEqual([
       { blobs: ["tool:get_skill", ""], doubles: [1], indexes: ["tool:get_skill"] },
+      {
+        blobs: ["event:tool_call", "", "get_skill", "ok", "", "Healing Signet", ""],
+        doubles: [1],
+        indexes: ["event:tool_call"],
+      },
     ]);
+    expect(points.filter((p) => p.blobs?.[0]?.startsWith("tool:"))).toHaveLength(1);
 
-    // non-JSON body: swallowed, nothing counted, request not broken
+    // non-JSON body: swallowed, nothing counted, request not broken. Asserted as
+    // "no new points" rather than a fixed total, so adding a dimension later
+    // cannot make this fail for the wrong reason — which is exactly what a hard
+    // total did when the outcome point was introduced.
+    const before = points.length;
     const res = await app.request(
       "/mcp",
       { method: "POST", headers: { "Content-Type": "text/plain" }, body: "not json" },
       env,
     );
     expect(res.status).toBeLessThan(500);
-    expect(points).toHaveLength(1);
+    expect(points).toHaveLength(before);
   });
 });
 describe("rate limiting", () => {

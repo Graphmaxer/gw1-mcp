@@ -609,6 +609,298 @@
           }
         }
       ]
+    },
+    {
+      "id": 16,
+      "type": "bargauge",
+      "title": "Name lookups: resolved vs missed",
+      "description": "How often a requested skill or hero name resolves. The 'error' share is the production measure of the problem French names and abbreviations cause — the evidence that decides whether an alias table is worth building.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "aft354s7rt3wgf"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/calls/",
+          "values": true
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 35
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "aft354s7rt3wgf"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "",
+          "root_selector": "data",
+          "columns": [
+            {
+              "selector": "outcome",
+              "text": "outcome",
+              "type": "string"
+            },
+            {
+              "selector": "calls",
+              "text": "calls",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "global_query_id": "",
+          "computed_columns": [],
+          "filterExpression": "",
+          "summarizeExpression": "",
+          "url_options": {
+            "method": "POST",
+            "body_type": "raw",
+            "body_content_type": "text/plain",
+            "data": "SELECT blob4 AS outcome, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000) AND blob1 = 'event:tool_call' AND blob3 IN ('get_skill','get_hero') GROUP BY outcome ORDER BY calls DESC"
+          }
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "type": "bargauge",
+      "title": "Top validation failures",
+      "description": "Which rule assistants get wrong most often, by our own error codes. Actionable: it is what the bundled skill and the tool descriptions should pre-empt.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "aft354s7rt3wgf"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/calls/",
+          "values": true
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 35
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "aft354s7rt3wgf"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "",
+          "root_selector": "data",
+          "columns": [
+            {
+              "selector": "code",
+              "text": "code",
+              "type": "string"
+            },
+            {
+              "selector": "hits",
+              "text": "hits",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "global_query_id": "",
+          "computed_columns": [],
+          "filterExpression": "",
+          "summarizeExpression": "",
+          "url_options": {
+            "method": "POST",
+            "body_type": "raw",
+            "body_content_type": "text/plain",
+            "data": "SELECT blob5 AS code, SUM(_sample_interval) AS hits FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000) AND blob1 = 'event:tool_call' AND blob5 != '' GROUP BY code ORDER BY hits DESC"
+          }
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "type": "bargauge",
+      "title": "Most requested skills and heroes",
+      "description": "Canonical names resolved from our own data. Curiosity rather than a decision input, and noisy until real usage outweighs probes.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "aft354s7rt3wgf"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/calls/",
+          "values": true
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 43
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "aft354s7rt3wgf"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "",
+          "root_selector": "data",
+          "columns": [
+            {
+              "selector": "entity",
+              "text": "entity",
+              "type": "string"
+            },
+            {
+              "selector": "lookups",
+              "text": "lookups",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "global_query_id": "",
+          "computed_columns": [],
+          "filterExpression": "",
+          "summarizeExpression": "",
+          "url_options": {
+            "method": "POST",
+            "body_type": "raw",
+            "body_content_type": "text/plain",
+            "data": "SELECT blob6 AS entity, SUM(_sample_interval) AS lookups FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000) AND blob1 = 'event:tool_call' AND blob6 != '' GROUP BY entity ORDER BY lookups DESC"
+          }
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "type": "bargauge",
+      "title": "Context flags used",
+      "description": "Whether callers build hero bars (forHero), PvP bars (forPvp) or pass an account export (unlockedSkillIds) — tells us which features are actually exercised.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "aft354s7rt3wgf"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/calls/",
+          "values": true
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 43
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "aft354s7rt3wgf"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "",
+          "root_selector": "data",
+          "columns": [
+            {
+              "selector": "flags",
+              "text": "flags",
+              "type": "string"
+            },
+            {
+              "selector": "calls",
+              "text": "calls",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "global_query_id": "",
+          "computed_columns": [],
+          "filterExpression": "",
+          "summarizeExpression": "",
+          "url_options": {
+            "method": "POST",
+            "body_type": "raw",
+            "body_content_type": "text/plain",
+            "data": "SELECT blob7 AS flags, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000) AND blob1 = 'event:tool_call' AND blob7 != '' GROUP BY flags ORDER BY calls DESC"
+          }
+        }
+      ]
     }
   ]
 }

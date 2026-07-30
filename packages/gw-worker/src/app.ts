@@ -4,6 +4,7 @@ import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { StreamableHTTPTransport } from "@hono/mcp";
 import { createServer, TOOL_NAMES } from "@gw1-mcp/gw-mcp";
+import type { ToolCallEvent } from "@gw1-mcp/gw-mcp";
 
 /**
  * Fetch-native Streamable HTTP wrapper around the gw1-mcp server.
@@ -443,7 +444,38 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
       }
     }
 
-    const server = createServer();
+    // Domain events from gw-mcp, translated here into Analytics Engine points.
+    // gw-mcp knows nothing about blobs or datasets — it reports what happened and
+    // this layer decides how to store it. Written as a SEPARATE data point under
+    // blob1 = "event:tool_call": reusing "tool:<name>" would double every count in
+    // the six panels that already sum `blob1 LIKE 'tool:%'`.
+    //
+    // Blob layout for this dataset (positions carry one meaning each; unused
+    // positions are simply absent):
+    //   blob1  kind — "tool:<name>" / "rpc:<method>" / "event:tool_call"
+    //   blob2  client name, on rpc:initialize only
+    //   blob3  tool that ran           (event:tool_call)
+    //   blob4  "ok" | "error"          (event:tool_call)
+    //   blob5  our own error / first validation code
+    //   blob6  canonical entity resolved from our data
+    //   blob7  context flags the caller set, space separated
+    const onToolCall = (event: ToolCallEvent) => {
+      analytics?.writeDataPoint({
+        blobs: [
+          "event:tool_call",
+          "",
+          event.tool,
+          event.ok ? "ok" : "error",
+          event.code ?? "",
+          event.entity ?? "",
+          (event.flags ?? []).join(" "),
+        ],
+        doubles: [1],
+        indexes: ["event:tool_call"],
+      });
+    };
+
+    const server = createServer({ onToolCall });
     const transport = new StreamableHTTPTransport();
     await server.connect(transport);
     // Deliberately NO try/finally { server.close() } here, despite the pair

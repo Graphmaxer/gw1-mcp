@@ -31,6 +31,50 @@ const KNOWN_TOOLS = new Set<string>(TOOL_NAMES);
 
 // JSON-RPC methods are MCP protocol constants (spec-stable), not project
 // state — the one acceptable literal list here.
+/**
+ * A caller label safe to render on a public dashboard.
+ *
+ * Normalised, not whitelisted: unknown clients must show up by themselves, and
+ * Analytics Engine carries unlimited cardinality in blobs, so there is no
+ * technical reason to enumerate callers. What DOES need bounding is what a
+ * caller can put on screen — hence a charset with no markup, quotes or
+ * backslashes, collapsed whitespace, and a hard length cap. A missing header
+ * gets its own bucket rather than being dropped: "sent no user-agent" is itself
+ * a signal.
+ */
+const CLIENT_LABEL_MAX = 120;
+export function clientLabel(userAgent: string | undefined): string {
+  const cleaned = (userAgent ?? "")
+    .replace(/[^A-Za-z0-9 ._/:+()@-]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, CLIENT_LABEL_MAX);
+  return cleaned.length > 0 ? `client:${cleaned}` : "client:_none";
+}
+
+/**
+ * Bounded, printable client name for a PUBLIC dashboard. Only ever called on
+ * `initialize`, so a missing name yields "_unnamed" rather than "" — an empty
+ * blob means "not an initialize" and the two must stay distinguishable.
+ *
+ * Allow-list, not escaping: anything outside letters, digits and `. _ @ -`
+ * becomes a space. That covers every realistic client name
+ * (claude-code, Cursor, mcp-inspector) while removing angle brackets, quotes,
+ * slashes, parentheses and control characters, so the value cannot be mistaken
+ * for markup or break a table cell.
+ */
+export function sanitizeClientName(name: unknown): string {
+  if (typeof name !== "string") return "_unnamed";
+  const cleaned = name
+    // Disallowed characters become a space, not nothing: dropping them would
+    // mash words together ("Claude<>Desktop" -> "ClaudeDesktop").
+    .replace(/[^A-Za-z0-9._@-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 64);
+  return cleaned.length > 0 ? cleaned : "_unnamed";
+}
+
 const KNOWN_METHODS = new Set([
   "initialize",
   "ping",
@@ -359,7 +403,7 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
       try {
         const rpc = (await c.req.raw.clone().json()) as {
           method?: string;
-          params?: { name?: string };
+          params?: { name?: string; clientInfo?: { name?: string } };
         };
         // Whitelisted labels only: the endpoint is public and probed by
         // registry validators and scanners sending arbitrary tool names —
@@ -375,7 +419,25 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
             : KNOWN_METHODS.has(rpc.method ?? "")
               ? `rpc:${rpc.method}`
               : "rpc:_other";
-        analytics.writeDataPoint({ blobs: [label], doubles: [1], indexes: [label] });
+        // blob2: which software is talking, recorded on `initialize` only —
+        // that is the one message carrying clientInfo, and a stateless server has
+        // no session to attach it to afterwards. Counting connections per client
+        // against tool calls overall is enough to tell the profiles apart without
+        // per-call correlation: SentinelOracle made 1 620 initialize calls and
+        // zero tool calls, which is an unmistakable monitor signature, whereas a
+        // real user shows few connections and many calls.
+        //
+        // Sanitised, NOT whitelisted. A whitelist would need hand-maintaining and
+        // would bucket every new client as "_other", which defeats the purpose;
+        // blob cardinality is explicitly unlimited in Analytics Engine (the index
+        // is what samples, and the index here is unchanged). But clientInfo.name
+        // is caller-controlled and this dashboard is public, so the value is
+        // charset-restricted and length-bounded — same reasoning as tool:_unknown.
+        // The version is deliberately dropped: the name answers the question and
+        // a version only adds fingerprinting.
+        const client =
+          rpc.method === "initialize" ? sanitizeClientName(rpc.params?.clientInfo?.name) : "";
+        analytics.writeDataPoint({ blobs: [label, client], doubles: [1], indexes: [label] });
       } catch {
         // non-JSON or unreadable body: nothing to count
       }

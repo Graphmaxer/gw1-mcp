@@ -349,6 +349,62 @@ describe("origin validation and logo", () => {
   });
 });
 
+describe("client attribution on initialize", () => {
+  const send = async (clientInfo: unknown) => {
+    const points: { blobs?: string[] }[] = [];
+    const env = { MCP_ANALYTICS: { writeDataPoint: (p: (typeof points)[0]) => points.push(p) } };
+    await createApp().request(
+      "/mcp",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json, text/event-stream",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo },
+        }),
+      },
+      env,
+    );
+    return points[0]?.blobs?.[1];
+  };
+
+  it("records the client name so monitors can be told from real usage", async () => {
+    // The point of this dimension: SentinelOracle made 1 620 initialize calls
+    // and zero tool calls in a week. Counting connections per client against
+    // tool calls overall separates the profiles without per-call correlation,
+    // which a stateless server cannot do anyway.
+    expect(await send({ name: "claude-code", version: "1.2.3" })).toBe("claude-code");
+  });
+
+  it("drops the version, which only adds fingerprinting", async () => {
+    expect(await send({ name: "Cursor", version: "0.42.1" })).toBe("Cursor");
+  });
+
+  it("sanitises a hostile name rather than trusting it", async () => {
+    // The dashboard is public and this value is caller-controlled — the same
+    // reason tool names are bucketed into tool:_unknown.
+    expect(await send({ name: '<script>alert("x")</script>' })).toBe("script alert x script");
+    expect(await send({ name: "a|b;c`d" })).toBe("a b c d");
+    expect(await send({ name: "a\nb\tc" })).toBe("a b c");
+    // Readability is the point of this dimension, so a legitimate space survives.
+    expect(await send({ name: "Claude Desktop" })).toBe("Claude Desktop");
+  });
+
+  it("bounds the length", async () => {
+    expect((await send({ name: "z".repeat(500) }))?.length).toBe(64);
+  });
+
+  it("marks a missing or empty name rather than writing nothing", async () => {
+    expect(await send({ version: "1.0" })).toBe("_unnamed");
+    expect(await send({ name: "***" })).toBe("_unnamed");
+  });
+});
+
 describe("usage analytics hook", () => {
   it("counts a tools/call by name through the optional binding, fail-soft otherwise", async () => {
     const points: { blobs?: string[]; indexes?: string[] }[] = [];
@@ -372,8 +428,9 @@ describe("usage analytics hook", () => {
       },
       env,
     );
+    // blob2 is empty for anything but initialize: clientInfo only exists there.
     expect(points).toEqual([
-      { blobs: ["tool:get_skill"], doubles: [1], indexes: ["tool:get_skill"] },
+      { blobs: ["tool:get_skill", ""], doubles: [1], indexes: ["tool:get_skill"] },
     ]);
 
     // non-JSON body: swallowed, nothing counted, request not broken

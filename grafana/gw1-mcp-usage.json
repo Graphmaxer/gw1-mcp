@@ -536,6 +536,79 @@
           }
         }
       ]
+    },
+    {
+      "id": 15,
+      "type": "bargauge",
+      "title": "Connections per client",
+      "description": "Which software connects, from the clientInfo of each initialize. Empty until clients reconnect after 2026-07-29 (historical rows have no blob2). Read it against 'Tool calls': many connections with no calls is a monitor, few connections with many calls is real use. Names are sanitised — they are caller-controlled and this dashboard is public.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "aft354s7rt3wgf"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/calls/",
+          "values": true
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 27
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "aft354s7rt3wgf"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "",
+          "root_selector": "data",
+          "columns": [
+            {
+              "selector": "client",
+              "text": "client",
+              "type": "string"
+            },
+            {
+              "selector": "connections",
+              "text": "connections",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "global_query_id": "",
+          "computed_columns": [],
+          "filterExpression": "",
+          "summarizeExpression": "",
+          "url_options": {
+            "method": "POST",
+            "body_type": "raw",
+            "body_content_type": "text/plain",
+            "data": "SELECT blob2 AS client, SUM(_sample_interval) AS connections FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000) AND blob1 = 'rpc:initialize' AND blob2 != '' GROUP BY client ORDER BY connections DESC"
+          }
+        }
+      ]
     }
   ]
 }

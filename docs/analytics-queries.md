@@ -213,3 +213,37 @@ because the server is stateless (see the B2 note in the app). `node` receives
 405s on GET **and** succeeds with 760 POSTs — clients fall back correctly. This
 was investigated as a possible directory-health-check failure and the data does
 not support it.
+
+## Client attribution (`blob2`, added 2026-07-29)
+
+`blob2` carries the sanitised `clientInfo.name` of each `initialize`, and is empty
+on every other row.
+
+**Why `clientInfo` and not the user-agent.** The user-agent is already in Workers
+Logs, so copying it here would only buy retention, not information — and it
+answers the wrong question: it names the HTTP library, not the software. That is
+the whole problem with the 2 454 requests a week arriving as `node` and
+`python-httpx` (~30% of traffic), which could be real MCP clients or more robots.
+`clientInfo` is the field the MCP specification provides for exactly this.
+
+**Why only `initialize` is attributed.** It is the one message carrying
+`clientInfo`, and a stateless server has no session to attach it to afterwards, so
+a `tools/call` cannot be traced to its caller. That turns out not to matter:
+counting connections per client against tool calls overall separates the profiles.
+SentinelOracle made 1 620 `initialize` calls and zero tool calls in a week — an
+unmistakable monitor. A real user shows few connections and many calls.
+
+**Sanitised, not whitelisted.** A whitelist would need hand-maintaining and would
+bucket every new client as `_other`, defeating the purpose. Blob cardinality is
+explicitly unlimited in Analytics Engine — the _index_ is what triggers sampling,
+and the index is unchanged here. But `clientInfo.name` is caller-controlled and
+this dashboard is public, so the value is charset-restricted (anything outside
+letters, digits and `. _ @ -` becomes a space), whitespace-collapsed and cut to 64
+characters. The version is dropped deliberately: the name answers the question, a
+version only adds fingerprinting. A missing name records `_unnamed` rather than
+"", so "no name given" stays distinguishable from "not an initialize".
+
+**Honest limits.** A client can lie or send a generic name, so this improves
+attribution rather than guaranteeing it. And the `Protocol overhead share` panel
+still counts monitors — computing it net of monitors is now possible, but the
+panel has not been changed, because it needs weeks of `blob2` data first.

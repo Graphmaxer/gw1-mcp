@@ -63,7 +63,7 @@ export function clientLabel(userAgent: string | undefined): string {
  * slashes, parentheses and control characters, so the value cannot be mistaken
  * for markup or break a table cell.
  */
-export function sanitizeClientName(name: unknown): string {
+function sanitizeClientName(name: unknown): string {
   if (typeof name !== "string") return "_unnamed";
   const cleaned = name
     // Disallowed characters become a space, not nothing: dropping them would

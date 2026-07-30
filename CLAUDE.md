@@ -611,6 +611,26 @@ Tool design rules:
 - Tools are pure/deterministic: same input → same output, no hidden state.
 - When a skill name is not found, always return the 3 closest matches (Levenshtein or similar) — LLMs make small spelling errors and must be able to self-correct in one round-trip.
 
+## Public hostname: workers.dev, decided 2026-07-29
+
+`https://gw1-mcp.graphmaxer.workers.dev` is the permanent origin. No custom
+domain: Cloudflare charges nothing for one, but it means renting a domain name
+yearly for a hobby project, and the free subdomain is unremarkable for an MCP
+server.
+
+Two consequences worth knowing, because they are not obvious:
+
+- **Directory submissions pin the origin.** The MCP server URL cannot change
+  between versions of a published connector — scheme, host and port are fixed
+  once listed; only the path may change. Submitting with this URL is therefore a
+  commitment, which is why it was decided before submitting rather than after.
+- **Do NOT rename the Worker.** The workers.dev hostname is derived from the
+  Worker's name, so renaming `gw1-mcp` would silently change the origin and break
+  every listing that points at it. The name is now load-bearing.
+
+Reopen only if a custom domain is actually acquired, and note that it would mean
+re-submitting to every directory rather than editing a URL.
+
 ## Explicit non-goals for the MVP
 
 - ❌ `complete_build` / `generate_build` from tags or roles — this reintroduces the hard problem; the LLM proposes the 8 skills.

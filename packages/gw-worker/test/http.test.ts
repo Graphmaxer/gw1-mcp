@@ -291,6 +291,18 @@ describe("security.txt reproducibility", () => {
     expect(a).toBe(b);
   });
 
+  it("does not claim the counters are narrower than they are", async () => {
+    // These two sentences went stale the moment a dimension was added: the flags
+    // ARE arguments, and the entity is derived from one. Asserting their absence
+    // is cheap; asserting prose is accurate is not, so this at least stops the
+    // two known-false claims from coming back by copy-paste.
+    const body = await (await createApp().request("/privacy")).text();
+    expect(body).not.toMatch(/never its arguments/);
+    expect(body).not.toMatch(/a tool name and a timestamp/);
+    // And it must still say what it does not do.
+    expect(body).toMatch(/never IP/i);
+  });
+
   it("fails while there is still time to bump Expires, not after it lapses", async () => {
     const body = await (await createApp().request("/.well-known/security.txt")).text();
     const expires = new Date(body.match(/^Expires: (.+)$/m)?.[1] ?? "").getTime();
@@ -346,6 +358,85 @@ describe("origin validation and logo", () => {
     const res = await createApp(new Uint8Array([137, 80, 78, 71])).request("/logo.png");
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toBe("image/png");
+  });
+});
+
+describe("tool outcome points", () => {
+  const call = async (name: string, args: Record<string, unknown>) => {
+    const points: { blobs?: string[] }[] = [];
+    const env = { MCP_ANALYTICS: { writeDataPoint: (p: (typeof points)[0]) => points.push(p) } };
+    await createApp().request(
+      "/mcp",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json, text/event-stream",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name, arguments: args },
+        }),
+      },
+      env,
+    );
+    return points.find((p) => p.blobs?.[0] === "event:tool_call")?.blobs;
+  };
+
+  it("records the error code when a lookup misses", async () => {
+    // The blob5 column is what the 'Name lookups' and 'Top validation failures'
+    // panels read; an unresolvable name must land here rather than vanish.
+    const blobs = await call("get_skill", { name: "Régénération mystique" });
+    expect(blobs?.[3]).toBe("error");
+    expect(blobs?.[4]).toBe("NOT_FOUND");
+    expect(blobs?.[5]).toBe("");
+  });
+
+  it("records a validation code on a call that succeeded", async () => {
+    const blobs = await call("validate_build", {
+      primary: "Dervish",
+      attributes: [],
+      skills: ["Avatar of Balthazar", "Pious Renewal", null, null, null, null, null, null],
+    });
+    expect(blobs?.[3]).toBe("ok");
+    expect(blobs?.[4]).toBe("MULTIPLE_ELITES");
+  });
+
+  it("records the context flags, space separated", async () => {
+    const blobs = await call("validate_build", {
+      primary: "Dervish",
+      forHero: true,
+      forPvp: true,
+      attributes: [],
+      skills: ["Mystic Regeneration", null, null, null, null, null, null, null],
+    });
+    expect(blobs?.[6]).toBe("forHero forPvp");
+  });
+
+  it("leaves the entity empty for tools that resolve no single entity", async () => {
+    const blobs = await call("search_skills", { professionName: "Monk", limit: 1 });
+    expect(blobs?.[2]).toBe("search_skills");
+    expect(blobs?.[5]).toBe("");
+  });
+
+  it("writes nothing at all when the binding is absent", async () => {
+    // Analytics is optional: the service must work without it, unchanged.
+    const res = await createApp().request("/mcp", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: { name: "get_skill", arguments: { name: "Aegis" } },
+      }),
+    });
+    expect(res.status).toBe(200);
   });
 });
 

@@ -33,27 +33,6 @@ const KNOWN_TOOLS = new Set<string>(TOOL_NAMES);
 // JSON-RPC methods are MCP protocol constants (spec-stable), not project
 // state — the one acceptable literal list here.
 /**
- * A caller label safe to render on a public dashboard.
- *
- * Normalised, not whitelisted: unknown clients must show up by themselves, and
- * Analytics Engine carries unlimited cardinality in blobs, so there is no
- * technical reason to enumerate callers. What DOES need bounding is what a
- * caller can put on screen — hence a charset with no markup, quotes or
- * backslashes, collapsed whitespace, and a hard length cap. A missing header
- * gets its own bucket rather than being dropped: "sent no user-agent" is itself
- * a signal.
- */
-const CLIENT_LABEL_MAX = 120;
-export function clientLabel(userAgent: string | undefined): string {
-  const cleaned = (userAgent ?? "")
-    .replace(/[^A-Za-z0-9 ._/:+()@-]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, CLIENT_LABEL_MAX);
-  return cleaned.length > 0 ? `client:${cleaned}` : "client:_none";
-}
-
-/**
  * Bounded, printable client name for a PUBLIC dashboard. Only ever called on
  * `initialize`, so a missing name yields "_unnamed" rather than "" — an empty
  * blob means "not an initialize" and the two must stay distinguishable.
@@ -167,9 +146,14 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
         "This service is a stateless, read-only compiler for Guild Wars 1 build",
         "data. It has no accounts, no authentication, and it does not collect,",
         "store, or share any personal data. Requests are processed in memory and",
-        "no request content is persisted by the application. Aggregate,",
-        "anonymous usage counters (the invoked tool's name only - never its",
-        "arguments) are recorded for operational purposes. The service runs on",
+        "no request content is persisted by the application. Aggregate, anonymous",
+        "usage counters are recorded for operational purposes. Described by",
+        "category rather than enumerated, so this stays accurate: which tool ran,",
+        "whether the call succeeded, this service's own error and validation",
+        "codes, the canonical name of the game entity resolved from its own",
+        "dataset, which optional flags the caller set, and the client software",
+        "name a client reports about itself. Never free-text arguments, never IP",
+        "addresses, never anything identifying a person. The service runs on",
         "Cloudflare Workers; Cloudflare may process standard operational metadata",
         "(such as IP addresses in transient logs) per its own privacy policy.",
         "Per-IP rate limiting sends the connecting IP to Cloudflare's Rate",
@@ -183,8 +167,9 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
         "Cloudflare Workers Analytics Engine, which retains them for 90 days and",
         "then discards them automatically. There is nothing else to retain and no",
         "deletion request to make, since no personal data is collected: the",
-        "counters record a tool name and a timestamp, and cannot be traced back to",
-        "a person or a request.",
+        "counters record the categories above with a timestamp, carry no",
+        "identifier or session, and cannot be traced back to a person. The service",
+        "is stateless, so two counters cannot be linked to one another either.",
         "",
         "",
         DISCLAIMER,

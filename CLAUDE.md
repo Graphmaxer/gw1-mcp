@@ -819,6 +819,24 @@ Why a single `z.string().max(64).describe(...)` costs 0.147 ms is worth knowing:
 each chained method CLONES the schema, so a five-field shape rebuilt per request was
 1.7 ms on its own.
 
+## Workflow: push straight to main
+
+Deliberate, not sloppiness. Single maintainer, hobby project; the PR round trip buys
+little. What matters is knowing where the real gate is:
+
+- **Production is gated by the Cloudflare build**, whose command is
+  `pnpm -r typecheck && pnpm -r test`. The deploy step runs only if that passes, so a
+  broken commit never reaches the Worker.
+- **lint, fmt, knip and CodeQL run afterwards** in GitHub CI. None of them can break
+  a running service, so arriving late is acceptable — but they do mean main can sit
+  red on style or dead code while production is fine.
+- `codecov/patch` is restricted to pull requests, because it exists to stop
+  under-tested code from landing and cannot do that on a push where the code is
+  already there. `codecov/project` still runs on every commit with a 1% threshold.
+
+If that changes — a second contributor, or anything with a rollback cost — the
+Cloudflare build command is the thing to widen first, not the branch policy.
+
 ## Explicit non-goals for the MVP
 
 - ❌ `complete_build` / `generate_build` from tags or roles — this reintroduces the hard problem; the LLM proposes the 8 skills.

@@ -29,8 +29,13 @@ coverage:
         # defensive ternary fallbacks for a non-TemplateError escaping a catch.
         # Project coverage rose 0.24% in the same commit.
         #
-        # This is a smaller fix than the real one, which is to stop pushing straight
-        # to main. The gate is correct; the workflow was not.
+        # Direct pushes to main are the deliberate workflow here, not an accident:
+        # this is a single-maintainer hobby project and the round trip through a PR
+        # buys little. What actually gates production is the Cloudflare build
+        # command (`pnpm -r typecheck && pnpm -r test`), which must pass before the
+        # deploy step runs — so a broken commit never reaches the Worker. lint,
+        # fmt, knip and CodeQL land afterwards in GitHub CI, and none of them can
+        # break a running service.
         only_pulls: true
 
 component_management:

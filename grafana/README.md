@@ -91,3 +91,21 @@ the owning serializer of these files — a Save in the UI commits back its own
 export format (bidirectional Git Sync), and two formatters fighting over one
 file would produce phantom diffs and red CI on Grafana's PRs. Same rule as
 the generated data files: the tool that round-trips a file owns its format.
+
+## Copying a panel carries its field selector
+
+Three panels rendered "No data" while their rows existed, and the cause was mine:
+each new panel was created by copying an existing one's wiring, which includes
+`options.reduceOptions.fields`. In the panel it came from that was `"/calls/"` — a
+regex naming its value column. The new panels then aliased their value columns
+`connections`, `hits` and `lookups` for readability, so the bar gauge was told to
+reduce a field that did not exist.
+
+Diagnosed rather than guessed: querying Analytics Engine directly showed the data
+was there — 15 distinct clients in `blob2`, 96 entities in `blob6`, seven codes in
+`blob5`. Data present plus empty panel points at the panel, not the pipeline.
+
+So when adding a panel: either name the value column `calls`, or update
+`reduceOptions.fields` to match. The stat panels (11-14) use `fields: ""`, meaning
+every numeric field, and must stay that way — narrowing them would break panels
+that work.

@@ -121,32 +121,58 @@ const MAX_SUGGEST_DISTANCE = 5;
  * "Vow of Rev" resolved to "Vow of Piety". Wrong-but-plausible is the failure
  * mode that makes a model encode a valid, wrong template, so this is checked
  * first and ranked above any distance match.
+ *
+ * Both token lists are precomputed by their callers — the candidate's once at
+ * module load, the needle's once per query. Splitting either inside the loop cost
+ * more than the distance computation it feeds.
  */
-function tokenPrefixMatch(needle: string, candidate: string): boolean {
-  const needleTokens = needle.split(" ").filter((t) => t.length > 0);
-  const candidateTokens = candidate.split(" ").filter((t) => t.length > 0);
+function tokenPrefixMatch(
+  needleTokens: readonly string[],
+  candidateTokens: readonly string[],
+): boolean {
   if (needleTokens.length === 0 || needleTokens.length > candidateTokens.length) return false;
   return needleTokens.every((token, i) => candidateTokens[i]?.startsWith(token) === true);
 }
 
+/**
+ * A candidate with its normalised name and tokens computed once.
+ *
+ * Built at module load. Normalising 1485 names on every call was 36% of a
+ * suggestion's cost (1.75 ms of 4.82 ms measured) — more than the edit distances
+ * it was feeding — and the result never changes, since the dataset is static.
+ */
+interface Searchable<T> {
+  readonly item: T;
+  readonly normalized: string;
+  readonly tokens: readonly string[];
+}
+
+function indexFor<T>(items: readonly T[], nameOf: (item: T) => string): Searchable<T>[] {
+  return items.map((item) => {
+    const normalized = normalizeName(nameOf(item));
+    return { item, normalized, tokens: normalized.split(" ").filter((t) => t.length > 0) };
+  });
+}
+
 /** Rank candidates by token-prefix match first, then by bounded edit distance. */
-function closest<T>(
-  candidates: readonly T[],
-  needle: string,
-  nameOf: (item: T) => string,
-  count: number,
-): T[] {
+function closest<T>(index: readonly Searchable<T>[], rawNeedle: string, count: number): T[] {
+  const needle = normalizeName(rawNeedle);
+  const needleTokens = needle.split(" ").filter((t) => t.length > 0);
   const prefixed: { item: T; length: number }[] = [];
   const scored: { item: T; d: number }[] = [];
-  for (const item of candidates) {
-    const name = normalizeName(nameOf(item));
-    if (tokenPrefixMatch(needle, name)) {
+  for (const candidate of index) {
+    if (tokenPrefixMatch(needleTokens, candidate.tokens)) {
       // Shortest first: the least-padded name is the most specific completion.
-      prefixed.push({ item, length: name.length });
+      prefixed.push({ item: candidate.item, length: candidate.normalized.length });
       continue;
     }
-    const d = distance(needle, name);
-    if (d <= MAX_SUGGEST_DISTANCE) scored.push({ item, d });
+    // Edit distance is at least the length difference, so this skips candidates
+    // that cannot possibly pass the cap without computing anything. The banded
+    // implementation this replaced got that exit for free; fastest-levenshtein
+    // computes the full distance regardless, which cost 2x on padding attacks.
+    if (Math.abs(needle.length - candidate.normalized.length) > MAX_SUGGEST_DISTANCE) continue;
+    const d = distance(needle, candidate.normalized);
+    if (d <= MAX_SUGGEST_DISTANCE) scored.push({ item: candidate.item, d });
   }
   const ranked = [
     ...prefixed.sort((x, y) => x.length - y.length).map(({ item }) => item),
@@ -155,13 +181,30 @@ function closest<T>(
   return ranked.slice(0, count);
 }
 
-/** Closest skill names to a (possibly misspelled) query — for LLM self-correction. */
+/**
+ * Built on FIRST USE, not at module load.
+ *
+ * Measured: building both indexes costs 2.46 ms, while the per-call normalisation
+ * it replaces cost 1.75 ms. So eager construction is a win only for an isolate that
+ * actually suggests something — and ~97.5% of this server's traffic is monitors
+ * running initialize + tools/list and never calling a tool. Those isolates would
+ * have paid 2.46 ms for an index they never read, against a 10 ms per-request CPU
+ * cap the service already sits at 77% of.
+ *
+ * Lazy is strictly better than both: nothing for requests that never suggest, one
+ * build for the first suggestion in an isolate, nothing for the rest.
+ */
+let skillSearchIndex: Searchable<Skill>[] | undefined;
+let attributeSearchIndex: Searchable<Attribute>[] | undefined;
+
 export function suggestAttributeNames(name: string, count = 3): string[] {
   if (name.length > MAX_SUGGEST_LEN) return [];
-  return closest(attributes, normalizeName(name), (a) => a.name, count).map((a) => a.name);
+  attributeSearchIndex ??= indexFor(attributes, (a) => a.name);
+  return closest(attributeSearchIndex, name, count).map((a) => a.name);
 }
 
 export function suggestSkillNames(name: string, count = 3): string[] {
   if (name.length > MAX_SUGGEST_LEN) return [];
-  return closest(skills, normalizeName(name), (s) => s.name, count).map((s) => s.name);
+  skillSearchIndex ??= indexFor(skills, (s) => s.name);
+  return closest(skillSearchIndex, name, count).map((s) => s.name);
 }

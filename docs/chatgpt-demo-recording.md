@@ -59,7 +59,59 @@ beforehand rather than typing them at all.
 Keep the Cloudflare dashboard, Workers logs and anything carrying account
 identifiers out of frame.
 
-### 4. Host it
+### 4. One URL, several passes: assemble a single video
+
+The form has one Demo Recording URL field and asks to "record **a** video" covering
+all platforms, so the deliverable is one file containing every pass — not a
+playlist, and not a folder link a reviewer has to navigate.
+
+The technical wrinkle is orientation: the desktop pass is landscape, the phone
+passes are portrait. Concatenating mixed dimensions directly fails, so normalise
+everything onto one canvas first and **letterbox** the portrait footage rather than
+cropping it — cropping a phone recording cuts off the composer or the response.
+
+Tested end to end with ffmpeg (a 1920x1080 clip and a 1080x2340 clip assembled into
+one 1920x1080 file):
+
+```bash
+# A title card per platform, in the project's own colours
+card() {
+  ffmpeg -y -f lavfi -i "color=c=0x17151B:s=1920x1080:r=30:d=2" \
+    -vf "drawtext=text='$1':fontcolor=0xF0BB34:fontsize=90:x=(w-text_w)/2:y=(h-text_h)/2" \
+    -c:v libx264 -pix_fmt yuv420p "$2"
+}
+card "Web" t-web.mp4 ; card "iOS" t-ios.mp4 ; card "Android" t-android.mp4
+
+# Normalise every pass to the same canvas, padding instead of cropping
+for f in web ios android; do
+  ffmpeg -y -i raw-$f.mp4 \
+    -vf "scale=1920:1080:force_original_aspect_ratio=decrease,\
+pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=0x17151B,setsar=1,fps=30" \
+    -c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p n-$f.mp4
+done
+
+# Concatenate without re-encoding
+printf "file 't-web.mp4'\nfile 'n-web.mp4'\nfile 't-ios.mp4'\nfile 'n-ios.mp4'\nfile 't-android.mp4'\nfile 'n-android.mp4'\n" > list.txt
+ffmpeg -y -f concat -safe 0 -i list.txt -c copy final.mp4
+```
+
+The `-c copy` on the last step only works because every input was normalised to the
+same codec, size, frame rate and SAR — which is the reason for the loop rather than
+concatenating the raw files.
+
+**Add chapters in the hosting platform's description**, one per platform with its
+timestamp. A reviewer who has to verify three surfaces should be able to jump
+straight to each rather than scrub a five-minute file. This is the cheapest thing
+that makes a long submission video easy to review.
+
+On depth per platform: the requirement reads "all main use cases and tools across
+all platforms". Taken literally that is the full seven shots three times. The
+defensible compromise is the full script on web, where it is clearest, then the
+same seven prompts on mobile kept tight — the mobile passes exist to prove the
+surface works, not to re-teach the workflow. If in doubt, do all seven everywhere
+and keep each mobile shot to ten or fifteen seconds.
+
+### 4b. Host it
 
 The form wants a URL a reviewer can open. An unlisted YouTube video or a
 link-shared Drive file both work; what matters is that it needs no login and no

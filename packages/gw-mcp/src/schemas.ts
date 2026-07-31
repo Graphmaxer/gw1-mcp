@@ -10,9 +10,15 @@ import { decodedBuildShape } from "./build-io.js";
  * was deliberately NOT split — its rules share mutable intermediate state and
  * interact by order, so separating them would have hidden those interactions behind
  * a nine-field context object.
+ *
+ * Only what another file consumes is exported. The intermediate shapes
+ * (namedBuildSchema, issueSchema, the per-tool inputs and outputs) stay local: they
+ * exist to build the `*Object` schemas below, and exporting them defensively is how
+ * the first version of this split failed knip — thirteen unused exports, which is
+ * dead public surface rather than an oversight.
  */
 
-export const namedBuildSchema = {
+const namedBuildSchema = {
   primary: z.string().max(64).describe('Primary profession, e.g. "Dervish"'),
   secondary: z
     .string()
@@ -49,7 +55,7 @@ export const READ_ONLY = {
   openWorldHint: false,
 } as const;
 
-export const issueSchema = z.object({
+const issueSchema = z.object({
   code: z.string(),
   message: z.string(),
   suggestions: z.array(z.string()).optional().describe("Closest-match names, on resolution errors"),
@@ -64,7 +70,7 @@ export const issueSchema = z.object({
  * individually optional — the exclusivity is a handler+test invariant, not
  * expressible in the schema.
  */
-export const encodeResultSchema = {
+const encodeResultSchema = {
   code: z.string().optional().describe("Official in-game template code (present on success)"),
   valid: z
     .boolean()
@@ -81,7 +87,7 @@ export const encodeResultSchema = {
  * issue arrays present (possibly empty), never a code. Required fields stop
  * the empty-object and missing-verdict shapes the shared schema allowed.
  */
-export const validateResultSchema = {
+const validateResultSchema = {
   valid: z.boolean().describe("Whether the build is legal in-game"),
   errors: z.array(issueSchema).describe("Blocking problems; empty when valid"),
   warnings: z.array(issueSchema).describe("Non-blocking advisories"),
@@ -139,7 +145,7 @@ export const fullHeroSchema = z.object({
 
 export type FullHeroOut = z.infer<typeof fullHeroSchema>;
 
-export const pwndEntrySchema = z.object({
+const pwndEntrySchema = z.object({
   slot: z.number().int(),
   label: z.string().describe("Slot name shown in paw-ned2 (Player, Hero 1, ...)"),
   notes: z.string().nullable(),
@@ -213,7 +219,7 @@ export const MAX_PWND_BLOB_LEN = 16384;
  * Anything reused by more than one tool already lives above (namedBuildSchema and
  * friends). These are the per-tool literals that were being rebuilt.
  */
-export const getSkillInput = {
+const getSkillInput = {
   name: z
     .string()
     .max(64)
@@ -222,7 +228,7 @@ export const getSkillInput = {
   id: z.number().int().min(0).max(65535).optional().describe("Template skill id"),
 };
 
-export const getHeroInput = {
+const getHeroInput = {
   name: z.string().max(64).optional().describe('Hero name, e.g. "Master of Whispers"'),
   id: z.number().int().min(0).max(255).optional().describe("GWCA HeroID value"),
 };
@@ -231,7 +237,7 @@ export const getHeroInput = {
 // the accepted spellings belong in the schema: without them a caller guesses
 // "EotN" and burns a round-trip. The lists are the values that actually match a
 // hero — every profession has heroes except None, and Core has none.
-export const listHeroesInput = {
+const listHeroesInput = {
   professionName: z
     .string()
     .max(64)
@@ -248,7 +254,7 @@ export const listHeroesInput = {
     ),
 };
 
-export const encodeInput = {
+const encodeInput = {
   ...namedBuildSchema,
   forHero: z
     .boolean()
@@ -269,7 +275,7 @@ export const encodeInput = {
     ),
 };
 
-export const validateInput = {
+const validateInput = {
   ...namedBuildSchema,
   forHero: z
     .boolean()
@@ -290,16 +296,16 @@ export const validateInput = {
     ),
 };
 
-export const searchSkillsOutput = {
+const searchSkillsOutput = {
   total: z.number().int().describe("Total matches before limit/offset are applied"),
   skills: z.array(skillSummarySchema).describe("Compact records; use get_skill for full details"),
 };
 
-export const pwndOutput = {
+const pwndOutput = {
   builds: z.array(pwndEntrySchema).describe("One entry per team slot, in blob order"),
 };
 
-export const listHeroesOutput = {
+const listHeroesOutput = {
   total: z.number().int(),
   heroes: z.array(fullHeroSchema),
 };

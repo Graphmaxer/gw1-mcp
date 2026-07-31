@@ -21,6 +21,17 @@ coverage:
     patch:
       default:
         target: 80% # new lines in a PR should arrive mostly covered
+        # Pull requests ONLY. This status exists to gate new code before it lands,
+        # which it cannot do on a direct push to main — the code is already there.
+        # Left unrestricted it fires on pushes and measures the wrong thing: on
+        # 2026-07-31 it failed a 5-line diff that was pre-existing code RE-INDENTED
+        # after removing a nesting level, where the only uncovered items were two
+        # defensive ternary fallbacks for a non-TemplateError escaping a catch.
+        # Project coverage rose 0.24% in the same commit.
+        #
+        # This is a smaller fix than the real one, which is to stop pushing straight
+        # to main. The gate is correct; the workflow was not.
+        only_pulls: true
 
 component_management:
   individual_components:

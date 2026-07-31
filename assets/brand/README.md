@@ -27,12 +27,29 @@ transparent fixes it, and one file then works everywhere.
 
 ## How the corners were cut
 
-The rounded-square boundary was derived from the image rather than guessed: the
-tile ground reads at luminance ~15-23 while the outside corners read ~0.2, so the
-mask is a luminance threshold, closed with a max/min filter pass and softened by a
-1.2px blur for anti-aliasing. Fitting a circle or a squircle would have risked
-clipping the real curve — measured radius is 20.7% of the width, close to but not
-exactly the iOS 22.37% squircle.
+Redone 2026-07-29 after the first attempt showed a soft, haloed edge at 100% zoom.
+Two separate mistakes, worth naming because each is easy to repeat:
 
-Verified: corner alpha 0, centre alpha 255, edge midpoints still fully opaque (the
-mask does not eat into the tile), and the gold unchanged at `(241, 188, 53)`.
+**The shape was fitted wrong.** The first pass derived the mask from a luminance
+threshold and softened it with a 1.2px blur, which produced a wide, muddy band
+rather than a crisp curve. Fitting the boundary properly shows the tile is a
+**superellipse of exponent 3 with radius 294px** (28.7% of the width), not a
+circular arc: a circle fits with 3.16px mean error against 1.10px for the
+superellipse, and that ~3px deviation is exactly what is visible when you zoom a
+corner. The mask is now generated geometrically at 4x and box-averaged down, so
+the anti-aliasing comes from coverage rather than from a blur.
+
+**The edge colour was never unmatted.** The gold mark was unmatted in the earlier
+pass, but the tile edge was not: its semi-transparent pixels still carried the
+original near-black, so on a light background they read as a grey halo. Interior
+tile colour is now propagated outward across the boundary band before the alpha is
+applied. Measured: the band narrowed from 3396 to 1356 pixels and its mean
+luminance rose from 7.6 to 19.2 — the tile reads 15-23, black reads 0.
+
+**Downscaling is done in premultiplied space.** Resizing RGBA directly lets the
+colour of transparent pixels — here near-black — bleed into the edge and recreate
+the fringe at small sizes. Each size is premultiplied, resized with Lanczos, then
+unpremultiplied. This matters most at 32 and 48px.
+
+Verified at every size: corner alpha 0 (1 at 32px, rounding), edge band tight, and
+edge luminance in the tile range rather than near black.

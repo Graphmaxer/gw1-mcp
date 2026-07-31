@@ -8,7 +8,7 @@ import {
 } from "@gw1-mcp/gw-data";
 import type { SkillTemplate } from "@gw1-mcp/gw-template";
 
-export interface ValidationIssue {
+interface ValidationIssue {
   code: string;
   message: string;
 }

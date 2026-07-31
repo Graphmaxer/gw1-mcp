@@ -57,3 +57,25 @@ full test suite and a wrangler dry-run on every PR — a green CI plus a
 sentence explaining the "why" is usually all a review needs. If your
 change adds a known limitation, add it to the debt register in CLAUDE.md
 with its action trigger; honesty there is a feature.
+
+## Dead code (`pnpm knip`)
+
+`knip` reports unused files, exports and dependencies. It exists because a dead
+export slipped through once and cost a red build: an exported-but-never-called
+function dragged coverage down 1.7% and failed the Codecov project check, which no
+test could catch — nothing was wrong, something was merely pointless.
+
+The job is blocking. Its first run found two exports used only inside their own file
+(`decodedSkillSchema`, `ValidationIssue`), now file-local, and thirteen
+over-specified lines in `knip.json` — ignores that were not needed, entry points
+knip already derives from `package.json`, and an `ignoreBinaries` entry for a tool
+that was never installed.
+
+Two things to know when it next complains:
+
+- knip 5 is not a fallback: it crashes on TypeScript 7.
+- Test files are entry points. Without that, everything they exercise looks unused.
+- If something is reached only through configuration rather than imports — a
+  Wrangler entry, a release-please target, a `.mjs` script called from a workflow —
+  add it to `entry` rather than silencing the rule. And trust knip's own
+  configuration hints: they were right about every line of the first config.

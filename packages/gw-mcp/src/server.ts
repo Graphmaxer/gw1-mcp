@@ -1,5 +1,5 @@
 import type { ToolName } from "./tool-names.js";
-import { type CreateServerOptions, type ToolCallEvent, deriveEvent } from "./events.js";
+import { type CreateServerOptions, deriveEvent } from "./events.js";
 import {
   MAX_PWND_BLOB_LEN,
   MAX_PWND_SLOTS,
@@ -19,10 +19,8 @@ import {
   skillSummarySchema,
   validateInputObject,
   validateResultSchemaObject,
-  type FullHeroOut,
-  type FullSkillOut,
 } from "./schemas.js";
-import { type DecodedBuild, decodedBuildShape } from "./build-io.js";
+import type { DecodedBuild } from "./build-io.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import {
@@ -33,14 +31,11 @@ import {
   getProfessionByName,
   getSkillByName,
   heroes,
-  getSkillById,
   getAttributeById,
   getCampaignById,
   getProfessionById,
-  getSkillType,
   searchSkills,
   suggestSkillNames,
-  type Hero,
   getCampaignByName,
 } from "@gw1-mcp/gw-data";
 import { decodeTemplate, encodeTemplate, TemplateError } from "@gw1-mcp/gw-template";
@@ -48,7 +43,7 @@ import { PwndTemplate } from "@buildwars/gw-templates";
 import dataMeta from "@gw1-mcp/gw-data/data/_meta.json" with { type: "json" };
 import { describeTemplate, resolveNamedBuild } from "./build-io.js";
 import { validateBuild } from "./validate.js";
-import { fullHero, fullSkill, json, jsonError, jsonStructured } from "./results.js";
+import { fullHero, fullSkill, jsonError, jsonStructured } from "./results.js";
 
 /**
  * A domain event about one tool call. Deliberately transport-agnostic: this

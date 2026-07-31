@@ -9,7 +9,7 @@
     "bench": "pnpm -r bench",
     "typecheck": "pnpm -r typecheck",
     "test:coverage": "pnpm -r exec vitest run --coverage --coverage.reporter=text",
-    "lint": "oxlint packages types",
+    "lint": "oxlint --deny-warnings packages types",
     "fmt": "oxfmt .",
     "fmt:check": "oxfmt --check .",
     "knip": "knip"

@@ -106,3 +106,14 @@ Two things to know if you move code again:
   source and are noted as such in that file.
 - `fullSkill` must never use `...skill`. The comment there explains why; ignoring it
   breaks `get_skill` for every client that primes its output validators.
+
+## `pnpm lint` fails on warnings, deliberately
+
+`oxlint` exits 0 when it finds only warnings. That is a silent-accumulation trap: on
+2026-07-31 the file split left eight unused imports behind, `pnpm lint` reported
+success, and CI's lint job passed — the warnings were only noticed by reading the
+output by hand. The script now passes `--deny-warnings`, so a warning is a build
+failure. Verified failible: adding one unused import makes it exit 1.
+
+If a rule ever needs an exception, silence that rule for that line rather than
+removing the flag. A linter nobody has to satisfy is decoration.

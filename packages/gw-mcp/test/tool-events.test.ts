@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { createServer } from "../src/server.js";
-import type { ToolCallEvent } from "../src/server.js";
+import type { ToolCallEvent } from "../src/events.js";
 
 /**
  * These tests live in gw-mcp on purpose: the observer is a DOMAIN interface, and

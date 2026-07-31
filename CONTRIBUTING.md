@@ -79,3 +79,30 @@ Two things to know when it next complains:
   Wrangler entry, a release-please target, a `.mjs` script called from a workflow —
   add it to `entry` rather than silencing the rule. And trust knip's own
   configuration hints: they were right about every line of the first config.
+
+## Where things live in `gw-mcp`
+
+`server.ts` was 1001 lines and is now 557. The split follows seams that already
+existed, not invented ones:
+
+| file         | holds                                                                                                                                                    |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `schemas.ts` | every zod shape, inferred type, tool input/output schema, pre-built schema object, and the input bounds. Immutable data with no dependency on the server |
+| `results.ts` | the MCP content and error envelopes, plus `fullSkill`/`fullHero`, which resolve ids to names                                                             |
+| `events.ts`  | `ToolCallEvent`, `CreateServerOptions`, `deriveEvent` — the transport-agnostic boundary the worker consumes                                              |
+| `server.ts`  | `createServer` and the eight tool plus three resource registrations, and nothing else                                                                    |
+
+`validate.ts` is deliberately NOT split, and the contrast is the useful part: its
+rules share mutable intermediate state and interact by order — the attribute-budget
+error is suppressed when a rank is out of range, on purpose — so separating them
+would need a nine-field context object and would hide the interactions rather than
+clarify them. Length alone is not a reason to split a file; absence of shared state
+is.
+
+Two things to know if you move code again:
+
+- The schema locks in `conventions.test.ts` inspect the PUBLISHED `tools/list` JSON
+  Schema, not the source text, so they survive file moves. Three checks still read
+  source and are noted as such in that file.
+- `fullSkill` must never use `...skill`. The comment there explains why; ignoring it
+  breaks `get_skill` for every client that primes its output validators.

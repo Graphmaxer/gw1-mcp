@@ -285,3 +285,21 @@ it with the next version, since the description is submitted per version anyway.
 Recorded here rather than silently corrected in the repo, because the inaccurate
 text is what is live on Anthropic's side; changing a file here would hide the
 discrepancy instead of resolving it.
+
+## oxfmt vs release-please on `plugin.json` (fixed 2026-07-31)
+
+CI failed on the release-please branch: `oxfmt --check` rejected
+`.claude-plugin/plugin.json`. Cause, verified by reproducing it — release-please
+rewrites the file through its `extra-files` JSON updater and **drops the trailing
+newline**, which oxfmt requires. Stripping the newline by hand reproduces the
+failure exactly; restoring it passes.
+
+Fixed by adding the file to `ignorePatterns` in `.oxfmtrc.json`, which is the
+pattern this repository already uses for `.release-please-manifest.json` and
+`grafana/*.json`: **the tool that round-trips a file owns its format.** Two
+formatters fighting over one file produce phantom diffs and red CI on every
+release.
+
+Nothing is lost by not formatting it: `conventions.test.ts` already validates the
+file's _content_ — recognised keys only, kebab-case name, version equal to
+`server.json` — and formatting was the only thing oxfmt was contributing.

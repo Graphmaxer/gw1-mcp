@@ -417,6 +417,13 @@ is_rp.
    Workers Builds root directory, the **Workers Builds API token**,
    `OPENAI_APPS_CHALLENGE` (submission-time only), the `MCP_ANALYTICS` and
    `RATE_LIMITER` bindings, and the Grafana Infinity datasource credentials.
+   **Build watch paths were narrowed on 2026-07-31** to `packages/**`,
+   `assets/brand/favicon-32.png`, `pnpm-lock.yaml` and `package.json`. They had been
+   `*`, so every commit rebuilt and REDEPLOYED: on 2026-07-31, 19 of 26 commits
+   touched only documentation and assets, each producing a new Version ID and
+   recycling production isolates for a Markdown change. The favicon is in the list
+   because `src/index.ts` imports it; the C++ plugin is at the repository root, so it
+   is already outside.
    The build token earned its place on 2026-07-31: it silently became invalid
    ("belongs to a user who has left your organization") and every deploy failed
    afterwards, with the reason visible only in the Cloudflare build log. Worse, it

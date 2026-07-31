@@ -173,12 +173,26 @@ export function validateBuild(
 
     // PvE-only (roleplay) skills. Detected via the upstream is_rp flag, not
     // an attributeId heuristic that misses no-attribute PvE signets (GW1-AUD-03).
-    // A PvP character cannot use PvE-only skills at all: they are unavailable
-    // outside roleplay areas, and a PvP-created character cannot acquire them.
-    // This mirrors PVE_ONLY_ON_HERO and was missing — forPvp only checked the
-    // PvE/PvP split VERSIONS of ordinary skills, which is a different rule. Found
-    // by walking the game's rules against the validator rather than reading its
-    // code: 54 PvE-only skills have no profession, so they pass every other check.
+    // A PvP-only character cannot use PvE-only skills at all. Verified against the
+    // official wiki rather than asserted from memory:
+    //
+    //   "PvE-only skills are only accessible to roleplaying characters and only
+    //    usable in PvE areas ... cannot be unlocked for the account."
+    //    — wiki.guildwars.com/wiki/List_of_PvE-only_skills
+    //   "since PvE-only skills can only be learned by Roleplaying characters and
+    //    cannot be unlocked, it is not possible for PvP characters to learn or use
+    //    these skills."
+    //    — wiki.guildwars.com/wiki/PvP_Access_Kit
+    //
+    // `forPvp` means a PvP CHARACTER's bar, which the split-version message above
+    // already states ("only exists on PvP characters"), so a hard error is right.
+    // The nuance if that ever changes: a ROLEPLAYING character may equip a
+    // PvE-only skill and enter a PvP area, where it merely shows as locked and
+    // unusable — that case would be a warning, not an error.
+    //
+    // This mirrors PVE_ONLY_ON_HERO and was missing: forPvp only checked the
+    // PvE/PvP split VERSIONS of ordinary skills, a different rule, and 54
+    // PvE-only skills carry no profession so they passed every other check.
     if (options.forPvp && skill.isRoleplay) {
       errors.push({
         code: "PVE_ONLY_ON_PVP_BUILD",
@@ -236,12 +250,24 @@ export function validateBuild(
     }
   }
 
-  // A player bar may hold at most 3 PvE-only skills (POC1). Signet of Capture
-  // is PvE-usable but does not count against the roleplay cap.
+  // A player bar may hold at most 3 PvE-only skills (POC1), and Signet of Capture
+  // COUNTS toward that cap. This previously excluded it, which was wrong —
+  // verified against sources rather than reasoned:
+  //
+  //   "Signet of Capture is a PvE-only skill. Therefore it cannot be equipped by
+  //    heroes and is subject to the limit of 3 PvE-only skills at a time."
+  //    — guildwars.fandom.com/wiki/Signet_of_Capture
+  //   "when I try to add more than three SoC's ... one gets kicked off because
+  //    there is a maximum of three PvE only skills"
+  //    — wiki.guildwars.com/wiki/Talk:Signet_of_Capture
+  //   "the August 23, 2007 update that limited a skill bar to having only 3
+  //    PvE-only skills" — wiki.guildwars.com/wiki/Elite_skill
+  //
+  // The case this used to accept and the game rejects: three PvE-only skills plus
+  // a Signet of Capture, which is four. Contemporary player reports name exactly
+  // that combination as the update's consequence.
   if (!options.forHero) {
-    const pveOnly = resolved.filter(
-      ({ skill }) => skill.isRoleplay && skill.name !== SIGNET_OF_CAPTURE,
-    );
+    const pveOnly = resolved.filter(({ skill }) => skill.isRoleplay);
     if (pveOnly.length > 3) {
       errors.push({
         code: "TOO_MANY_PVE_SKILLS",

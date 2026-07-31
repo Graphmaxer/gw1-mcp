@@ -402,3 +402,39 @@ describe("PvE-only skills on a PvP bar", () => {
     expect(hits).toHaveLength(2);
   });
 });
+
+describe("Signet of Capture counts toward the PvE-only cap", () => {
+  // Previously excluded from the cap, which was wrong. Verified against sources:
+  // "Signet of Capture is a PvE-only skill. Therefore it cannot be equipped by
+  // heroes and is subject to the limit of 3 PvE-only skills at a time"
+  // (guildwars.fandom.com/wiki/Signet_of_Capture), and a player report on
+  // wiki.guildwars.com/wiki/Talk:Signet_of_Capture describing a fourth being
+  // kicked off the bar. The August 23 2007 update introduced the cap.
+  const soc = getSkillByName("Signet of Capture")!.id;
+  const pve = ["Asuran Scan", "Sunspear Rebirth Signet", "Sneak Attack"].map(
+    (n) => getSkillByName(n)!.id,
+  );
+  const bar = (ids: number[]) => ({
+    primary: 10,
+    secondary: 0,
+    attributes: [],
+    skills: [...ids, ...Array(8 - ids.length).fill(0)],
+  });
+
+  it("rejects three PvE-only skills plus a Signet of Capture (four in total)", () => {
+    const report = validateBuild(bar([...pve, soc]), {});
+    expect(report.errors.map((e) => e.code)).toContain("TOO_MANY_PVE_SKILLS");
+  });
+
+  it("accepts two PvE-only skills plus a Signet of Capture (three in total)", () => {
+    const report = validateBuild(bar([...pve.slice(0, 2), soc]), {});
+    expect(report.errors.map((e) => e.code)).not.toContain("TOO_MANY_PVE_SKILLS");
+  });
+
+  it("accepts three copies of the signet, which the game allows", () => {
+    // "You can equip up to three copies of this signet on your skill bar"
+    // — wiki.guildwars.com/wiki/Signet_of_Capture
+    const report = validateBuild(bar([soc, soc, soc]), {});
+    expect(report.errors.map((e) => e.code)).not.toContain("TOO_MANY_PVE_SKILLS");
+  });
+});

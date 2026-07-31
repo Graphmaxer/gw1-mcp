@@ -868,30 +868,43 @@ dominated by my own testing (Patient Spirit, Word of Healing, Dunkoro — the de
 bars). Those panels say nothing about users yet and are labelled as curiosity in
 their descriptions.
 
-## Game-rule audit (2026-07-31): one rule was missing
+## Game-rule audit (2026-07-31): two defects, both sourced
 
-Thirteen real GW1 scenarios were run against `validate_build` — not read against its
-code, which is how the gap survived. Twenty-four rules were already enforced,
-including several I did not expect: `ATTRIBUTE_NOT_TEMPLATABLE` catches points spent
-on a title track, `SAME_PROFESSIONS` catches primary == secondary, and rank 13 is
-rejected by the **schema** before the validator ever sees it, which is better than
-late.
+Asked whether I had checked the rules against reliable sources, I had not — I had
+asserted them from memory and shipped code that REJECTS builds on that basis, which
+is worse than the gap it closed. Verifying found the new rule correct and a
+pre-existing one wrong.
 
-**The gap: `PVE_ONLY_ON_PVP_BUILD`.** A PvP character cannot use PvE-only skills at
-all — they do not exist outside roleplay areas and a PvP-created character cannot
-acquire them. `forPvp` only checked the PvE/PvP split VERSIONS of ordinary skills,
-which is a different rule entirely. And **54 PvE-only skills carry no profession**, so
-they passed every other check: no profession mismatch, no attribute problem, under the
-three-skill cap. `encode_template` would have produced a valid code for an illegal PvP
-bar.
+**Sources used** (cited in `validate.ts` at each rule): `List_of_PvE-only_skills`,
+`PvP_Access_Kit`, `Signet_of_Capture` and `Talk:Signet_of_Capture` on
+wiki.guildwars.com, plus the Fandom `Signet_of_Capture` page and `Elite_skill` for
+the August 23 2007 update that introduced the cap.
 
-Now an error per offending slot, mirroring `PVE_ONLY_ON_HERO`. Verified failible by
-disabling the branch, which turns two tests red.
+**Confirmed: `PVE_ONLY_ON_PVP_BUILD` was genuinely missing.** "It is not possible for
+PvP characters to learn or use these skills" (PvP_Access_Kit). `forPvp` only checked
+the PvE/PvP split VERSIONS of ordinary skills, a different rule, and 54 PvE-only
+skills carry no profession so they passed every other check — `encode_template` would
+have produced a valid code for an illegal PvP bar.
 
-Three of my four initial "gaps" were my own bad inputs — a wrong attribute name
-("Sunspear Rank" instead of "Sunspear Title Track"), a skill that does not exist, and
-a Ranger skill on a Dervish bar. Worth recording: when auditing a domain, check the
-fixture before blaming the code.
+One nuance the sources added that memory had not: a ROLEPLAYING character may equip a
+PvE-only skill and enter a PvP area, where it merely shows as locked. Only PvP-only
+characters cannot have it at all. `forPvp` means a PvP character's bar here, so a hard
+error is right — but the distinction is recorded at the rule in case that changes.
+
+**Corrected: Signet of Capture COUNTS toward the three-skill cap.** The code excluded
+it. "Signet of Capture is a PvE-only skill. Therefore it cannot be equipped by heroes
+and is subject to the limit of 3 PvE-only skills at a time." Contemporary player
+reports name the exact combination the validator used to accept — three PvE-only
+skills plus a capture signet, which is four and gets one kicked off the bar. Three
+copies of the signet alone remain legal, which the tests also pin.
+
+## Method note
+
+Three of my four initial "gaps" were my own bad fixtures — a wrong attribute name, a
+skill that does not exist, a Ranger skill on a Dervish bar. And the two real defects
+came out only after checking sources, not after reading code. Reading the
+implementation cannot tell you the rule is wrong; it can only tell you the code does
+what it says.
 
 ## Explicit non-goals for the MVP
 

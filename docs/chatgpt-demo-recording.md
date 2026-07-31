@@ -80,3 +80,38 @@ to show every tool without padding.
   code on a phone on camera is not a good use of a reviewer's time.
 - Do not show the Cloudflare dashboard, Workers logs or anything with account
   identifiers in frame.
+
+## Rehearsed 2026-07-31 in Claude Code — findings
+
+The whole script was run end to end against the live server. All seven shots
+worked, including the two gap-fillers that exist because the submitted test cases
+omit `get_hero` and `decode_pawned_team`. Two things worth carrying into the
+recording, and one worth noting for the project.
+
+**The model volunteers a hero count.** Shot 5 produced "13 Nightfall heroes"
+unprompted. The number is correct today — the data has exactly 13 — but a spoken
+or on-screen count dates the video the moment upstream adds a hero, which is the
+same reason counts were removed from the store descriptions. It cannot be
+suppressed by wording the prompt differently, so either accept it or cut that
+sentence in the edit.
+
+**Two pwnd blobs are better than one.** The rehearsal decoded an AB PvP team (4
+slots, no heroes) and a hard-mode hero team (7 slots, every bar ending in Flesh of
+My Flesh). The second is the more useful shot: it shows per-slot roles and proves
+the tool handles the format players actually share. Keep both if the runtime allows
+— they demonstrate different things.
+
+**The refusal shot is the strongest moment in the script.** Asked to hand-write a
+code, the assistant declined and explained why in the project's own terms: a
+template code is bit-packed, so one wrong bit shifts every skill id after it. That
+is the thesis of the whole project stated by the model itself, unprompted. Give it
+room in the edit.
+
+### Production confirmation of the A1 fix
+
+Incidental but valuable: shot 4 returned **Master of Whispers as hero id 4**, and
+the data agrees. That id is exactly what the `parseHeroEnum` bug would have got
+wrong — an upstream comment swallowed the following hero and shifted every id
+after it, which in the reproduction turned Master of Whispers from 4 into 3. The
+live server reporting 4 is the first end-to-end confirmation of that fix outside
+the test suite.

@@ -39,28 +39,33 @@ from 23.0% to 26.2% of pixels.
 Its own geometry was re-fitted rather than inherited: a superellipse of exponent 3
 at radius 293px, which is 23.4% of 1254 where the previous master sat at 28.7% of 1024. Reusing the old ratio would have cut into the artwork.
 
-## How the full-bleed background was built
+## How the background is built: rebuilt, not patched
 
-The corners were not simply flooded with a flat colour. The tile carries a real,
-subtle gradient — measured `(22,21,22)` at the centre against `(24,21,28)` at the
-edge, almost entirely in the blue channel — so a flat fill would have shown a seam.
+The first two attempts patched the source raster — repaint outside a fitted
+boundary, keep the interior pixel-for-pixel. Both left a visible artefact in the
+corners, and the second one taught why: **the tile carries its own edge highlight**
+(luminance ~23 at its rim against ~17 further in). Preserving the interior
+preserved exactly the feature that should not survive, leaving a bright arc
+orphaned in the middle of a smooth field.
 
-The background is a per-channel linear fit of that measured gradient against
-distance from centre, extrapolated to the corners (normalised distance reaches
-1.414 there). The interior is then preserved pixel-for-pixel and only the region
-outside the old rounded boundary is repainted, with the anti-aliased boundary band
-blended into the new background so the former tile edge disappears.
+So the background is no longer derived from the source at all:
 
-The boundary is a **superellipse of exponent 3**, fitted from each source rather
-than assumed — 293px on the current 1254px master, where a circular arc fits at
-11.37px mean error against 1.36px for the superellipse, and exponent 4 at 1.56px.
-The exponent is a property of the artwork, so it is re-fitted whenever the master
-is replaced.
+1. **The mark is extracted by chroma.** The background is neutral (chroma 6,
+   99th percentile 12) and the gold is not (chroma 189), so alpha ramps over
+   chroma 12-45. This keeps the glow around the highlighted slot, which is dim but
+   saturated — 15 171 pixels that a luminance key would have thrown away.
+2. **The mark colour is unmatted** against the modelled old background, so
+   semi-transparent edges carry pure gold rather than a blend toward the tile.
+3. **The background is synthesised from scratch** across the whole square: a
+   per-channel linear fit of the measured gradient (23 at centre to 20.5 at the
+   corners, mostly in blue). No pixel of the original background survives, so
+   there is no bevel, no rim and no orphaned vignette to leak through.
 
-Verified: background luminance standard deviation across the old boundary is 0.47,
-**lower** than the 3.16 measured away from it — the join is smoother than the
-artwork's own vignette, so there is no residual ring. Corner reads `(21,19,27)`,
-centre `(17,16,20)`.
+Measured on the result: the radial luminance profile is monotonic, each 0.1-radius
+ring differing from its neighbour by 0.19 with an internal deviation of 0.05, and
+the largest step anywhere is **0.205** against ~4 at the old seam. In the corner
+region, excluding the neighbourhood of the gold, the maximum background gradient
+fell from **24 to 0.72**, with **0 pixels** above 1 where there were 4 439.
 
 ## Two defects found by eye that measurement had missed
 

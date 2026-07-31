@@ -706,8 +706,12 @@ Three bounds now, and each covers something the others cannot:
   measures 321 characters for four slots with notes and a source URL. This bound
   matters separately because the upstream container parse runs BEFORE any slot
   count is known.
-- `MAX_TEMPLATE_CODE_LEN = 128`, now shared between the `code` argument and every
-  pwnd slot, so the two paths cannot drift apart.
+- `MAX_TEMPLATE_CODE_LEN = 128` on the `code` argument of decode_template. NOT on
+  pwnd slots: the format encodes each field's length in a single base64 character,
+  so a slot code cannot exceed 63 characters. A 128-character guard was added there
+  and removed the same day — Codecov reported it uncovered, and it was uncovered
+  because it was unreachable, not because a test was missing. A test now records the
+  structural limit so the guard is not re-added.
 
 Result: 409.7 ms → 1.0 ms on the attack, and the real PvX fixture still decodes to
 its four labelled slots.

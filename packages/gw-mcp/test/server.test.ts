@@ -221,6 +221,24 @@ describe("paw-ned2 team decoding", () => {
     expect(JSON.stringify(res)).toMatch(/too large|TOO_MANY_SLOTS/);
   });
 
+  it("needs no per-slot length bound: the format caps a slot code at 63 characters", async () => {
+    // Documented as a test so the guard that was removed is not re-added. The pwnd
+    // format writes each field's length as ONE base64 character — encode does
+    // `base64_chr(str.length)`, decode does `read(base64_ord(read(1)))` — so 63 is
+    // the structural maximum, below any bound worth writing. A 128-character check
+    // added here was unreachable, which is exactly why Codecov reported it uncovered.
+    const client = await connectedClient();
+    const res = await client.callTool({
+      name: "decode_pawned_team",
+      arguments: { pwnd: `pwnd0001?download pawned2 >${"A".repeat(600)}<` },
+    });
+    // Whatever the outcome, no slot may carry a code longer than the format allows.
+    const text = JSON.stringify(res);
+    for (const match of text.matchAll(/"skillsCode":"([^"]*)"/g)) {
+      expect((match[1] ?? "").length).toBeLessThanOrEqual(63);
+    }
+  });
+
   it("decodes a real PvXwiki team blob (3 Hero Discordway) despite line wraps", async () => {
     const client = await connectedClient();
     // Verbatim from the PvX page rendering, including wrap-induced spaces.

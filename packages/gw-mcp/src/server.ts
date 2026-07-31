@@ -335,11 +335,14 @@ export interface CreateServerOptions {
 }
 
 /**
- * Longest accepted template code, for BOTH entry points: the `code` argument of
- * decode_template and every slot of a pwnd blob. A real in-game code is around
- * 25 characters, so this is generous; the point is that decode cost grows with
- * input length (22.5 ms for 262 144 characters, against a 10 ms per-request CPU
- * cap) and the pwnd path previously had no per-slot bound at all.
+ * Longest accepted template code on the `code` argument. A real in-game code is
+ * around 25 characters, so this is generous; the point is that decode cost grows
+ * with input length — 22.5 ms for 262 144 characters against a 10 ms per-request
+ * CPU cap.
+ *
+ * Only this entry point needs it. Pwnd slots are bounded by the format itself: each
+ * field's length is encoded in a single base64 character, so a slot code cannot
+ * exceed 63 characters.
  */
 const MAX_TEMPLATE_CODE_LEN = 128;
 
@@ -651,30 +654,20 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
         builds: entries.map((entry, index) => {
           let build: DecodedBuild | undefined;
           let buildError: { code: string; message: string } | undefined;
-          // Bound each slot's code the same way the single-code tool bounds its
-          // `code` argument. Without this the cap was bypassed on this path: the
-          // only limit was the 256 KiB blob, so a slot carrying a long string
-          // reached decodeTemplate unchecked. Measured 22.5 ms for one
-          // 262 144-character decode against a 10 ms per-request CPU cap, so a
-          // single crafted request could exceed the budget. A real in-game code
-          // is around 25 characters; 128 is already generous. Reported per slot
-          // rather than failing the whole call, matching how a slot that fails to
-          // decode is reported. Surfaced by the benchmark suite, which measured
-          // the decoder against a padded input and made the scaling visible.
-          if (entry.skills.length > MAX_TEMPLATE_CODE_LEN) {
+          // No per-slot length bound here, and none is possible to need: the pwnd
+          // format encodes each field's length in a SINGLE base64 character, so a
+          // slot's code cannot exceed 63 characters. Both sides enforce it —
+          // encode writes `base64_chr(str.length)`, decode reads
+          // `read(base64_ord(read(1)))`. A 128-character guard was added here and
+          // removed the same day: Codecov flagged it as uncovered, and it was
+          // uncovered because it is unreachable, not because a test was missing.
+          try {
+            build = describeTemplate(decodeTemplate(entry.skills));
+          } catch (error) {
             buildError = {
-              code: "CODE_TOO_LONG",
-              message: `Slot code is ${entry.skills.length} characters; the maximum is ${MAX_TEMPLATE_CODE_LEN}.`,
+              code: error instanceof TemplateError ? error.code : "DECODE_FAILED",
+              message: error instanceof Error ? error.message : String(error),
             };
-          } else {
-            try {
-              build = describeTemplate(decodeTemplate(entry.skills));
-            } catch (error) {
-              buildError = {
-                code: error instanceof TemplateError ? error.code : "DECODE_FAILED",
-                message: error instanceof Error ? error.message : String(error),
-              };
-            }
           }
           // The description field holds "label\nnotes"; label is the slot
           // name shown in paw-ned2 ("Player", "Hero 1", ...).

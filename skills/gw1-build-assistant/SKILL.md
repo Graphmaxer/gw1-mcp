@@ -38,7 +38,21 @@ historical wiki knowledge and from training data.
    them and retry instead of giving up or improvising. An empty suggestion
    list means the name was not close to anything — ask or search, do not
    guess.
-5. Skill and attribute names are **English only**. Guild Wars 1 is
+5. **The attribute point budget is non-linear, and it is the rule most often
+   broken.** A level 20 character has **200 points** (170 base + 30 from quests).
+   Cumulative cost to reach a rank:
+
+   | rank | 0   | 1   | 2   | 3   | 4   | 5   | 6   | 7   | 8   | 9   | 10  | 11  | 12  |
+   | ---- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+   | cost | 0   | 1   | 3   | 6   | 10  | 15  | 21  | 28  | 37  | 48  | 61  | 77  | 97  |
+
+   So 12/12 already costs 194 and leaves 6 points. Three lines at 12 is 291 and
+   impossible. A common legal spread is 12 / 10 / 8 = 195. Compute the total BEFORE
+   calling `encode_template`; the validator will otherwise reject it and you will
+   have spent a round trip. Ranks here are **base** ranks 0-12 — runes and headgear
+   are not part of the template.
+
+6. Skill and attribute names are **English only**. Guild Wars 1 is
    localised, so a French, German or Spanish player will give you names
    the tools cannot resolve — and a translated guess is the one way to
    produce a template that encodes cleanly and is still wrong. Translate

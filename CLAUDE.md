@@ -837,6 +837,37 @@ little. What matters is knowing where the real gate is:
 If that changes — a second contributor, or anything with a rollback cost — the
 Cloudflare build command is the thing to widen first, not the branch policy.
 
+## What the production dashboard says (read 2026-07-31)
+
+Three conclusions, and only the third gave work.
+
+**Traffic is entirely automated.** `clientInfo` names 15 distinct callers on
+`initialize` and not one is a human client — no claude-code, no cursor, no ChatGPT.
+`glimind-probe` alone is 358 of ~570 connections (63%), then aisec-registry-probe
+84, glama 36, and a dozen registry, scoring and uptime scanners. Two independent
+measurements agree: user-agents in Workers Logs said 65%, clientInfo says 63%. The
+"Protocol overhead share" panel is therefore accurate and not a mystery.
+
+**The French alias table (J1 path 3) can be closed as NO.** Name lookups measure
+198 resolved against 2 missed — 1% — and both misses are most likely my own French
+probes. This was the evidence that decision was deferred for; there is no demand.
+
+**`ATTRIBUTE_POINTS_EXCEEDED` is the most frequent validation failure, and the cause
+was ours.** `RANK_COST` — `[0,1,3,6,10,15,21,28,37,48,61,77,97]` — lived only inside
+validate.ts. No model could see it, and the costs are NON-LINEAR: rank 12 is 97
+points, so 12/12 already spends 194 of 200 and three lines at 12 is impossible. A
+model assuming linearity overspends every time, and the validator only said so
+afterwards. Fixed in two places: the table is now IN the error message, so a model
+that overspends can compute a fix instead of guessing again, and it is in the
+bundled skill with a worked example, so the error should not happen. Neither costs
+fixed context — the message appears only on failure, and the skill loads only when
+invoked.
+
+Caveat on everything else the dashboard shows: the skill and hero rankings are
+dominated by my own testing (Patient Spirit, Word of Healing, Dunkoro — the demo
+bars). Those panels say nothing about users yet and are labelled as curiosity in
+their descriptions.
+
 ## Explicit non-goals for the MVP
 
 - ❌ `complete_build` / `generate_build` from tags or roles — this reintroduces the hard problem; the LLM proposes the 8 skills.

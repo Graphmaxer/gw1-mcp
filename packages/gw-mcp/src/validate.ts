@@ -55,7 +55,11 @@ export function validateBuild(
   if (!hasOutOfRangeRank && spentPoints > MAX_ATTRIBUTE_POINTS) {
     errors.push({
       code: "ATTRIBUTE_POINTS_EXCEEDED",
-      message: `This attribute spread costs ${spentPoints} points; a level 20 character has at most ${MAX_ATTRIBUTE_POINTS} (170 base + 30 from quests). Lower some ranks.`,
+      // The cost table goes IN the message. It is non-linear and lived only in
+      // this file, so a model overspending had no way to compute a fix and would
+      // guess again. ATTRIBUTE_POINTS_EXCEEDED is the most frequent validation
+      // failure in production for exactly that reason.
+      message: `This attribute spread costs ${spentPoints} points; a level 20 character has at most ${MAX_ATTRIBUTE_POINTS} (170 base + 30 from quests). Cumulative cost per rank is non-linear: ${RANK_COST.map((c, r) => `${r}=${c}`).join(", ")}. Lower some ranks so the total fits.`,
     });
   }
 

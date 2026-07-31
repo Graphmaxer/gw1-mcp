@@ -26,21 +26,13 @@ redeploy needed).
   before a code is produced. All tools are read-only; no account or
   authentication needed.
 - Category: Entertainment (or Gaming if available)
-- Logo: upload assets/brand/logo-1024.png (1024x1024 PNG, transparent
-  background). ChatGPT accepts a raster logo directly — no need to
-  vectorize. If the listing preview shows the mark washed out on a light
-  surface, swap in assets/brand/logo-1024-tile.png, which keeps the dark
-  charcoal tile: the mark is gold and measures 1.77:1 against white versus
-  9.17:1 against dark. See assets/brand/README.md.
+- Logo: upload assets/brand/icon-1024.png. One file for every slot — light mode,
+  dark mode and composer alike. Its rounded tile carries its own contrast
+  (9.17:1) and its corners are transparent, so there is no light/dark variant to
+  pick wrongly. See assets/brand/README.md.
 - Website / support: https://github.com/Graphmaxer/gw1-mcp
-- Directory icon: assets/brand/submission/directory-icon-light-512.png and
-  directory-icon-dark-512.png. The LIGHT-mode file is the dark-tile variant on
-  purpose: the gold mark measures 1.77:1 against white and 9.17:1 against dark,
-  so the tile is what makes it read on a light directory page. The dark-mode file
-  is the transparent mark.
-- ChatGPT composer icon: assets/brand/submission/composer-icon-48.png (96px
-  variant beside it). Tile, not transparent: at 48px only ~10% of pixels carry
-  the mark and a transparent version is near-invisible.
+- Directory icon and composer icon: the same assets/brand/icon-*.png family,
+  sized to whatever the form asks for (1024, 512, 256, 48 available).
 - Privacy policy: https://gw1-mcp.graphmaxer.workers.dev/privacy
 - Terms of Service: https://gw1-mcp.graphmaxer.workers.dev/terms
   (NOT the repository LICENSE, which was the earlier answer here and is wrong:

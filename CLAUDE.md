@@ -190,20 +190,20 @@ the MCP isError flag via the jsonError helper — keep new tools consistent.
 
 ## Logo and favicon (single source)
 
-SINGLE logo source: assets/brand/logo-1024.png (the scythe + 8-slot skill-bar
+SINGLE logo source: assets/brand/icon-1024.png (the scythe + 8-slot skill-bar
 badge, from an image model; a 512px copy sits beside it, used in the README header).
 Everything derives from it:
 
-- Directory submission forms: upload logo-1024.png directly (forms prefer PNG).
+- Directory submission forms: upload icon-1024.png directly (forms prefer PNG).
 - Worker favicon: assets/brand/favicon-32.png (a 32x32 export of
-  logo-1024.png). The PNG is imported ONLY in src/index.ts (the real Worker
+  icon-1024.png). The PNG is imported ONLY in src/index.ts (the real Worker
   entry point, the sole file wrangler bundles), which passes the bytes to
   createApp(faviconPng). Config lives in two spots: wrangler.jsonc "rules"
   (png as Data) and the ambient declaration types/assets.d.ts. NO vitest
   config is needed: tests call createApp() with no favicon (or fake bytes), so
   the test path never imports a binary. Served at /favicon.ico, /favicon.png,
   /logo.png; the full-res logo is never bundled (~2 MB bundle, ~2.5 KB
-  favicon). Refresh by re-exporting favicon-32.png from logo-1024.png with any
+  favicon). Refresh by re-exporting favicon-32.png from icon-1024.png with any
   image tool. No SVG logo, no base64 module, no build script.
 
 ## Releasing

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "gw1-mcp": {
+      "type": "http",
+      "url": "https://gw1-mcp.graphmaxer.workers.dev/mcp"
+    }
+  }
+}

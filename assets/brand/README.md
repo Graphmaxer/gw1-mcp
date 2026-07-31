@@ -1,64 +1,38 @@
 # Brand assets
 
-Two variants of the same mark, because the right one depends on what the
-surface behind it looks like.
+**One icon, five sizes.** There is no light/dark pair and no transparent-versus-tile
+choice to make, because the earlier split solved the wrong problem.
 
-| File                                            | Background         | Use for                                                                                                                    |
-| ----------------------------------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| `logo-1024.png`, `logo-512.png`, `logo-256.png` | transparent        | the default: directory listings, READMEs, anywhere the host composites on its own surface                                  |
-| `logo-*-tile.png`                               | dark charcoal tile | when a platform requires a filled/opaque icon, or when the listing renders on a light theme and the mark must stay legible |
-| `favicon-32.png`                                | dark tile          | served at `/favicon.ico`, `/favicon.png`, `/logo.png`                                                                      |
-| `favicon-32-transparent.png`                    | transparent        | kept for completeness; **not** wired up (see below)                                                                        |
+| File                 | Use for                                                    |
+| -------------------- | ---------------------------------------------------------- |
+| `icon-1024.png`      | master; directory submission forms                         |
+| `icon-512.png`       | README header, anywhere mid-size                           |
+| `icon-256.png`       | directory listings that ask for 256                        |
+| `icon-48.png`        | composer / small UI slots                                  |
+| `favicon-32.png`     | served at `/favicon.ico`, `/favicon.png`, `/logo.png`      |
+| `social-preview.png` | GitHub Open Graph card, uploaded manually in repo Settings |
 
-## Why the favicon keeps its tile
+## Why one icon and not two
 
-The mark is gold (`#F0BB34`) and gold has very little contrast against light
-surfaces — measured 1.77:1 on white and 1.64:1 on the near-white a store page
-uses, against 9.17:1 on dark. At 1024px that is fine: the shape is large enough
-to read even when the colour is washed out. At 32px, where only ~10% of pixels
-carry the mark, a transparent version is close to invisible on a light browser
-tab strip. The tile is what makes it readable, so the favicon keeps it.
+The mark is gold (`#F0BB34`), which measures 1.77:1 against white and 9.17:1
+against dark. That drove an earlier design with a transparent variant for dark
+surfaces and a dark-tile variant for light ones — two files, and a decision to get
+wrong at every upload.
 
-## How the transparency was cut
+The tile already solves it: the mark sits on its own charcoal ground, so contrast
+is 9.17:1 regardless of the page behind it. The only reason the tile looked wrong
+on a light background was that the source had **opaque near-black corners** outside
+its rounded square, which showed as black triangles. Making those corners
+transparent fixes it, and one file then works everywhere.
 
-The source was fully opaque with a charcoal background (`#17151B`) vignetting to
-near-black at the corners, so a flat "make black transparent" would have left
-halos. Instead alpha is keyed on luminance — the histogram is cleanly bimodal
-(84% of pixels below 0.1, the gold at ~0.74, almost nothing between) and the
-mark does not touch the edges — and the colour is then _unmatted_:
+## How the corners were cut
 
-    observed = gold * alpha + background * (1 - alpha)
-    gold     = (observed - background * (1 - alpha)) / alpha
+The rounded-square boundary was derived from the image rather than guessed: the
+tile ground reads at luminance ~15-23 while the outside corners read ~0.2, so the
+mask is a luminance threshold, closed with a max/min filter pass and softened by a
+1.2px blur for anti-aliasing. Fitting a circle or a squircle would have risked
+clipping the real curve — measured radius is 20.7% of the width, close to but not
+exactly the iOS 22.37% squircle.
 
-Without that last step the anti-aliased edge pixels keep the dark background
-mixed into them and show as a dirty fringe on light backgrounds. Verified by
-compositing over white, near-white and dark.
-
-## `social-preview.png` (1280×640)
-
-GitHub's Open Graph card. **It cannot be committed into place** — upload it at
-Settings → General → Social preview. The file lives here for provenance and so
-it can be regenerated.
-
-Design notes, so a future change stays deliberate:
-
-- **The content is real, and the product made it.** The template code
-  `OgCjkyrKLOu3mL0dAzcZvmXxL` is not decorative filler: it is the actual output
-  of `encodeTemplate` for a Dervish scythe bar (Avatar of Balthazar, Eremite's
-  Attack, Victorious Sweep, Chilling Victory, Mystic Sweep, Mystic Regeneration,
-  Sand Shards, Vital Boon; Scythe 12 / Earth Prayers 10 / Mysticism 8). It
-  passes `validateBuild` with zero errors and zero warnings, and round-trips
-  through `decodeTemplate` back to the same bar. The first two drafts did not:
-  the validator rejected MULTIPLE_ELITES, then ATTRIBUTE_POINTS_EXCEEDED at
-  224/200. A card advertising a validator should not show a build its own
-  validator refuses.
-- **The eight slots are the logo's device, reused.** Exactly one is gold —
-  the single elite the validator allows. The structure encodes a game rule
-  rather than decorating the space.
-- **Type pairs a renaissance serif with a monospace** (TeX Gyre Pagella +
-  DejaVu Sans Mono). That tension is the project: a 2005 game meeting an LLM
-  protocol. A geometric sans would have read as generic developer-tool.
-- **Margins are 72px** so the 1.91:1 crop Facebook and LinkedIn apply takes
-  only empty ground. Verified at 590px feed scale, where the code is still
-  legible — which is why the code is set large and the skill names are not on
-  the card at all.
+Verified: corner alpha 0, centre alpha 255, edge midpoints still fully opaque (the
+mask does not eat into the tile), and the gold unchanged at `(241, 188, 53)`.

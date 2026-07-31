@@ -128,7 +128,7 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
   );
 
   // Favicon: 32x32 PNG (assets/brand/favicon-32.png, a 32px export of
-  // logo-1024.png), passed in by index.ts. Served here and at /favicon.ico.
+  // icon-1024.png), passed in by index.ts. Served here and at /favicon.ico.
   const FAVICON_PNG = new Uint8Array(faviconPng);
   const serveFavicon = (c: { body: (b: BodyInit, init?: ResponseInit) => Response }) =>
     c.body(FAVICON_PNG as unknown as BodyInit, {

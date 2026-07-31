@@ -84,12 +84,10 @@ None needed — no authentication. Reviewer test script:
 
 ## Branding
 
-- Logo (upload): assets/brand/logo-1024.png (1024x1024 PNG, transparent
-  background — the scythe + 8-slot skill-bar badge; directory forms prefer
-  a raster logo). 512px and 256px copies sit beside it, plus
-  logo-*-tile.png variants that keep the dark charcoal tile for surfaces
-  where the gold mark needs the contrast (1.77:1 on white vs 9.17:1 on
-  dark). See assets/brand/README.md. The worker also serves a 32px PNG favicon derived from this same logo at
+- Logo (upload): assets/brand/icon-1024.png (1024x1024 PNG — the scythe +
+  8-slot skill-bar badge on a rounded tile with transparent corners, so one file
+  works on light and dark surfaces alike). 512, 256 and 48 sizes sit beside it.
+  See assets/brand/README.md. The worker also serves a 32px PNG favicon derived from this same logo at
   /favicon.ico and /logo.png, but upload the 1024px PNG on the form.
 - Favicon: /favicon.ico on the MCP hostname (32px PNG derived from the logo)
 - Screenshots: N/A — not an MCP App (no interactive UI); the directory
@@ -150,3 +148,38 @@ None needed — no authentication. Reviewer test script:
   and locked by tests in packages/gw-worker/test/http.test.ts — retention
   was missing until 2026-07-29, and an incomplete policy is an immediate
   rejection.
+
+## This is a PLUGIN submission, not a connector submission (2026-07-29)
+
+Reading the plugin docs changed what "submit to Claude" means here, and removed
+the blocker recorded earlier in this file.
+
+- The route is the **Console form** at https://platform.claude.com/plugins/submit.
+  The claude.ai form needs a Team or Enterprise organisation with directory
+  management access; **individual authors use the Console form instead**. So the
+  Team/Enterprise gate flagged earlier does not apply.
+- What lands in the community marketplace is a **plugin**, reviewed and then
+  pinned to a commit SHA in `anthropics/claude-plugins-community`, with CI bumping
+  the pin as commits land. The public catalog syncs nightly, so expect a delay
+  between approval and installability.
+- Two files were missing and now exist at the repository root, which is the plugin
+  root:
+  - `.claude-plugin/plugin.json` — name `gw1-mcp`, so the bundled skill is invoked
+    as `/gw1-mcp:gw1-build-assistant`. Its `version` is kept in step with releases
+    by release-please (`extra-files`, same mechanism as `server.json`), so it
+    cannot drift. Leaving `version` out would have made every commit count as a
+    new version for users.
+  - `.mcp.json` — wires the remote server, so installing the plugin gives the
+    skill AND the tools in one step. **`"type": "http"` is mandatory**: without it
+    the config fails schema validation silently, the tools simply never appear and
+    nothing is logged. That trap has cost other people time; do not "tidy" it away.
+- `skills/gw1-build-assistant/SKILL.md` was already in the layout the docs
+  recommend, so nothing moved.
+
+Run `claude plugin validate .` before submitting — the review pipeline runs the
+same check. It could not be run here: the Claude Code CLI is not available in this
+environment, so this is unverified locally.
+
+Form fields, from repo metadata: link to plugin =
+https://github.com/Graphmaxer/gw1-mcp, path within repository = blank (the plugin
+is at the root), homepage = the same URL, plugin name = gw1-mcp.

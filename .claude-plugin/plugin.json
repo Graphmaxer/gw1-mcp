@@ -1,0 +1,11 @@
+{
+  "name": "gw1-mcp",
+  "description": "Guild Wars 1 build compiler: real skill and hero data, plus an encoder that turns a build into an official in-game template code after validating it against the game's rules.",
+  "version": "0.9.1",
+  "author": {
+    "name": "Graphmaxer"
+  },
+  "homepage": "https://github.com/Graphmaxer/gw1-mcp",
+  "repository": "https://github.com/Graphmaxer/gw1-mcp",
+  "license": "MIT"
+}

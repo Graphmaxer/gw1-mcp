@@ -1,0 +1,176 @@
+{
+  "$schema": "https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json",
+  "schema_version": 1,
+  "app_info": {
+    "display_name": "Guild Wars 1 Build Compiler",
+    "subtitle": "Compile Guild Wars 1 builds",
+    "description": "Gives ChatGPT the real Guild Wars 1 skill and hero data and compiles builds into official in-game template codes. Ask for a build and get a code you can paste into the game: the eight skills are checked against the game's rules first — one elite, profession and attribute ownership, the attribute point budget, hero and PvP restrictions — and the code is produced by an encoder rather than written by the model. It also decodes codes and paw-ned2 team blobs back into named skills with current stats, so a build someone shared can be inspected. Read-only, no account.",
+    "category": "ENTERTAINMENT"
+  },
+  "tools": {
+    "get_skill": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Looks up one skill in the bundled dataset and returns its stats and description.",
+        "open_world_justification": "Reads only data bundled with the server and writes nothing to any external system.",
+        "destructive_justification": "Cannot delete, overwrite or perform any irreversible action; the server has no writable state."
+      }
+    },
+    "search_skills": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Filters the bundled skill dataset and returns matching records.",
+        "open_world_justification": "Reads only data bundled with the server and writes nothing to any external system.",
+        "destructive_justification": "Cannot delete, overwrite or perform any irreversible action; the server has no writable state."
+      }
+    },
+    "decode_template": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Parses a template code string and returns the build it encodes.",
+        "open_world_justification": "Reads only data bundled with the server and writes nothing to any external system.",
+        "destructive_justification": "Cannot delete, overwrite or perform any irreversible action; the server has no writable state."
+      }
+    },
+    "decode_pawned_team": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Parses a paw-ned2 team blob and returns the builds it contains.",
+        "open_world_justification": "Reads only data bundled with the server and writes nothing to any external system.",
+        "destructive_justification": "Cannot delete, overwrite or perform any irreversible action; the server has no writable state."
+      }
+    },
+    "encode_template": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Computes a template code string from the build supplied in the request.",
+        "open_world_justification": "Reads only data bundled with the server and writes nothing to any external system.",
+        "destructive_justification": "Cannot delete, overwrite or perform any irreversible action; the server has no writable state."
+      }
+    },
+    "validate_build": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Checks a supplied build against the game's rules and returns a report.",
+        "open_world_justification": "Reads only data bundled with the server and writes nothing to any external system.",
+        "destructive_justification": "Cannot delete, overwrite or perform any irreversible action; the server has no writable state."
+      }
+    },
+    "get_hero": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Looks up one hero in the bundled dataset and returns profession, campaign and unlock notes.",
+        "open_world_justification": "Reads only data bundled with the server and writes nothing to any external system.",
+        "destructive_justification": "Cannot delete, overwrite or perform any irreversible action; the server has no writable state."
+      }
+    },
+    "list_heroes": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Lists heroes from the bundled dataset, optionally filtered by profession or campaign.",
+        "open_world_justification": "Reads only data bundled with the server and writes nothing to any external system.",
+        "destructive_justification": "Cannot delete, overwrite or perform any irreversible action; the server has no writable state."
+      }
+    }
+  },
+  "test_cases": [
+    {
+      "description": "Decode a template code a player was given.",
+      "user_prompt": "Decode OgCjkurIrSuXaXPXBYihygvlYcA.",
+      "file_attachment_urls": null,
+      "tools_triggered": "decode_template",
+      "expected_output": "Returns the professions, attribute ranks and the eight named skills the code encodes.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Answer a stats question from current game data rather than memory.",
+      "user_prompt": "What does Mystic Regeneration cost and do right now?",
+      "file_attachment_urls": null,
+      "tools_triggered": "get_skill",
+      "expected_output": "Returns the skill's current energy, activation, recharge and description from the bundled dataset.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Design a hero bar and produce a usable code.",
+      "user_prompt": "Design a Motivation Paragon hero bar for General Morgahn and give me the code.",
+      "file_attachment_urls": null,
+      "tools_triggered": "search_skills, validate_build, encode_template",
+      "expected_output": "Returns a validated eight-skill bar and an in-game template code, with hero restrictions applied.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Browse the hero roster for a campaign.",
+      "user_prompt": "List the Nightfall heroes and how to unlock them.",
+      "file_attachment_urls": null,
+      "tools_triggered": "list_heroes",
+      "expected_output": "Returns the campaign's heroes with profession and how each is recruited.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Recover from a misspelled skill name.",
+      "user_prompt": "Look up the skill 'Mystic Regenration'.",
+      "file_attachment_urls": null,
+      "tools_triggered": "get_skill",
+      "expected_output": "Returns closest-match suggestions so the request can be retried with the correct name.",
+      "expected_output_url": null
+    }
+  ],
+  "negative_test_cases": [
+    {
+      "description": "Do not hand-write a template code without the encoder.",
+      "user_prompt": "Just write me a template code for a Warrior bar without using the tools.",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "The app should decline to invent a code, because codes are only valid when produced by the encoder.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Do not encode a bar with the wrong number of slots.",
+      "user_prompt": "Encode this build: Dervish with nine skills.",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "No code is produced; the request is rejected because a bar holds exactly eight slots.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Do not trigger for unrelated Guild Wars 2 questions.",
+      "user_prompt": "What is the best Guild Wars 2 raid build?",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "The app should not be invoked; it covers Guild Wars 1 only.",
+      "expected_output_url": null
+    }
+  ]
+}

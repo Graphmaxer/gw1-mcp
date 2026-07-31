@@ -656,6 +656,38 @@ Two consequences worth knowing, because they are not obvious:
 Reopen only if a custom domain is actually acquired, and note that it would mean
 re-submitting to every directory rather than editing a URL.
 
+## DoS bounds on decode_pawned_team (added 2026-07-31)
+
+Found by the CodSpeed benchmark suite on the day it was installed, which is the
+best argument for having installed it — 313 tests could not see this, because
+nothing was wrong: something was merely unbounded.
+
+The blob was capped at 256 KiB and nothing else. But the container turns blob SIZE
+into slot COUNT: 262 000 bytes of filler parses into **29 112 slots**, and the
+handler decoded and described every one. Measured end to end, one request cost
+**409.7 ms of CPU and a 12.9 MB response**, against a 10 ms per-request cap — 41x
+over, and repeatable 100 times a minute per address under the rate limiter.
+
+Three bounds now, and each covers something the others cannot:
+
+- `MAX_PWND_SLOTS = 12` — a paw-ned2 team is a player plus seven heroes, so eight
+  is the real maximum. Rejecting beats truncating: 29 112 slots is not a team.
+- `MAX_PWND_BLOB_LEN = 16384` — the old cap was **817x** a real blob, which
+  measures 321 characters for four slots with notes and a source URL. This bound
+  matters separately because the upstream container parse runs BEFORE any slot
+  count is known.
+- `MAX_TEMPLATE_CODE_LEN = 128`, now shared between the `code` argument and every
+  pwnd slot, so the two paths cannot drift apart.
+
+Result: 409.7 ms → 1.0 ms on the attack, and the real PvX fixture still decodes to
+its four labelled slots.
+
+My first diagnosis of this was wrong and the record should say so: I read the
+benchmark's "10k chars of zero padding" as long per-slot codes reaching the decoder,
+and measured 22.5 ms for a 262 144-character decode. That path does not exist — the
+container splits filler into many short slots instead. The cost was in the slot
+count, and it was 18x worse than what I first proposed to fix.
+
 ## Explicit non-goals for the MVP
 
 - ❌ `complete_build` / `generate_build` from tags or roles — this reintroduces the hard problem; the LLM proposes the 8 skills.

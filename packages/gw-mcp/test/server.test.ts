@@ -192,6 +192,35 @@ describe("heroes and resources", () => {
 });
 
 describe("paw-ned2 team decoding", () => {
+  it("rejects a blob that declares more slots than a team can hold", async () => {
+    // The container turns blob SIZE into slot COUNT: 262 000 bytes of filler parses
+    // into 29 112 slots, and the handler used to decode and describe every one.
+    // Measured before this bound: 409.7 ms of CPU and a 12.9 MB response for a
+    // single request, against a 10 ms per-request CPU cap — 41x over, repeatable
+    // 100 times a minute per address under the rate limiter. Surfaced by the
+    // benchmark suite, which made the decoder's scaling visible.
+    const client = await connectedClient();
+    const res = await client.callTool({
+      name: "decode_pawned_team",
+      arguments: { pwnd: `pwnd0001?download pawned2 >${"A".repeat(4000)}<` },
+    });
+    expect(res.isError).toBe(true);
+    expect(JSON.stringify(res)).toContain("TOO_MANY_SLOTS");
+  });
+
+  it("bounds the blob itself, since the container parse runs before the slot cap", async () => {
+    // A real 4-slot PvX blob is 321 characters; the old 256 KiB cap was 817x that,
+    // and the upstream container parse is handed the blob before any slot count is
+    // known. Both bounds are needed.
+    const client = await connectedClient();
+    const res = await client.callTool({
+      name: "decode_pawned_team",
+      arguments: { pwnd: `pwnd0001?download pawned2 >${"A".repeat(262000)}<` },
+    });
+    expect(res.isError).toBe(true);
+    expect(JSON.stringify(res)).toMatch(/too large|TOO_MANY_SLOTS/);
+  });
+
   it("decodes a real PvXwiki team blob (3 Hero Discordway) despite line wraps", async () => {
     const client = await connectedClient();
     // Verbatim from the PvX page rendering, including wrap-induced spaces.

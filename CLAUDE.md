@@ -785,6 +785,44 @@ fails to resolve at build time. If something legitimately needs Node APIs, add t
 flag back deliberately — and note that `nodejs_als` exists if only
 AsyncLocalStorage is wanted.
 
+## Open: createServer() runs on every /mcp request
+
+`createApp()` builds the Hono app once, but `createServer({ onToolCall })` sits
+INSIDE the `/mcp` handler, so all 8 tools and 3 resources are re-registered with
+their zod schemas on every request.
+
+Measured, and it is the dominant cost of a request rather than a detail:
+
+|                           |             |
+| ------------------------- | ----------- |
+| `createApp()`             | 0.12 ms     |
+| `createServer()`          | **8.03 ms** |
+| full `tools/list` request | 18.68 ms    |
+
+So ~31% of every MCP request under Node. CodSpeed's simulation mode puts
+`createServer` at 26.6 ms against 38-50 ms for a whole request, i.e. 55-70% — the
+ratios differ, both point at the same thing. Production averages 7.66 ms of CPU
+against a 10 ms cap, so this is where the margin went.
+
+**Not fixed, because hoisting it is not trivial and the risk is concurrency, not
+performance.** Two obstacles: `onToolCall` closes over `analytics` from `c.env`, so
+it is per-request by construction; and each request connects a fresh
+`StreamableHTTPTransport`, with no evidence the SDK tolerates one server across
+several transports at once. An isolate serves CONCURRENT requests, so a shared
+mutable reference would leak between them — the naive hoist is a correctness bug
+wearing a performance costume.
+
+Order to investigate, now that `wrangler dev --local` gives real workerd:
+
+1. Ask whether the cost is in `registerTool` or in building the schemas. If the
+   schemas dominate, hoisting THEM out needs no change to the server lifecycle and
+   carries no concurrency risk.
+2. Only then look at whether a server can outlive one transport.
+
+Found by the CodSpeed suite: `createServer` measuring 26.6 ms next to a `createApp`
+at 992 µs is arithmetically impossible if one contained the other, which is what
+pointed at the handler.
+
 ## Explicit non-goals for the MVP
 
 - ❌ `complete_build` / `generate_build` from tags or roles — this reintroduces the hard problem; the LLM proposes the 8 skills.

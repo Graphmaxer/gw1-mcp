@@ -209,3 +209,23 @@ environment, so this is unverified locally.
 Form fields, from repo metadata: link to plugin =
 https://github.com/Graphmaxer/gw1-mcp, path within repository = blank (the plugin
 is at the root), homepage = the same URL, plugin name = gw1-mcp.
+
+## Console form, remaining fields (2026-07-31)
+
+- **Supported platforms** — the form says "Test that the plugin works with these
+  surfaces before submitting", so select only what has actually been loaded. The
+  local test is `claude --plugin-dir .` from the repository root, then
+  `/gw1-mcp:gw1-build-assistant` for the skill and `/mcp` to confirm the server's
+  tools appear. Run `claude plugin validate .` first; the review pipeline runs the
+  same check.
+- **Email address** — this one is for Anthropic to contact the maintainer, not a
+  published address, which makes it a different question from the Glama file we
+  declined: that one would have been served at a public URL and scraped. A private
+  contact field is the normal place for a real address.
+- **License type** — MIT, for the code. Note that the plugin bundles game data
+  under different terms; the description already carries the trademark disclaimer
+  and THIRD_PARTY_NOTICES.md has the provenance.
+- **Privacy policy URL** — https://gw1-mcp.graphmaxer.workers.dev/privacy, even
+  though the field is optional. The plugin's MCP server does record anonymous
+  aggregate counters, so a reviewer asking "does this collect anything" deserves an
+  answer that exists.

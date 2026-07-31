@@ -18,6 +18,7 @@ pnpm -r test        # vitest, all packages (CI reports the count)
 pnpm lint           # oxlint
 pnpm fmt            # oxfmt (CI runs fmt:check)
 pnpm test:coverage  # reference levels are documented in CLAUDE.md
+pnpm bench          # vitest bench, all packages (CodSpeed measures these in CI)
 ```
 
 Nothing is ever built to `dist`: package exports point at `.ts` sources

@@ -747,6 +747,40 @@ spread turns it red with the exact SDK error.
 Found in a comment left by the CodSpeed setup wizard, which had noticed `get_skill`
 could not be benchmarked and worked around it instead of reporting it.
 
+## workerd can be run locally — use it
+
+`pnpm --filter @gw1-mcp/gw-worker exec wrangler dev --local` starts the REAL
+workerd, not Node. Every claim in this file that was hedged with "measured under
+Node, not workerd" can now be checked properly, and should be: the gap has been
+material twice — `tools/list` measured ~17 ms under Node against 7.66 ms in
+production, and a CodSpeed async benchmark reported 221 ms for the same call.
+
+Bindings are the limit: Analytics Engine and the rate limiter are not exercised
+locally, so code behind `c.env?.MCP_ANALYTICS` and `RATE_LIMITER` still needs
+production to confirm.
+
+## No compatibility flags (nodejs_compat removed 2026-07-31)
+
+`nodejs_compat` was carried from the initial setup and did nothing. Proven three
+ways rather than assumed:
+
+- The bundle contains no `node:` specifier, no unenv polyfill and no Node global.
+  The only apparent matches are false: `process.` inside `$ZodPreprocess`, and
+  eleven `Buffer` hits that are all Web-standard `arrayBuffer`/`ArrayBuffer`.
+- The bundle is byte-identical with and without the flag (2051.34 KiB /
+  319.88 KiB gzip), so it was injecting nothing at build time.
+- Under real workerd without it: `/`, `/privacy`, `/terms`, `/robots.txt`,
+  `/.well-known/security.txt` all 200, `GET /mcp` 405, and `get_skill`,
+  `encode_template`, a fuzzy-suggestion miss and the pwnd slot bound all answer
+  correctly.
+
+Removing it is a guardrail, not tidiness. With the flag set, a dependency that
+quietly needs a Node API is silently polyfilled by unenv and fails later at the
+call site with "[unenv] ... is not implemented yet". Without it, that dependency
+fails to resolve at build time. If something legitimately needs Node APIs, add the
+flag back deliberately — and note that `nodejs_als` exists if only
+AsyncLocalStorage is wanted.
+
 ## Explicit non-goals for the MVP
 
 - ❌ `complete_build` / `generate_build` from tags or roles — this reintroduces the hard problem; the LLM proposes the 8 skills.

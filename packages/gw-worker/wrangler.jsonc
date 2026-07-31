@@ -3,7 +3,19 @@
   "name": "gw1-mcp",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-01",
-  "compatibility_flags": ["nodejs_compat"],
+  // No compatibility flags. `nodejs_compat` was carried here and removed on
+  // 2026-07-31 after proving it does nothing for this Worker: the bundle contains
+  // no `node:` specifier, no unenv polyfill and no Node global (the only matches
+  // are `$ZodPreprocess` and Web-standard `arrayBuffer`), it is byte-identical
+  // with and without the flag, and under real workerd every route and every tool
+  // answers correctly without it.
+  //
+  // Removing it is the point rather than tidiness: with the flag set, a future
+  // dependency that quietly needs a Node API gets silently polyfilled by unenv
+  // and fails later at the call site with "[unenv] ... is not implemented yet".
+  // Without it, that dependency fails to resolve at build time, where it is
+  // obvious. If one legitimately needs Node APIs, add the flag back deliberately.
+  "compatibility_flags": [],
   "observability": { "enabled": true },
   // Aggregate, anonymous usage counters (tool NAME only, never arguments).
   // Requires Analytics Engine enabled on the account (dash: Storage &

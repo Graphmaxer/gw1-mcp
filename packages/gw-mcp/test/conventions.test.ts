@@ -93,44 +93,64 @@ describe("Claude Code plugin manifest (mechanical lock)", () => {
 });
 
 describe("input documentation (mechanical lock)", () => {
-  it("every z field in a tool inputSchema carries a .describe()", () => {
-    // Tool schemas are the manual an LLM reads, and directories publish them
-    // verbatim — Glama renders a blank Description cell for anything missing one.
-    // Worse, list_heroes' two filters REJECT unknown values, so an undocumented
-    // enum costs the caller a failed round-trip. Found by reading the published
-    // listing rather than the code, which is exactly why this is now mechanical.
-    const source = read("../src/server.ts");
-    const schemas = [...source.matchAll(/inputSchema:\s*\{([\s\S]*?)\n {6}\}/g)].map(
-      (m) => m[1] ?? "",
-    );
-    expect(schemas.length).toBeGreaterThan(0);
+  // Both locks below inspect the PUBLISHED JSON Schema, not the source text.
+  //
+  // They used to regex `src/server.ts`. That was fragile in the way that matters:
+  // a regex tied to file layout keeps passing while finding nothing once the code
+  // moves, and a lock that silently stops looking is worse than no lock. It also
+  // measured the wrong artefact — what a client and a directory consume is the
+  // schema the server emits, so a `.describe()` present in source but absent from
+  // the output would have passed while the real contract was wrong.
+  const publishedTools = async () => {
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const server = createServer();
+    await server.connect(serverTransport);
+    const client = new Client({ name: "schema-lock", version: "1" });
+    await client.connect(clientTransport);
+    return (await client.listTools()).tools;
+  };
+
+  type JsonSchema = {
+    properties?: Record<string, { description?: string; type?: string; maxLength?: number }>;
+  };
+
+  it("every input property is documented in the published schema", async () => {
+    // Tool schemas are the manual an LLM reads, and directories render them
+    // verbatim — Glama shows a blank Description cell for anything missing one.
+    // Worse, list_heroes' filters REJECT unknown values, so an undocumented enum
+    // costs the caller a failed round-trip.
+    const tools = await publishedTools();
+    expect(tools).toHaveLength(TOOL_NAMES.length);
     const undocumented: string[] = [];
-    for (const block of schemas) {
-      // Split on top-level field starts so each field carries its own chain.
-      const fields = block.split(/\n {8}(?=[a-zA-Z_]\w*:)/);
-      for (const field of fields) {
-        const name = /^\s*([a-zA-Z_]\w*):/.exec(field)?.[1];
-        if (!name || !/\bz\./.test(field)) continue;
-        if (!field.includes(".describe(")) undocumented.push(name);
+    let inspected = 0;
+    for (const tool of tools) {
+      const props = (tool.inputSchema as JsonSchema).properties ?? {};
+      for (const [name, prop] of Object.entries(props)) {
+        inspected++;
+        if (!prop.description) undocumented.push(`${tool.name}.${name}`);
       }
     }
+    // Non-vacuity: if a refactor ever empties this, the count fails first.
+    expect(inspected).toBeGreaterThan(20);
     expect(undocumented).toEqual([]);
   });
-});
 
-describe("input length bounds (mechanical lock)", () => {
-  it("every z.string() in a tool inputSchema carries a .max()", () => {
+  it("every input string is length-bounded in the published schema", async () => {
     // An unbounded string reaches normalizeName() (NFD + three regexes) on every
-    // call. bodyLimit caps the blast radius, but the real problem is drift: all
-    // eight tools carried .max(64) except list_heroes, and nothing said so.
-    const source = read("../src/server.ts");
-    const schemas = [...source.matchAll(/inputSchema:\s*\{([\s\S]*?)\n {6}\}/g)].map(
-      (m) => m[1] ?? "",
-    );
-    expect(schemas.length).toBeGreaterThan(0);
-    const unbounded = schemas
-      .flatMap((block) => block.split("\n"))
-      .filter((line) => /z\.string\(\)/.test(line) && !/\.max\(/.test(line));
+    // call. bodyLimit caps the blast radius; the real problem is drift — all eight
+    // tools carried .max(64) except list_heroes, and nothing said so.
+    const tools = await publishedTools();
+    const unbounded: string[] = [];
+    let strings = 0;
+    for (const tool of tools) {
+      const props = (tool.inputSchema as JsonSchema).properties ?? {};
+      for (const [name, prop] of Object.entries(props)) {
+        if (prop.type !== "string") continue;
+        strings++;
+        if (typeof prop.maxLength !== "number") unbounded.push(`${tool.name}.${name}`);
+      }
+    }
+    expect(strings).toBeGreaterThan(5);
     expect(unbounded).toEqual([]);
   });
 });

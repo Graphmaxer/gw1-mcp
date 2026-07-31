@@ -10,7 +10,8 @@
   "scripts": {
     "dev": "tsx src/stdio.ts",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "bench": "vitest bench --run"
   },
   "dependencies": {
     "@buildwars/gw-templates": "^1.0.1",
@@ -20,6 +21,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@codspeed/vitest-plugin": "^5.7.1",
     "@types/node": "^26.1.1",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1"

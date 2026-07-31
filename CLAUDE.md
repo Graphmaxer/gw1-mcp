@@ -21,6 +21,7 @@ pnpm install                      # Node >= 22, pnpm 11
 pnpm -r typecheck && pnpm -r test # must pass from a clean clone
 pnpm lint && pnpm fmt             # oxlint / oxfmt (CI runs fmt:check)
 pnpm test:coverage                # reference levels: see Coverage section
+pnpm bench                        # vitest bench in every package (see Performance)
 pnpm --filter @gw1-mcp/gw-worker dev        # local worker
 npx wrangler deploy --dry-run               # bundle check (in gw-worker)
 ```
@@ -187,6 +188,35 @@ MECHANICALLY ENFORCED by test/conventions.test.ts in gw-mcp, which scans
 the src for `code: "..."` declarations and fails if any code never appears
 in the test corpus. Tool failures use
 the MCP isError flag via the jsonError helper — keep new tools consistent.
+
+## Performance benchmarks (CodSpeed)
+
+`pnpm bench` runs `vitest bench` in every package; CI runs the same command
+once through the CodSpeed action (.github/workflows/codspeed.yml, simulation
+mode, OIDC — no token secret) and comments the diff on the PR. Each package
+carries a `vitest.config.ts` whose only job is registering
+`@codspeed/vitest-plugin`; the plugin is inert unless CODSPEED_ENV is set, so
+`vitest run` behaves exactly as it did when the packages had no config at all.
+
+What is measured, and why those and not others — every one of them is a path
+this file already argues about in prose:
+
+- gw-template `bench/codec.bench.ts`: decode/encode/round-trip on the golden
+  corpus, plus the zero-tail scan on a 10k-char padded code (the GW1-01/GW1-02
+  hardening).
+- gw-data `bench/repository.bench.ts`: name lookup, the three search shapes,
+  and the fuzzy suggester — including the padded worst case that GW1-AUD-01
+  bounded (the 109 ms -> 1.4 ms fix has a regression guard now).
+- gw-mcp `bench/build.bench.ts`: resolve -> validate -> describe, then the
+  same tools through the SDK over InMemoryTransport.
+- gw-worker `bench/http.bench.ts`: the deployed shape — JSON-RPC over the
+  Hono app, including the initialize + tools/list pair that is ~97.5% of real
+  traffic and the 10 ms Workers CPU budget it has to fit in.
+
+Benchmarks are measured, not asserted: nothing fails on a slow number, the
+report is the signal. Keep them deterministic (no network, no clock, no
+random input) — CodSpeed compares runs, so a benchmark that varies by input
+is noise, not data.
 
 ## Logo and favicon (single source)
 

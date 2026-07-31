@@ -9,9 +9,11 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "bench": "vitest bench --run"
   },
   "devDependencies": {
-    "@buildwars/gw-templates": "^1.0.1"
+    "@buildwars/gw-templates": "^1.0.1",
+    "@codspeed/vitest-plugin": "^5.7.1"
   }
 }

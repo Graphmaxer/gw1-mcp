@@ -229,3 +229,38 @@ is at the root), homepage = the same URL, plugin name = gw1-mcp.
   though the field is optional. The plugin's MCP server does record anonymous
   aggregate counters, so a reviewer asking "does this collect anything" deserves an
   answer that exists.
+
+## `claude plugin validate .` result (2026-07-31, run by the maintainer)
+
+```
+✔ Validation passed with warnings
+⚠ root: CLAUDE.md at the plugin root is not loaded as project context.
+  To ship context with your plugin, use a skill (skills/<name>/SKILL.md) instead.
+```
+
+**Expected, benign, and deliberately not silenced.** The warning is the behaviour
+already recorded above from the plugins reference. CLAUDE.md here is a maintainer
+document, and the context that plugin users should receive already ships as
+`skills/gw1-build-assistant/SKILL.md` — which is precisely what the warning
+recommends. The substance is right; only the presence of the file triggers it.
+
+Silencing it would mean moving the plugin into a subdirectory and setting "Path
+within repository" on the form, which splits the layout and buys nothing. Not
+worth it.
+
+One thing to keep in mind rather than act on: warnings do not fail validation, and
+the docs say so explicitly, but `--strict` turns them into errors. Do not add
+`--strict` to CI for this repository while CLAUDE.md sits at the root.
+
+The same run also confirmed two things that had only been reasoned about:
+
+- `.mcp.json` was detected and accepted — "New MCP server found in this project:
+  gw1-mcp". The mandatory `"type": "http"` was therefore correct; without it the
+  config would have failed schema validation silently and nothing would have
+  appeared.
+- The manifest itself validates, so the recognised-keys assertion in
+  `conventions.test.ts` is consistent with the real CLI.
+
+Still to do inside a session before ticking "Supported platforms": run `/mcp` to
+confirm the eight tools load, and `/gw1-mcp:gw1-build-assistant` to confirm the
+skill invokes under its namespaced name.

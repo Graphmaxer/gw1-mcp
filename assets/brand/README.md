@@ -29,6 +29,16 @@ frame inside a frame. Full-bleed lets each surface impose its own shape, and the
 surfaces that apply none (browser tab favicons, inline README images) show a plain
 square, which is what an icon normally looks like anyway.
 
+## Source
+
+The master is a fresh reference rendered 2026-07-31 at 1254px, with the mark drawn
+larger than the previous version for legibility at small sizes. Measured: gold
+coverage rose from 14.4% to 16.0% of the canvas, and at 32px — where it matters —
+from 23.0% to 26.2% of pixels.
+
+Its own geometry was re-fitted rather than inherited: a superellipse of exponent 3
+at radius 293px, which is 23.4% of 1254 where the previous master sat at 28.7% of 1024. Reusing the old ratio would have cut into the artwork.
+
 ## How the full-bleed background was built
 
 The corners were not simply flooded with a flat colour. The tile carries a real,
@@ -41,11 +51,13 @@ distance from centre, extrapolated to the corners (normalised distance reaches
 outside the old rounded boundary is repainted, with the anti-aliased boundary band
 blended into the new background so the former tile edge disappears.
 
-The boundary is a **superellipse of exponent 3, radius 294px** (28.7% of the
-width), fitted from the source rather than assumed: a circular arc fits at 3.16px
-mean error against 1.10px for the superellipse.
+The boundary is a **superellipse of exponent 3**, fitted from each source rather
+than assumed — 293px on the current 1254px master, where a circular arc fits at
+11.37px mean error against 1.36px for the superellipse, and exponent 4 at 1.56px.
+The exponent is a property of the artwork, so it is re-fitted whenever the master
+is replaced.
 
-Verified: background luminance standard deviation across the old boundary is 0.51,
-**lower** than the 2.90 measured away from it — the join is smoother than the
-artwork's own vignette, so there is no residual ring. Corner reads `(23,20,29)`,
-edge midpoint `(24,22,29)`, centre `(15,14,21)`.
+Verified: background luminance standard deviation across the old boundary is 0.47,
+**lower** than the 3.16 measured away from it — the join is smoother than the
+artwork's own vignette, so there is no residual ring. Corner reads `(21,19,27)`,
+centre `(17,16,20)`.

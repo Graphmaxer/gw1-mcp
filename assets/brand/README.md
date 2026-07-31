@@ -12,44 +12,40 @@ choice to make, because the earlier split solved the wrong problem.
 | `favicon-32.png`     | served at `/favicon.ico`, `/favicon.png`, `/logo.png`      |
 | `social-preview.png` | GitHub Open Graph card, uploaded manually in repo Settings |
 
-## Why one icon and not two
+## Why one icon, full-bleed
 
-The mark is gold (`#F0BB34`), which measures 1.77:1 against white and 9.17:1
-against dark. That drove an earlier design with a transparent variant for dark
-surfaces and a dark-tile variant for light ones — two files, and a decision to get
-wrong at every upload.
+The artwork fills the whole square. There is no rounded tile baked in, no
+transparent corners, and no light/dark pair. Two earlier designs were wrong for
+opposite reasons, and both are worth recording so neither comes back.
 
-The tile already solves it: the mark sits on its own charcoal ground, so contrast
-is 9.17:1 regardless of the page behind it. The only reason the tile looked wrong
-on a light background was that the source had **opaque near-black corners** outside
-its rounded square, which showed as black triangles. Making those corners
-transparent fixes it, and one file then works everywhere.
+**A light/dark pair was unnecessary.** The mark is gold (`#F0BB34`), 1.77:1 against
+white and 9.17:1 against dark, which argued for a transparent variant on dark
+surfaces and a tiled one on light. But the tile already solves it: the mark sits on
+its own charcoal ground, so contrast is 9.17:1 whatever is behind it.
 
-## How the corners were cut
+**A rounded tile was also wrong.** Most platforms — mcp.so, Glama, app stores,
+GitHub avatars — apply their own rounded frame, so shipping one produces a visible
+frame inside a frame. Full-bleed lets each surface impose its own shape, and the
+surfaces that apply none (browser tab favicons, inline README images) show a plain
+square, which is what an icon normally looks like anyway.
 
-Redone 2026-07-29 after the first attempt showed a soft, haloed edge at 100% zoom.
-Two separate mistakes, worth naming because each is easy to repeat:
+## How the full-bleed background was built
 
-**The shape was fitted wrong.** The first pass derived the mask from a luminance
-threshold and softened it with a 1.2px blur, which produced a wide, muddy band
-rather than a crisp curve. Fitting the boundary properly shows the tile is a
-**superellipse of exponent 3 with radius 294px** (28.7% of the width), not a
-circular arc: a circle fits with 3.16px mean error against 1.10px for the
-superellipse, and that ~3px deviation is exactly what is visible when you zoom a
-corner. The mask is now generated geometrically at 4x and box-averaged down, so
-the anti-aliasing comes from coverage rather than from a blur.
+The corners were not simply flooded with a flat colour. The tile carries a real,
+subtle gradient — measured `(22,21,22)` at the centre against `(24,21,28)` at the
+edge, almost entirely in the blue channel — so a flat fill would have shown a seam.
 
-**The edge colour was never unmatted.** The gold mark was unmatted in the earlier
-pass, but the tile edge was not: its semi-transparent pixels still carried the
-original near-black, so on a light background they read as a grey halo. Interior
-tile colour is now propagated outward across the boundary band before the alpha is
-applied. Measured: the band narrowed from 3396 to 1356 pixels and its mean
-luminance rose from 7.6 to 19.2 — the tile reads 15-23, black reads 0.
+The background is a per-channel linear fit of that measured gradient against
+distance from centre, extrapolated to the corners (normalised distance reaches
+1.414 there). The interior is then preserved pixel-for-pixel and only the region
+outside the old rounded boundary is repainted, with the anti-aliased boundary band
+blended into the new background so the former tile edge disappears.
 
-**Downscaling is done in premultiplied space.** Resizing RGBA directly lets the
-colour of transparent pixels — here near-black — bleed into the edge and recreate
-the fringe at small sizes. Each size is premultiplied, resized with Lanczos, then
-unpremultiplied. This matters most at 32 and 48px.
+The boundary is a **superellipse of exponent 3, radius 294px** (28.7% of the
+width), fitted from the source rather than assumed: a circular arc fits at 3.16px
+mean error against 1.10px for the superellipse.
 
-Verified at every size: corner alpha 0 (1 at 32px, rounding), edge band tight, and
-edge luminance in the tile range rather than near black.
+Verified: background luminance standard deviation across the old boundary is 0.51,
+**lower** than the 2.90 measured away from it — the join is smoother than the
+artwork's own vignette, so there is no residual ring. Corner reads `(23,20,29)`,
+edge midpoint `(24,22,29)`, centre `(15,14,21)`.

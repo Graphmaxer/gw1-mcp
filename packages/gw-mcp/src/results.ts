@@ -17,7 +17,13 @@ import type { FullHeroOut, FullSkillOut } from "./schemas.js";
  * get_skill for every client that primes its validators.
  */
 
-export function json(data: unknown) {
+/**
+ * The bare content envelope. Local on purpose: only `jsonStructured` and
+ * `jsonError` below build on it, and every tool goes through one of those. It was
+ * briefly exported when this file was split out of server.ts, and knip caught the
+ * dead export as soon as the last caller there was removed.
+ */
+function json(data: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
 }
 export function jsonStructured(data: object) {

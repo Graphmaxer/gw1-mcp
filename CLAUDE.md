@@ -485,7 +485,9 @@ is_rp.
    Node numbers. Second, 7.66 ms is a MEAN, not a maximum, and it sits at 77%
    of the cap: individual heavy requests may still approach it, and Cloudflare
    allows some flexibility for infrequent overages. Re-read the counter if the
-   tool surface grows or if a hot path gains work. `limits.cpu_ms` stays unset
+   tool surface grows or if a hot path gains work — the suggestion path got ~4x
+   cheaper on 2026-07-31 (lazy search index plus a length-based early exit), so
+   the margin improved rather than eroded. `limits.cpu_ms` stays unset
    deliberately: it has no effect under Free and a rejected value would fail a
    deploy.
 10. tools/list costs about 18 600 characters (~4 650 tokens) of FIXED context

@@ -56,3 +56,28 @@ full test suite and a wrangler dry-run on every PR — a green CI plus a
 sentence explaining the "why" is usually all a review needs. If your
 change adds a known limitation, add it to the debt register in CLAUDE.md
 with its action trigger; honesty there is a feature.
+
+## Dead code (`pnpm knip`)
+
+`knip` reports unused files, exports and dependencies. It exists because a dead
+export slipped through once and cost a red build: an exported-but-never-called
+function dragged coverage down 1.7% and failed the Codecov project check, which no
+test could catch — nothing was wrong, something was merely pointless.
+
+**The CI job is advisory (`continue-on-error`) and should not stay that way.** It was
+added without ever being run against this repository: knip 6 needs a
+multi-gigabyte contiguous ArrayBuffer for its oxc parser, which the authoring
+environment could not allocate. Run `pnpm knip` locally, tune `knip.json` until the
+report is empty or every remaining entry is deliberate, then remove
+`continue-on-error` from the job so it actually guards.
+
+Notes for that tuning pass:
+
+- knip 5 is not an option: it crashes on TypeScript 7.
+- `knip.json` lists an explicit entry point per workspace. Test files are entries
+  too, otherwise everything they exercise looks unused.
+- `dist/`, generated data and codec fixtures are ignored. The dist bundle is 2 MB of
+  generated JavaScript and parsing it proves nothing.
+- Expect false positives on things reached only through configuration rather than
+  imports — Wrangler's entry point, the release-please targets, the `.mjs` scripts
+  invoked from workflows. Add them to `entry` rather than silencing the rule.

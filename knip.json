@@ -1,0 +1,28 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": ["packages/*/scripts/**/*.{ts,mjs}"],
+      "project": ["**/*.{ts,mjs}"]
+    },
+    "packages/gw-data": {
+      "entry": ["src/index.ts", "scripts/**/*.{ts,mjs}", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts", "scripts/**/*.{ts,mjs}", "test/**/*.ts"]
+    },
+    "packages/gw-template": {
+      "entry": ["src/index.ts", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts", "test/**/*.ts"]
+    },
+    "packages/gw-mcp": {
+      "entry": ["src/index.ts", "src/stdio.ts", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts", "test/**/*.ts"]
+    },
+    "packages/gw-worker": {
+      "entry": ["src/index.ts", "src/node.ts", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts", "test/**/*.ts"]
+    }
+  },
+  "ignore": ["**/dist/**", "packages/gw-data/data/**", "packages/gw-template/test/fixtures/**"],
+  "ignoreBinaries": ["actionlint", "codspeed"],
+  "ignoreDependencies": ["@gw1-mcp/.*"]
+}

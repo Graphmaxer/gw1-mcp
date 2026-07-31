@@ -25,17 +25,13 @@ jobs:
       - run: pnpm -r typecheck
       - run: pnpm -r test
 
-  # Dead code detection. ADVISORY for now (continue-on-error) for two reasons:
-  # it was introduced without ever being run against this repository — knip 6
-  # needs a multi-gigabyte contiguous ArrayBuffer for its oxc parser, which the
-  # authoring environment could not allocate — and a first run of any new linter
-  # on an existing codebase reports pre-existing findings. Flip to blocking once
-  # `pnpm knip` is clean locally, and delete this comment with it.
+  # Dead code detection: unused files, exports and dependencies. Blocking, because
+  # the first run was acted on rather than silenced — it found two exports used only
+  # inside their own file, and thirteen over-specified lines in knip.json.
   #
   # knip 5 is not an option: it breaks on TypeScript 7, which this repo uses.
   knip:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6

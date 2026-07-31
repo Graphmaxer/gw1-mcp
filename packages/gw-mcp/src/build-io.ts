@@ -100,7 +100,7 @@ export function resolveNamedBuild(
 }
 
 /** Enriched, human/LLM-readable view of a decoded template. */
-export const decodedSkillSchema = z.object({
+const decodedSkillSchema = z.object({
   slot: z.number().int().describe("Bar position 1-8"),
   name: z.string().nullable().describe("null for an empty bar slot"),
   elite: z.boolean().optional(),

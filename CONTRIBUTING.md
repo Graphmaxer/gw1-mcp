@@ -64,20 +64,17 @@ export slipped through once and cost a red build: an exported-but-never-called
 function dragged coverage down 1.7% and failed the Codecov project check, which no
 test could catch — nothing was wrong, something was merely pointless.
 
-**The CI job is advisory (`continue-on-error`) and should not stay that way.** It was
-added without ever being run against this repository: knip 6 needs a
-multi-gigabyte contiguous ArrayBuffer for its oxc parser, which the authoring
-environment could not allocate. Run `pnpm knip` locally, tune `knip.json` until the
-report is empty or every remaining entry is deliberate, then remove
-`continue-on-error` from the job so it actually guards.
+The job is blocking. Its first run found two exports used only inside their own file
+(`decodedSkillSchema`, `ValidationIssue`), now file-local, and thirteen
+over-specified lines in `knip.json` — ignores that were not needed, entry points
+knip already derives from `package.json`, and an `ignoreBinaries` entry for a tool
+that was never installed.
 
-Notes for that tuning pass:
+Two things to know when it next complains:
 
-- knip 5 is not an option: it crashes on TypeScript 7.
-- `knip.json` lists an explicit entry point per workspace. Test files are entries
-  too, otherwise everything they exercise looks unused.
-- `dist/`, generated data and codec fixtures are ignored. The dist bundle is 2 MB of
-  generated JavaScript and parsing it proves nothing.
-- Expect false positives on things reached only through configuration rather than
-  imports — Wrangler's entry point, the release-please targets, the `.mjs` scripts
-  invoked from workflows. Add them to `entry` rather than silencing the rule.
+- knip 5 is not a fallback: it crashes on TypeScript 7.
+- Test files are entry points. Without that, everything they exercise looks unused.
+- If something is reached only through configuration rather than imports — a
+  Wrangler entry, a release-please target, a `.mjs` script called from a workflow —
+  add it to `entry` rather than silencing the rule. And trust knip's own
+  configuration hints: they were right about every line of the first config.

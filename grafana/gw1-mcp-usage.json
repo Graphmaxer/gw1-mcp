@@ -715,7 +715,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 35
+        "y": 27
       },
       "targets": [
         {
@@ -757,10 +757,83 @@
       ]
     },
     {
-      "id": 18,
+      "id": 19,
       "type": "bargauge",
-      "title": "Most requested skills and heroes",
-      "description": "Canonical names resolved from our own data. Curiosity rather than a decision input, and noisy until real usage outweighs probes.",
+      "title": "Context flags used",
+      "description": "Whether callers build hero bars (forHero), PvP bars (forPvp) or pass an account export (unlockedSkillIds) — tells us which features are actually exercised.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "aft354s7rt3wgf"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/calls/",
+          "values": true
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 35
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "aft354s7rt3wgf"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "",
+          "root_selector": "data",
+          "columns": [
+            {
+              "selector": "flags",
+              "text": "flags",
+              "type": "string"
+            },
+            {
+              "selector": "calls",
+              "text": "calls",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "global_query_id": "",
+          "computed_columns": [],
+          "filterExpression": "",
+          "summarizeExpression": "",
+          "url_options": {
+            "method": "POST",
+            "body_type": "raw",
+            "body_content_type": "text/plain",
+            "data": "SELECT blob7 AS flags, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000) AND blob1 = 'event:tool_call' AND blob7 != '' GROUP BY flags ORDER BY calls DESC"
+          }
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "type": "bargauge",
+      "title": "Most requested skills",
+      "description": "Canonical skill names resolved by get_skill, from our own dataset. Curiosity rather than a decision input, and noisy until real usage outweighs probes.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "aft354s7rt3wgf"
@@ -805,8 +878,8 @@
           "root_selector": "data",
           "columns": [
             {
-              "selector": "entity",
-              "text": "entity",
+              "selector": "name",
+              "text": "name",
               "type": "string"
             },
             {
@@ -824,16 +897,16 @@
             "method": "POST",
             "body_type": "raw",
             "body_content_type": "text/plain",
-            "data": "SELECT blob6 AS entity, SUM(_sample_interval) AS lookups FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000) AND blob1 = 'event:tool_call' AND blob6 != '' GROUP BY entity ORDER BY lookups DESC"
+            "data": "SELECT blob6 AS name, SUM(_sample_interval) AS lookups FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000) AND blob1 = 'event:tool_call' AND blob6 != '' AND blob3 = 'get_skill' GROUP BY name ORDER BY lookups DESC"
           }
         }
       ]
     },
     {
-      "id": 19,
+      "id": 21,
       "type": "bargauge",
-      "title": "Context flags used",
-      "description": "Whether callers build hero bars (forHero), PvP bars (forPvp) or pass an account export (unlockedSkillIds) — tells us which features are actually exercised.",
+      "title": "Most requested heroes",
+      "description": "Canonical hero names resolved by get_hero. Separate from skills on purpose: they are different entities and ranking them together compares nothing. Expect small counts — get_hero is the least-called tool.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "aft354s7rt3wgf"
@@ -853,7 +926,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "/calls/",
+          "fields": "/lookups/",
           "values": true
         }
       },
@@ -878,13 +951,13 @@
           "root_selector": "data",
           "columns": [
             {
-              "selector": "flags",
-              "text": "flags",
+              "selector": "name",
+              "text": "name",
               "type": "string"
             },
             {
-              "selector": "calls",
-              "text": "calls",
+              "selector": "lookups",
+              "text": "lookups",
               "type": "number"
             }
           ],
@@ -897,7 +970,7 @@
             "method": "POST",
             "body_type": "raw",
             "body_content_type": "text/plain",
-            "data": "SELECT blob7 AS flags, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000) AND blob1 = 'event:tool_call' AND blob7 != '' GROUP BY flags ORDER BY calls DESC"
+            "data": "SELECT blob6 AS name, SUM(_sample_interval) AS lookups FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000) AND blob1 = 'event:tool_call' AND blob6 != '' AND blob3 = 'get_hero' GROUP BY name ORDER BY lookups DESC"
           }
         }
       ]

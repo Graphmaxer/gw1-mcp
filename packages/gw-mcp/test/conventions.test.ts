@@ -1,5 +1,9 @@
 import { readFileSync } from "node:fs";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { describe, expect, it } from "vitest";
+import { createServer } from "../src/server.js";
+import { TOOL_NAMES } from "../src/tool-names.js";
 
 /**
  * Mechanical enforcement of the CLAUDE.md rule: "Every validator rule and
@@ -147,5 +151,53 @@ describe("isError policy (mechanical lock)", () => {
     // helper so the isError flag can never be forgotten again.
     const withoutHelper = source.replace(/function jsonError\([\s\S]*?\n}\n/, "");
     expect(withoutHelper).not.toMatch(/json\(\{\s*error\s*:/);
+  });
+});
+
+describe("output schemas match reality (mechanical lock)", () => {
+  // Every real client calls tools/list before calling a tool, and the SDK then
+  // validates every structured result against the declared outputSchema from that
+  // point on. get_skill failed this for an unknown length of time: fullSkill did
+  // `...skill`, leaking six internal join keys (attributeId, campaignId,
+  // professionId, typeId, pvpSplit, splitId) into a strict schema, so a primed
+  // client got "data must NOT have additional properties" and the call THREW.
+  //
+  // Nothing caught it. Typecheck cannot: excess-property checks do not apply to
+  // spreads. The existing tool tests cannot either, because they call tools without
+  // listing them first, which leaves the validators unprimed — the bug was invisible
+  // precisely because tests are tidier than clients.
+  //
+  // So this asserts the client's own behaviour: list first, then call everything.
+  it("every tool's structured result validates once tools/list has primed the SDK", async () => {
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const server = createServer();
+    await server.connect(serverTransport);
+    const client = new Client({ name: "schema-lock", version: "1" });
+    await client.connect(clientTransport);
+    await client.listTools();
+
+    const bar = ["Aegis", null, null, null, null, null, null, null];
+    const calls: [string, Record<string, unknown>][] = [
+      ["get_skill", { name: "Aegis" }],
+      ["get_hero", { name: "Koss" }],
+      ["list_heroes", { campaignName: "Nightfall" }],
+      ["search_skills", { professionName: "Monk", limit: 2 }],
+      ["decode_template", { code: "OwpiMypMBg1cxcBAMBdmtIKAA" }],
+      ["validate_build", { primary: "Monk", attributes: [], skills: bar }],
+      [
+        "encode_template",
+        { primary: "Monk", attributes: [{ attribute: "Healing Prayers", rank: 12 }], skills: bar },
+      ],
+    ];
+
+    // Every declared tool must appear above, or a new tool could ship unchecked.
+    expect(new Set(calls.map(([name]) => name)).size).toBe(TOOL_NAMES.length - 1);
+
+    for (const [name, args] of calls) {
+      await expect(
+        client.callTool({ name, arguments: args }),
+        `${name} must not throw a schema validation error`,
+      ).resolves.toBeDefined();
+    }
   });
 });

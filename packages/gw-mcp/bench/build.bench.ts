@@ -1,5 +1,3 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { decodeTemplate } from "@gw1-mcp/gw-template";
 import { bench, describe } from "vitest";
 import { describeTemplate, resolveNamedBuild, type NamedBuild } from "../src/build-io.js";
@@ -43,13 +41,6 @@ const TYPO_BUILD: NamedBuild = {
   skills: [...NAMED_BUILD.skills.slice(0, 7), "Resurection Signet"],
 };
 
-async function connectedClient(): Promise<Client> {
-  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-  const client = new Client({ name: "bench", version: "0.0.0" });
-  await Promise.all([createServer().connect(serverTransport), client.connect(clientTransport)]);
-  return client;
-}
-
 describe("build compiler", () => {
   bench("resolveNamedBuild — full bar, all names resolve", () => {
     resolveNamedBuild(NAMED_BUILD);
@@ -72,33 +63,20 @@ describe("build compiler", () => {
   });
 });
 
-const client = await connectedClient();
-// A real client lists the tools before calling one, which makes the SDK
-// validate every structured result against its output schema from then on.
-// Priming it here keeps that cost inside every tools/call measurement instead
-// of only the ones that happen to run after the tools/list benchmark.
-// (get_skill is deliberately absent below: with the validators primed, its
-// structured result is REJECTED by the SDK — "data must NOT have additional
-// properties" — so it cannot be measured until that mismatch is fixed.)
-await client.listTools();
-
-describe("MCP round trip (in-memory transport)", () => {
-  bench("tools/list", async () => {
-    await client.listTools();
-  });
-
-  bench("tools/call decode_template", async () => {
-    await client.callTool({ name: "decode_template", arguments: { code: GOLDEN_CODE } });
-  });
-
-  bench("tools/call encode_template", async () => {
-    await client.callTool({ name: "encode_template", arguments: { ...NAMED_BUILD } });
-  });
-
-  bench("tools/call search_skills", async () => {
-    await client.callTool({
-      name: "search_skills",
-      arguments: { professionName: "Dervish", nameContains: "mystic" },
-    });
+/**
+ * Constructing the server: 8 tools and 3 resources, each with its zod schemas.
+ * Paid once per isolate before any request is answered, so it is part of the same
+ * budget as the handlers themselves.
+ *
+ * This replaces four `tools/call` benchmarks that drove the real MCP client over an
+ * in-memory transport. They were async, and CodSpeed warns that async profiles can
+ * lose stack information to the event loop — `tools/list` reported 221 ms against
+ * ~17 ms measured under plain Node. They were also redundant: every tool's actual
+ * work is already benchmarked synchronously above, so what the round trip added was
+ * protocol plumbing plus noise.
+ */
+describe("server construction", () => {
+  bench("createServer — 8 tools + 3 resources", () => {
+    createServer();
   });
 });

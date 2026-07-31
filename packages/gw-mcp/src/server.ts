@@ -202,11 +202,37 @@ function fullHero(hero: Hero): FullHeroOut {
   };
 }
 
+/**
+ * Every field listed EXPLICITLY, never `...skill`.
+ *
+ * The spread leaked six internal fields the declared schema does not have —
+ * attributeId, campaignId, professionId, typeId, pvpSplit, splitId — and
+ * fullSkillShape is a strict object, so any client that primes its output
+ * validators with tools/list (which every real client does) had get_skill fail
+ * with "data must NOT have additional properties". TypeScript could not catch it:
+ * excess-property checks do not apply to spreads, so the raw record widened
+ * silently into the return type.
+ *
+ * The ids are deliberately not exposed here. `id` is, because it appears in
+ * template codes; the rest are internal join keys, and callers get resolved names.
+ */
 function fullSkill(id: number): FullSkillOut | null {
   const skill = getSkillById(id);
   if (!skill) return null;
   return {
-    ...skill,
+    id: skill.id,
+    name: skill.name,
+    elite: skill.elite,
+    isRoleplay: skill.isRoleplay,
+    energy: skill.energy,
+    activation: skill.activation,
+    recharge: skill.recharge,
+    adrenaline: skill.adrenaline,
+    sacrifice: skill.sacrifice,
+    overcast: skill.overcast,
+    upkeep: skill.upkeep,
+    description: skill.description,
+    isPvpVersion: skill.isPvpVersion,
     profession: getProfessionById(skill.professionId)?.name ?? null,
     attribute: getAttributeById(skill.attributeId)?.name ?? null,
     campaign: getCampaignById(skill.campaignId)?.name ?? null,

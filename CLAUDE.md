@@ -718,6 +718,35 @@ and measured 22.5 ms for a 262 144-character decode. That path does not exist �
 container splits filler into many short slots instead. The cost was in the slot
 count, and it was 18x worse than what I first proposed to fix.
 
+## get_skill was broken for real clients (fixed 2026-07-31)
+
+`fullSkill` built its result with `...skill`, which leaked six internal join keys —
+`attributeId`, `campaignId`, `professionId`, `typeId`, `pvpSplit`, `splitId` — into
+`fullSkillShape`, a strict object that declares none of them. Consequence: any client
+that calls `tools/list` before calling a tool, **which is every real client**, primes
+the SDK's output validators, and `get_skill` then **threw** `-32602 ... data must NOT
+have additional properties`. The other seven tools were fine.
+
+Three reasons nothing caught it, all worth remembering:
+
+- **Typecheck cannot.** Excess-property checks do not apply to spreads, so the raw
+  dataset record widened silently into the declared return type.
+- **The tests could not**, because they call tools without listing them first. The
+  validators stayed unprimed, so the bug was invisible precisely because tests are
+  tidier than clients.
+- **Production could not.** The demo on 2026-07-31 ran `get_skill` through Claude
+  Code and it worked, so client-side validation is evidently not universal — which
+  makes this the kind of contract violation that fails for some users and not others.
+
+Fixed by listing every field explicitly; the ids stay internal, since `id` is the
+only one callers need (it appears in template codes). Locked by a conventions test
+that lists tools first and then calls all of them, asserting the count matches
+`TOOL_NAMES` so a new tool cannot ship unchecked. Verified failible: restoring the
+spread turns it red with the exact SDK error.
+
+Found in a comment left by the CodSpeed setup wizard, which had noticed `get_skill`
+could not be benchmarked and worked around it instead of reporting it.
+
 ## Explicit non-goals for the MVP
 
 - ❌ `complete_build` / `generate_build` from tags or roles — this reintroduces the hard problem; the LLM proposes the 8 skills.

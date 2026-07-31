@@ -414,9 +414,16 @@ is_rp.
    restores it after reading that 404 as a bug. Nothing was lost: the listing stayed
    live and scored A throughout, because Glama indexes from the MCP Registry.
    Dash-side settings still depended on, so they can be checked:
-   Workers Builds root directory, `OPENAI_APPS_CHALLENGE` (submission-time only),
-   the `MCP_ANALYTICS` and `RATE_LIMITER` bindings, and the Grafana Infinity
-   datasource credentials.
+   Workers Builds root directory, the **Workers Builds API token**,
+   `OPENAI_APPS_CHALLENGE` (submission-time only), the `MCP_ANALYTICS` and
+   `RATE_LIMITER` bindings, and the Grafana Infinity datasource credentials.
+   The build token earned its place on 2026-07-31: it silently became invalid
+   ("belongs to a user who has left your organization") and every deploy failed
+   afterwards, with the reason visible only in the Cloudflare build log. Worse, it
+   correlated by coincidence with a performance commit, so the obvious reading was a
+   code regression — and I proposed exhausted build minutes, which was also wrong.
+   When a Workers Build fails, read the Cloudflare log FIRST; the repository cannot
+   tell you anything about a dash-side credential.
 2. The C++ plugin compiled clean on the first CI run (/W4 /WX, zero
    warnings — 2026-07-11) but has never been loaded in-game. Trigger:
    the maintainer runs /exportaccount with the artifact DLL.

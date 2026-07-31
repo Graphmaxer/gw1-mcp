@@ -22,6 +22,72 @@ describe("conventions: every error code has a triggering test", () => {
   }
 });
 
+describe("Claude Code plugin manifest (mechanical lock)", () => {
+  // `claude plugin validate --strict` turns unrecognised manifest keys into
+  // errors, and a key one character off a real one still loads at runtime while
+  // doing nothing. Neither failure is visible without running the CLI, which is
+  // not available in CI here — so the recognised set is asserted from the
+  // published reference instead.
+  const RECOGNISED = new Set([
+    "$schema",
+    "name",
+    "displayName",
+    "version",
+    "description",
+    "author",
+    "homepage",
+    "repository",
+    "license",
+    "keywords",
+    "defaultEnabled",
+    "skills",
+    "commands",
+    "agents",
+    "workflows",
+    "hooks",
+    "mcpServers",
+    "outputStyles",
+    "lspServers",
+    "experimental",
+    "userConfig",
+    "channels",
+    "dependencies",
+  ]);
+
+  const manifest = JSON.parse(read("../../../.claude-plugin/plugin.json")) as Record<
+    string,
+    unknown
+  >;
+
+  it("uses only keys the plugin reference recognises", () => {
+    expect(Object.keys(manifest).filter((k) => !RECOGNISED.has(k))).toEqual([]);
+  });
+
+  it("declares a name that is kebab-case, since it namespaces the skill", () => {
+    // The skill is invoked as /<name>:gw1-build-assistant, so a space or capital
+    // here would break the invocation rather than just look untidy.
+    expect(manifest["name"]).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
+  });
+
+  it("keeps its version in step with the release", () => {
+    // release-please updates both through extra-files. If they ever diverge,
+    // users are told a version that is not what the server reports.
+    const server = JSON.parse(read("../../../server.json")) as { version: string };
+    expect(manifest["version"]).toBe(server.version);
+  });
+
+  it("wires the MCP server with an explicit http type", () => {
+    // Without "type", the config fails schema validation SILENTLY: the tools
+    // simply never appear and nothing is logged.
+    const mcp = JSON.parse(read("../../../.mcp.json")) as {
+      mcpServers: Record<string, { type?: string; url?: string }>;
+    };
+    const server = Object.values(mcp.mcpServers)[0];
+    expect(server?.type).toBe("http");
+    expect(server?.url).toMatch(/^https:\/\/.+\/mcp$/);
+  });
+});
+
 describe("input documentation (mechanical lock)", () => {
   it("every z field in a tool inputSchema carries a .describe()", () => {
     // Tool schemas are the manual an LLM reads, and directories publish them

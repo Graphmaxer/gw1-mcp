@@ -180,6 +180,32 @@ Run `claude plugin validate .` before submitting — the review pipeline runs th
 same check. It could not be run here: the Claude Code CLI is not available in this
 environment, so this is unverified locally.
 
+### Checked against the plugins reference (2026-07-29)
+
+- `name` is the only required manifest field, but four recommended ones were
+  missing and are now set: `$schema` (editor validation; ignored at load time),
+  `displayName` (what `/plugin` shows — without it the entry reads `gw1-mcp`,
+  which means nothing to a player), `keywords`, and an author `url`.
+- **The version field is a commitment, not decoration.** With `version` set,
+  users receive an update only when it is bumped — pushing commits alone changes
+  nothing, and `/plugin update` reports "already at the latest version". That is
+  the right behaviour for a released plugin and release-please keeps it in step,
+  but it means work merged between releases does not reach plugin users. Leaving
+  `version` unset would flip it to per-commit updates, which would be noisy here.
+- **A `CLAUDE.md` at the plugin root is NOT loaded as plugin context.** Ours is a
+  maintainer document and stays one; plugins contribute context through skills,
+  agents and hooks. Nothing to change, but do not assume users of the plugin see
+  it.
+- The default `skills/` scan is additive, so `skills/gw1-build-assistant/SKILL.md`
+  is found without declaring a `skills` field. Declaring one would have been
+  harmless but pointless.
+- Nothing traverses outside the plugin root, which installed plugins cannot do:
+  the plugin root here IS the repository root.
+- Four assertions now lock all of this in `conventions.test.ts` — recognised keys
+  only (so `--strict` cannot fail on a typo), kebab-case name (it namespaces the
+  skill invocation), manifest version equal to `server.json`, and `"type": "http"`
+  present in `.mcp.json`.
+
 Form fields, from repo metadata: link to plugin =
 https://github.com/Graphmaxer/gw1-mcp, path within repository = blank (the plugin
 is at the root), homepage = the same URL, plugin name = gw1-mcp.

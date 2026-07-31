@@ -373,6 +373,111 @@ const MAX_PWND_SLOTS = 12;
  */
 const MAX_PWND_BLOB_LEN = 16384;
 
+/**
+ * Tool input schemas live at MODULE scope, not inline in `createServer`.
+ *
+ * `createServer` runs on EVERY /mcp request (the SDK refuses to reuse a server
+ * across transports — "Already connected to a transport" — and `close()` is
+ * unavailable here, see the B6 note in the worker). Measured, its 5.37 ms splits
+ * into ~2.70 ms inside registerTool/registerResource, ~2.02 ms building these
+ * argument literals, and ~0.65 ms in the constructor. The SDK's half is not
+ * recoverable; this half is, and for free — zod schemas are immutable value
+ * objects, so sharing them across server instances carries no concurrency risk.
+ *
+ * Anything reused by more than one tool already lives above (namedBuildSchema and
+ * friends). These are the per-tool literals that were being rebuilt.
+ */
+const getSkillInput = {
+  name: z
+    .string()
+    .max(64)
+    .optional()
+    .describe('Exact English skill name, e.g. "Mystic Regeneration"'),
+  id: z.number().int().min(0).max(65535).optional().describe("Template skill id"),
+};
+
+const getHeroInput = {
+  name: z.string().max(64).optional().describe('Hero name, e.g. "Master of Whispers"'),
+  id: z.number().int().min(0).max(255).optional().describe("GWCA HeroID value"),
+};
+
+// Both filters REJECT unknown values (UNKNOWN_PROFESSION / UNKNOWN_CAMPAIGN), so
+// the accepted spellings belong in the schema: without them a caller guesses
+// "EotN" and burns a round-trip. The lists are the values that actually match a
+// hero — every profession has heroes except None, and Core has none.
+const listHeroesInput = {
+  professionName: z
+    .string()
+    .max(64)
+    .optional()
+    .describe(
+      "Filter by the hero's profession, exact English name: Warrior, Ranger, Monk, Necromancer, Mesmer, Elementalist, Assassin, Ritualist, Paragon or Dervish.",
+    ),
+  campaignName: z
+    .string()
+    .max(64)
+    .optional()
+    .describe(
+      "Filter by the campaign the hero is recruited in, exact English name: Prophecies, Factions, Nightfall or Eye of the North.",
+    ),
+};
+
+const encodeInput = {
+  ...namedBuildSchema,
+  forHero: z
+    .boolean()
+    .default(false)
+    .describe("Set true if this bar is for a hero (PvE-only skills are flagged)"),
+  forPvp: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Set true for a PvP character's bar. PvP versions of split skills are only valid when this is true, and a PvP bar is expected to use them.",
+    ),
+  unlockedSkillIds: z
+    .array(z.number().int().min(0).max(65535))
+    .max(8192)
+    .optional()
+    .describe(
+      "Optional: unlocked skill ids from a GWToolbox account export (/exportaccount). Skills outside this list are flagged as warnings.",
+    ),
+};
+
+const validateInput = {
+  ...namedBuildSchema,
+  forHero: z
+    .boolean()
+    .default(false)
+    .describe("Set true if this bar is for a hero (PvE-only skills are flagged)"),
+  forPvp: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Set true for a PvP character's bar (PvP versions of split skills are only valid then).",
+    ),
+  unlockedSkillIds: z
+    .array(z.number().int().min(0).max(65535))
+    .max(8192)
+    .optional()
+    .describe(
+      "Optional: unlocked skill ids from a GWToolbox account export (/exportaccount). Skills outside this list are flagged as warnings.",
+    ),
+};
+
+const searchSkillsOutput = {
+  total: z.number().int().describe("Total matches before limit/offset are applied"),
+  skills: z.array(skillSummarySchema).describe("Compact records; use get_skill for full details"),
+};
+
+const pwndOutput = {
+  builds: z.array(pwndEntrySchema).describe("One entry per team slot, in blob order"),
+};
+
+const listHeroesOutput = {
+  total: z.number().int(),
+  heroes: z.array(fullHeroSchema),
+};
+
 export function createServer(options: CreateServerOptions = {}): McpServer {
   const server = new McpServer(
     {
@@ -419,14 +524,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
         "Look up a single GW1 skill by exact English name or by template skill id. Returns full stats (energy, activation, recharge, adrenaline, sacrifice), profession, attribute, campaign, elite flag and description. If the name is not found, returns the closest matches so you can correct spelling. Use this when you already know the exact skill; to discover skills by profession, attribute or name fragment, use search_skills instead.",
       annotations: READ_ONLY,
       outputSchema: fullSkillShape,
-      inputSchema: {
-        name: z
-          .string()
-          .max(64)
-          .optional()
-          .describe('Exact English skill name, e.g. "Mystic Regeneration"'),
-        id: z.number().int().min(0).max(65535).optional().describe("Template skill id"),
-      },
+      inputSchema: getSkillInput,
     },
     async ({ name, id }) => {
       // Exactly one of name/id — accepting both and silently letting id win
@@ -462,12 +560,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
       description:
         "Search the full GW1 skill database by profession, attribute, campaign, elite flag or name fragment (valid values are documented per parameter). Returns compact records; use get_skill for full details.",
       annotations: READ_ONLY,
-      outputSchema: {
-        total: z.number().int().describe("Total matches before limit/offset are applied"),
-        skills: z
-          .array(skillSummarySchema)
-          .describe("Compact records; use get_skill for full details"),
-      },
+      outputSchema: searchSkillsOutput,
       inputSchema: {
         professionName: z
           .string()
@@ -620,9 +713,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
       description:
         "Decode a paw-ned2 team build blob (the 'pwnd0001...>...<' format shared on PvXwiki team pages and by the paw-ned2 tool) into its individual builds: player/hero label, description, and each skill bar fully decoded. Whitespace and line wraps in the pasted blob are tolerated. For a single (non-team) build code, use decode_template instead.",
       annotations: READ_ONLY,
-      outputSchema: {
-        builds: z.array(pwndEntrySchema).describe("One entry per team slot, in blob order"),
-      },
+      outputSchema: pwndOutput,
       inputSchema: {
         pwnd: z
           .string()
@@ -694,26 +785,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
         "Compile a build (professions, attributes, 8 skills by exact English name) into an official in-game template code. The build is validated first; on rule violations the errors are returned instead of a code. Unknown skill names return closest-match suggestions. IMPORTANT: template codes MUST come from this tool — never write or guess a code by hand, hand-written codes are invalid in-game. If unsure, verify any code with decode_template.",
       annotations: READ_ONLY,
       outputSchema: encodeResultSchema,
-      inputSchema: {
-        ...namedBuildSchema,
-        forHero: z
-          .boolean()
-          .default(false)
-          .describe("Set true if this bar is for a hero (PvE-only skills are flagged)"),
-        forPvp: z
-          .boolean()
-          .default(false)
-          .describe(
-            "Set true for a PvP character's bar. PvP versions of split skills are only valid when this is true, and a PvP bar is expected to use them.",
-          ),
-        unlockedSkillIds: z
-          .array(z.number().int().min(0).max(65535))
-          .max(8192)
-          .optional()
-          .describe(
-            "Optional: unlocked skill ids from a GWToolbox account export (/exportaccount). Skills outside this list are flagged as warnings.",
-          ),
-      },
+      inputSchema: encodeInput,
     },
     async ({ forHero, forPvp, unlockedSkillIds, ...build }) => {
       const resolution = resolveNamedBuild(build);
@@ -748,26 +820,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
         "Check a build (professions, attributes, 8 skills by exact English name) against Guild Wars 1 rules: one elite max, profession/attribute ownership, primary attributes, duplicates, rank ranges. Returns { valid, errors, warnings } without encoding.",
       annotations: READ_ONLY,
       outputSchema: validateResultSchema,
-      inputSchema: {
-        ...namedBuildSchema,
-        forHero: z
-          .boolean()
-          .default(false)
-          .describe("Set true if this bar is for a hero (PvE-only skills are flagged)"),
-        forPvp: z
-          .boolean()
-          .default(false)
-          .describe(
-            "Set true for a PvP character's bar (PvP versions of split skills are only valid then).",
-          ),
-        unlockedSkillIds: z
-          .array(z.number().int().min(0).max(65535))
-          .max(8192)
-          .optional()
-          .describe(
-            "Optional: unlocked skill ids from a GWToolbox account export (/exportaccount). Skills outside this list are flagged as warnings.",
-          ),
-      },
+      inputSchema: validateInput,
     },
     async ({ forHero, forPvp, unlockedSkillIds, ...build }) => {
       const resolution = resolveNamedBuild(build);
@@ -792,10 +845,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
         "Look up a GW1 hero by name or by id (GWCA HeroID, matching the AccountExport plugin output). Returns profession, campaign and how the hero is unlocked. Remember: heroes can equip any skill unlocked at ACCOUNT level, but not most PvE-only skills. Use this for one known hero; to browse or filter the roster, use list_heroes instead.",
       annotations: READ_ONLY,
       outputSchema: fullHeroSchema.shape,
-      inputSchema: {
-        name: z.string().max(64).optional().describe('Hero name, e.g. "Master of Whispers"'),
-        id: z.number().int().min(0).max(255).optional().describe("GWCA HeroID value"),
-      },
+      inputSchema: getHeroInput,
     },
     async ({ name, id }) => {
       if (name !== undefined && id !== undefined) {
@@ -817,31 +867,8 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
       description:
         "List all GW1 heroes, optionally filtered by profession or campaign name. Useful for team-building: shows which professions are coverable by heroes and how each hero is unlocked.",
       annotations: READ_ONLY,
-      outputSchema: {
-        total: z.number().int(),
-        heroes: z.array(fullHeroSchema),
-      },
-      inputSchema: {
-        // Both filters REJECT unknown values (UNKNOWN_PROFESSION /
-        // UNKNOWN_CAMPAIGN), so the accepted spellings belong in the schema:
-        // without them a caller guesses "EotN" and burns a round-trip. The lists
-        // are the values that actually match a hero — every profession has
-        // heroes except None, and Core has none.
-        professionName: z
-          .string()
-          .max(64)
-          .optional()
-          .describe(
-            "Filter by the hero's profession, exact English name: Warrior, Ranger, Monk, Necromancer, Mesmer, Elementalist, Assassin, Ritualist, Paragon or Dervish.",
-          ),
-        campaignName: z
-          .string()
-          .max(64)
-          .optional()
-          .describe(
-            "Filter by the campaign the hero is recruited in, exact English name: Prophecies, Factions, Nightfall or Eye of the North.",
-          ),
-      },
+      outputSchema: listHeroesOutput,
+      inputSchema: listHeroesInput,
     },
     async ({ professionName, campaignName }) => {
       let results = heroes;

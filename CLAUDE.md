@@ -785,43 +785,39 @@ fails to resolve at build time. If something legitimately needs Node APIs, add t
 flag back deliberately — and note that `nodejs_als` exists if only
 AsyncLocalStorage is wanted.
 
-## Open: createServer() runs on every /mcp request
+## createServer() runs on every /mcp request — half of it removed 2026-07-31
 
 `createApp()` builds the Hono app once, but `createServer({ onToolCall })` sits
-INSIDE the `/mcp` handler, so all 8 tools and 3 resources are re-registered with
-their zod schemas on every request.
+inside the `/mcp` handler, so the server is rebuilt per request. That is not
+fixable: the SDK refuses to reuse a server — "Already connected to a transport.
+Call close() before connecting to a new transport" — for sequential AND concurrent
+transports, and `close()` is exactly what cannot be called here (see the B6 note in
+the worker: it empties every response, because the body is lazy). Tested, not
+assumed.
 
-Measured, and it is the dominant cost of a request rather than a detail:
+So the cost was attacked where it could be. Bisected in one process over 150
+iterations:
 
-|                           |             |
-| ------------------------- | ----------- |
-| `createApp()`             | 0.12 ms     |
-| `createServer()`          | **8.03 ms** |
-| full `tools/list` request | 18.68 ms    |
+|                                          | before       | after                                   |
+| ---------------------------------------- | ------------ | --------------------------------------- |
+| inside `registerTool`/`registerResource` | 2.70 ms      | unchanged — the SDK's half, unreachable |
+| building the argument literals (zod)     | ~2.02 ms     | **~0 ms**                               |
+| `new McpServer()`                        | ~0.65 ms     | unchanged                               |
+| **`createServer()` total**               | **5.37 ms**  | **2.30 ms**                             |
+| **full `tools/list` request**            | **18.68 ms** | **6.77 ms**                             |
 
-So ~31% of every MCP request under Node. CodSpeed's simulation mode puts
-`createServer` at 26.6 ms against 38-50 ms for a whole request, i.e. 55-70% — the
-ratios differ, both point at the same thing. Production averages 7.66 ms of CPU
-against a 10 ms cap, so this is where the margin went.
+Every per-tool `inputSchema` and `outputSchema` literal now lives at module scope.
+Zod schemas are immutable value objects, so sharing them across server instances
+carries no concurrency risk — which is why this was the first thing to try and the
+transport lifecycle the last. Zero `z.` calls remain inside the function body.
 
-**Not fixed, because hoisting it is not trivial and the risk is concurrency, not
-performance.** Two obstacles: `onToolCall` closes over `analytics` from `c.env`, so
-it is per-request by construction; and each request connects a fresh
-`StreamableHTTPTransport`, with no evidence the SDK tolerates one server across
-several transports at once. An isolate serves CONCURRENT requests, so a shared
-mutable reference would leak between them — the naive hoist is a correctness bug
-wearing a performance costume.
+Verified identical where it matters: `tools/list` is 18 577 characters (was 18 578,
+a one-character formatting difference), still 8 tools, titles present, and
+`get_skill` still validates after `tools/list` primes the SDK.
 
-Order to investigate, now that `wrangler dev --local` gives real workerd:
-
-1. Ask whether the cost is in `registerTool` or in building the schemas. If the
-   schemas dominate, hoisting THEM out needs no change to the server lifecycle and
-   carries no concurrency risk.
-2. Only then look at whether a server can outlive one transport.
-
-Found by the CodSpeed suite: `createServer` measuring 26.6 ms next to a `createApp`
-at 992 µs is arithmetically impossible if one contained the other, which is what
-pointed at the handler.
+Why a single `z.string().max(64).describe(...)` costs 0.147 ms is worth knowing:
+each chained method CLONES the schema, so a five-field shape rebuilt per request was
+1.7 ms on its own.
 
 ## Explicit non-goals for the MVP
 

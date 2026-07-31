@@ -14,6 +14,8 @@
   <a href="https://github.com/Graphmaxer/gw1-mcp/commits/main"><img src="https://img.shields.io/github/last-commit/Graphmaxer/gw1-mcp" alt="last commit"></a>
   <a href="https://gw1mcp.grafana.net/public-dashboards/9002ddf3fb784b46847a65f4afe889fa"><img src="https://img.shields.io/badge/usage-live%20dashboard-orange" alt="live usage dashboard"></a>
   <a href="https://lobehub.com/mcp/graphmaxer-gw1-mcp"><img src="https://lobehub.com/badge/mcp/graphmaxer-gw1-mcp" alt="LobeHub MCP"></a>
+  <a href="https://mcp.so/servers/gw1-e2b8b9"><img src="https://img.shields.io/badge/mcp.so-listed-blue" alt="listed on mcp.so"></a>
+  <a href="https://glama.ai/mcp/servers"><img src="https://img.shields.io/badge/Glama-A%20quality-brightgreen" alt="Glama quality A"></a>
 </p>
 
 An MCP (Model Context Protocol) server that gives any compatible LLM client

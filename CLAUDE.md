@@ -611,6 +611,23 @@ Tool design rules:
 - Tools are pure/deterministic: same input → same output, no hidden state.
 - When a skill name is not found, always return the 3 closest matches (Levenshtein or similar) — LLMs make small spelling errors and must be able to self-correct in one round-trip.
 
+## Where this server is listed (2026-07-29)
+
+| Directory                    | Status                           | Notes                                                                                   |
+| ---------------------------- | -------------------------------- | --------------------------------------------------------------------------------------- |
+| Official MCP Registry        | published                        | the source of truth other directories crawl; `publish-registry.yml` cascades on release |
+| mcp.so                       | **validated 2026-07-29**         | https://mcp.so/servers/gw1-e2b8b9                                                       |
+| Glama                        | indexed, unclaimed, quality A    | claiming needs an email published at a public URL — declined, see debt #1               |
+| LobeHub                      | listed                           | badge in README                                                                         |
+| Forge                        | `/.well-known/forge.json` served | per-directory verification file                                                         |
+| ChatGPT Plugins              | not submitted                    | kit + generated JSON ready; blocked on identity verification and the demo recording     |
+| Claude community marketplace | not submitted                    | plugin manifest now exists; needs `claude plugin validate` locally first                |
+
+Worth watching rather than assuming: the client-attribution dimension added the
+same day means the `Connections per client` panel will show whether any of these
+listings sends real clients or only health checks. Before it existed, 65% of all
+traffic was one uptime monitor and the honest answer was "we cannot tell".
+
 ## Public hostname: workers.dev, decided 2026-07-29
 
 `https://gw1-mcp.graphmaxer.workers.dev` is the permanent origin. No custom

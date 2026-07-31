@@ -898,6 +898,23 @@ reports name the exact combination the validator used to accept — three PvE-on
 skills plus a capture signet, which is four and gets one kicked off the bar. Three
 copies of the signet alone remain legal, which the tests also pin.
 
+## Rule provenance is tracked, and three rules are unverified
+
+`docs/game-rules-provenance.md` records where every validator rule comes from: **7
+verified against primary sources, 5 partial, 3 unverified, 5 that are not game rules
+at all.** The three unverified ones are `SAME_PROFESSIONS`,
+`ATTRIBUTE_PROFESSION_MISMATCH` and `DUPLICATE_SKILL` — believed correct, no source
+found. They are named there rather than quietly assumed, because a rule the game does
+not have is worse than a missing one: it rejects legal builds and the user cannot tell
+the tool is at fault.
+
+The `RANK_COST` table published in the error message and the bundled skill IS verified,
+cross-checked on five independent figures (rank 7 = 28, rank 9 = 48, rank 12 = 97,
+11→12 = 20, 6→7 = 7) plus the 200 total. The worked example in the skill turned out to
+be corroborated verbatim: 12/10/8 is listed among veterans' common allocations, and
+"6 unassigned points after two attributes at 12" appears in the wiki almost word for
+word.
+
 ## Method note
 
 Three of my four initial "gaps" were my own bad fixtures — a wrong attribute name, a

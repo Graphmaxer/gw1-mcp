@@ -898,21 +898,36 @@ reports name the exact combination the validator used to accept — three PvE-on
 skills plus a capture signet, which is four and gets one kicked off the bar. Three
 copies of the signet alone remain legal, which the tests also pin.
 
-## Rule provenance is tracked, and three rules are unverified
+## Rule provenance: 12 of 24 verified, 3 partial, 0 unverified
 
-`docs/game-rules-provenance.md` records where every validator rule comes from: **7
-verified against primary sources, 5 partial, 3 unverified, 5 that are not game rules
-at all.** The three unverified ones are `SAME_PROFESSIONS`,
-`ATTRIBUTE_PROFESSION_MISMATCH` and `DUPLICATE_SKILL` — believed correct, no source
-found. They are named there rather than quietly assumed, because a rule the game does
-not have is worse than a missing one: it rejects legal builds and the user cannot tell
-the tool is at fault.
+`docs/game-rules-provenance.md` records where every validator rule comes from, and
+each rule cites its source in `validate.ts`. The three that were unverified are now
+sourced:
 
-The `RANK_COST` table published in the error message and the bundled skill IS verified,
-cross-checked on five independent figures (rank 7 = 28, rank 9 = 48, rank 12 = 97,
-11→12 = 20, 6→7 = 7) plus the 200 total. The worked example in the skill turned out to
-be corroborated verbatim: 12/10/8 is listed among veterans' common allocations, and
-"6 unassigned points after two attributes at 12" appears in the wiki almost word for
+- **`SAME_PROFESSIONS`** — by arithmetic, which beats a sentence. The wiki counts
+  "30 possible core-profession combinations, 56 if you own Factions or Nightfall, and
+  90 if you own both". Six professions give 30 = 6x5, eight give 56 = 8x7, ten give
+  90 = 10x9. Those counts hold only if secondary differs from primary; otherwise they
+  would be 36, 64 and 100.
+- **`DUPLICATE_SKILL`** — the exception states the rule: "**Unlike other skills**, it
+  is possible to obtain multiple copies of Signet of Capture."
+- **`ATTRIBUTE_PROFESSION_MISMATCH`** — "Attribute points are used to improve
+  attributes in either your primary or secondary profession." The same search
+  upgraded `PRIMARY_ATTRIBUTE_ON_SECONDARY` and `PROFESSION_MISMATCH` from partial:
+  the panel lists "all except the primary attribute of your Secondary profession".
+
+Three remain partial — `ATTRIBUTE_NOT_TEMPLATABLE` and the two split-version rules.
+Their mechanism is sourced; the strictness of rejecting is inferred.
+
+Also found, and not checkable by us: a template will not load if the character lacks
+one of its professions. Nothing to validate, but it is the right answer when someone
+reports that a legal code will not load.
+
+The `RANK_COST` table published in the error message and the bundled skill IS
+verified, cross-checked on five independent figures (rank 7 = 28, rank 9 = 48, rank
+12 = 97, 11→12 = 20, 6→7 = 7) plus the 200 total. Its worked example turned out
+corroborated verbatim: 12/10/8 is listed among veterans' common allocations, and "six
+unassigned points after two attributes at 12" appears in the wiki almost word for
 word.
 
 ## Method note

@@ -5,47 +5,43 @@ sources, and two of them turned out to be wrong once checked. A build compiler t
 enforces a rule the game does not have is worse than one that misses a rule: it
 rejects legal builds, and the user has no way to tell it is the tool that is wrong.
 
-**Status of the 24 validator codes: 7 verified, 5 partial, 3 unverified, 5 not game
-rules.** The unverified ones are named below rather than quietly assumed. Sources are
-cited inline at each rule in `packages/gw-mcp/src/validate.ts`.
+**Status of the 24 validator codes: 12 verified against primary sources, 3 partial, 0
+unverified, 9 that are not game rules.** Sources are cited inline at each rule in
+`packages/gw-mcp/src/validate.ts`. Prefer wiki.guildwars.com over Fandom where both
+cover a point.
 
 ## Verified against primary sources
 
-| Rule                        | Source                                                                                                                                                                                                                                             |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `INVALID_SKILL_COUNT`       | wiki.guildwars.com/wiki/Skill — "to a maximum of 8 skills (including at most one elite skill) at a time"                                                                                                                                           |
-| `MULTIPLE_ELITES`           | same sentence; the exception (multiple elites transiently after a capture, until zoning) does not apply to a template built in an outpost                                                                                                          |
-| `ATTRIBUTE_POINTS_EXCEEDED` | wiki Attribute_point — 200 total, being 170 at level 20 plus two 15-point quests. The `RANK_COST` table is cross-checked on five independent figures: rank 7 = 28, rank 9 = 48, rank 12 = 97, 11→12 costs 20, 6→7 costs 7                          |
-| `RANK_OUT_OF_RANGE`         | wiki Attribute_point — "rank 12 is the highest rank obtainable by spending points"                                                                                                                                                                 |
-| `TOO_MANY_PVE_SKILLS`       | wiki List_of_PvE-only_skills — "can only equip three PvE-only skills at a time"; wiki Elite_skill dates the cap to the 23 August 2007 update. Signet of Capture COUNTS (fandom Signet_of_Capture), which this validator got wrong until 2026-07-31 |
-| `PVE_ONLY_ON_HERO`          | wiki Signet_of_Capture — "cannot be equipped for PvP or by heroes"; Talk:List_of_PvE-only_skills for the general case                                                                                                                              |
-| `PVE_ONLY_ON_PVP_BUILD`     | wiki PvP_Access_Kit — "not possible for PvP characters to learn or use these skills"                                                                                                                                                               |
+| Rule                             | Source                                                                                                                                                                                                                                                                                                                                                     |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `INVALID_SKILL_COUNT`            | GWW Skill — "to a maximum of 8 skills (including at most one elite skill) at a time"                                                                                                                                                                                                                                                                       |
+| `MULTIPLE_ELITES`                | same sentence. The exception — several elites transiently after a capture, until zoning — does not apply to a template built in an outpost                                                                                                                                                                                                                 |
+| `ATTRIBUTE_POINTS_EXCEEDED`      | GWW Attribute_point — "The maximum is a total of 200 after reaching level 20 and completing both of the quests that reward 15 attribute points each". `RANK_COST` cross-checked on five independent figures: rank 7 = 28, rank 9 = 48, rank 12 = 97, 11→12 costs 20, 6→7 costs 7                                                                           |
+| `RANK_OUT_OF_RANGE`              | GWW Skills_and_Attributes_Panel — "Unmodified attribute ranks cannot be raised above twelve or lowered below zero"                                                                                                                                                                                                                                         |
+| `TOO_MANY_PVE_SKILLS`            | GWW List_of_PvE-only_skills — "can only equip three PvE-only skills at a time"; GWW Elite_skill dates the cap to 23 August 2007. Signet of Capture COUNTS (Fandom Signet_of_Capture), which this validator got wrong until 2026-07-31                                                                                                                      |
+| `PVE_ONLY_ON_HERO`               | GWW Signet_of_Capture — "cannot be equipped for PvP or by heroes"                                                                                                                                                                                                                                                                                          |
+| `PVE_ONLY_ON_PVP_BUILD`          | GWW PvP_Access_Kit — "not possible for PvP characters to learn or use these skills"                                                                                                                                                                                                                                                                        |
+| `SAME_PROFESSIONS`               | **By arithmetic, which is stronger than a sentence.** Fandom Profession: "30 possible core-profession combinations, 56 if you own Factions or Nightfall, and 90 if you own both". Six professions give 30 = 6x5, eight give 56 = 8x7, ten give 90 = 10x9. Those counts hold only if secondary differs from primary; otherwise they would be 36, 64 and 100 |
+| `DUPLICATE_SKILL`                | GWW Signet_of_Capture — "**Unlike other skills**, it is possible to obtain multiple copies of Signet of Capture". The exception states the general rule, and up to three copies of that signet is the documented allowance                                                                                                                                 |
+| `ATTRIBUTE_PROFESSION_MISMATCH`  | GWW Attribute_point — "Attribute points are used to improve attributes in **either your primary or secondary profession**"                                                                                                                                                                                                                                 |
+| `PRIMARY_ATTRIBUTE_ON_SECONDARY` | Fandom Skills_and_Attributes_panel — "The listed attributes include all of the ones available to your Primary profession, and **all except the primary attribute of your Secondary profession**"; GWW Primary_attribute confirms the mechanism                                                                                                             |
+| `PROFESSION_MISMATCH`            | GWW Skill — "only characters of the respective profession can use it"; Fandom Profession — "A character has access to all skills of both chosen professions". Common and PvE-only skills are handled separately in the code                                                                                                                                |
 
-## Partial: the mechanism is sourced, the exact wording is not
+## Partial: mechanism sourced, exact wording not
 
-- `PRIMARY_ATTRIBUTE_ON_SECONDARY` — wiki Attribute establishes that primary
-  attributes belong to the primary profession, but no sentence states the template
-  consequence directly.
-- `PROFESSION_MISMATCH` — wiki Skill: "only characters of the respective profession
-  can use it". Sufficient for the rule, silent on common and PvE-only skills, which
-  the code handles separately.
 - `ATTRIBUTE_NOT_TEMPLATABLE` — title tracks are not attribute-point attributes, which
-  follows from wiki Title but is not stated as a template restriction.
-- `PVP_VERSION_ON_PVE_BUILD`, `PVE_VERSION_ON_PVP_BUILD` — wiki Skill describes split
+  follows from GWW Title but is not stated as a template restriction.
+- `PVP_VERSION_ON_PVE_BUILD`, `PVE_VERSION_ON_PVP_BUILD` — GWW Skill describes split
   versions that "update automatically when in each respective zone". That supports
-  treating them as distinct, not the strictness of rejecting the wrong one.
+  treating them as distinct; the strictness of rejecting the wrong one is inferred.
 
-## Unverified — treat with suspicion
+## A constraint we cannot check, worth knowing
 
-- **`SAME_PROFESSIONS`** rejects primary == secondary. Believed correct, no source
-  found. If the game permits it (or represents "no secondary" that way in some
-  template), this rule rejects a legal build.
-- **`ATTRIBUTE_PROFESSION_MISMATCH`** rejects points in an attribute belonging to
-  neither profession on the bar. A corollary of `PROFESSION_MISMATCH` rather than a
-  sourced rule.
-- **`DUPLICATE_SKILL`** rejects the same skill twice. Correct for ordinary skills as
-  far as anyone reports, and the one documented exception — up to three copies of
-  Signet of Capture — is handled. But the general prohibition is not sourced.
+GWW Skills_and_Attributes_Panel: "If a template has been saved with a primary and/or
+secondary profession you do not have access to on that specific character you will not
+be allowed to load it." So a code can be perfectly legal and still fail to load for
+the person pasting it. Nothing to validate — we do not know the character — but it is
+the right answer when someone reports "your code will not load".
 
 ## Not game rules
 

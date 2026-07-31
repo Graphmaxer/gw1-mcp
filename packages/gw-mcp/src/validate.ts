@@ -83,6 +83,12 @@ export function validateBuild(
       message: "A build must have a primary profession",
     });
   }
+  // Secondary must differ from primary. Sourced by arithmetic rather than a
+  // sentence, which is stronger: the wiki counts "30 possible core-profession
+  // combinations, 56 if you own Factions or Nightfall, and 90 if you own both"
+  // (guildwars.fandom.com/wiki/Profession). Six professions give 30 = 6x5, eight
+  // give 56 = 8x7, ten give 90 = 10x9 — counts that hold only if the two differ;
+  // otherwise they would be 36, 64 and 100.
   if (template.primary !== 0 && template.primary === template.secondary) {
     errors.push({
       code: "SAME_PROFESSIONS",

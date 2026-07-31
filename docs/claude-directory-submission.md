@@ -264,3 +264,24 @@ The same run also confirmed two things that had only been reasoned about:
 Still to do inside a session before ticking "Supported platforms": run `/mcp` to
 confirm the eight tools load, and `/gw1-mcp:gw1-build-assistant` to confirm the
 skill invokes under its namespaced name.
+
+## Submitted 2026-07-31 — one known inaccuracy in the live description
+
+The submitted description says "decode **any in-game template code** or paw-ned2
+team blob". That is not accurate: the codec accepts skill templates only and
+rejects everything else outright (`Not a skill template (type N, expected 1)`),
+and the non-goals list says so — "❌ Rune/equipment templates (only skill
+templates for now)". A reviewer who pastes an equipment template gets an error
+rather than a decode.
+
+It should read "any in-game **skill** template code". One word.
+
+Not worth panicking over — it is unlikely to be the deciding factor in a review,
+and the rest of the copy is accurate and carries the trademark disclaimer. But
+directory terms do require accurate descriptions, so fix it at the first
+opportunity: either edit the pending submission if the form allows it, or correct
+it with the next version, since the description is submitted per version anyway.
+
+Recorded here rather than silently corrected in the repo, because the inaccurate
+text is what is live on Anthropic's side; changing a file here would hide the
+discrepancy instead of resolving it.

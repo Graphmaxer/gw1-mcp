@@ -99,7 +99,7 @@ const validateResultSchema = {
 // list_heroes. Zod objects tolerate extra keys, so data-pipeline additions
 // don't break validation; removals/renames fail the golden tests.
 
-export const fullSkillShape = {
+const fullSkillShape = {
   id: z.number().int(),
   name: z.string(),
   elite: z.boolean(),

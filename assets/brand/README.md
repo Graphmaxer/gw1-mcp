@@ -61,3 +61,29 @@ Verified: background luminance standard deviation across the old boundary is 0.4
 **lower** than the 3.16 measured away from it — the join is smoother than the
 artwork's own vignette, so there is no residual ring. Corner reads `(21,19,27)`,
 centre `(17,16,20)`.
+
+## Two defects found by eye that measurement had missed
+
+Both were invisible in my own checks and obvious to a human looking at the file,
+which is worth remembering.
+
+**Black slivers survived inside the mask.** The geometric superellipse is fitted,
+so where the fit runs slightly wider than the artwork's true edge, the mask says
+"inside" and keeps the original pixel — which there is the black surround. Measured:
+**9078 trapped black pixels**, roughly 370 per corner plus a thin rim along the
+straight edges. No purely geometric mask can see this. The fix combines the
+geometric coverage with a data-driven indicator ramped over luminance 5-11 (the
+artwork's own floor sits at 12.5, the surround at ~0) and replaces wherever _either_
+says outside. Erring toward replacing more is free, because the replacement colour
+IS the tile colour; erring the other way leaves the black.
+
+**Lanczos was ringing on the gold.** Downscaling reintroduced pixels darker than
+anything in the source — 3023 of them at 512px — because Lanczos undershoots on the
+dark side of a high-contrast edge. That reads as a faint dark outline around the
+gold strokes. Every size is now resampled with **area averaging** (`Image.BOX`),
+which has no negative lobes: measured undershoot is 0 at every size, against 3023
+for Lanczos, 705 for bicubic and 1 for Hamming. Lanczos scored "sharper" on a
+gradient metric, but part of that gradient _was_ the ringing.
+
+Verified: no opaque pixel below luminance 9 in any size, corner alpha 0 on the
+rounded family and 255 on the full-bleed one.

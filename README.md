@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/brand/icon-512.png" alt="gw1-mcp logo — a golden scythe and an eight-slot skill bar" width="180" height="180">
+  <img src="assets/brand/icon-rounded-512.png" alt="gw1-mcp logo — a golden scythe and an eight-slot skill bar" width="180" height="180">
 </p>
 
 <h1 align="center">gw1-mcp</h1>

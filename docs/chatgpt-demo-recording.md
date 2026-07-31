@@ -15,6 +15,56 @@ that omits two of the eight tools the form asks to see.
 
 Shots 4 and 6 below exist to close that gap.
 
+## How to record it, concretely
+
+### 1. Check this first, before filming anything
+
+**Developer mode is documented as a web feature.** OpenAI's own guide says to
+enable it in ChatGPT under **Settings → Security and login → Developer mode**,
+then go to **ChatGPT Plugins → "+" → create a developer-mode app** for the remote
+MCP server, and it describes the capability as available "on the web".
+
+But the submission form asks for a demo covering **web, iOS and Android**. So the
+first question is not how to record — it is whether the developer-mode app is even
+reachable from the mobile apps on the same account. Create it, then open ChatGPT on
+a phone and look for it before planning three passes. If it is web-only, the
+requirement cannot be met as literally stated for an unpublished plugin, and that
+is worth saying in the submission notes rather than shipping a video that silently
+covers one surface.
+
+Third-party guides place the toggle under Settings → Apps → Advanced settings
+instead, and Business/Enterprise workspaces put it behind an admin setting. If it
+is not where the official guide says, look there.
+
+### 2. Set up the session
+
+- The connector must be **enabled per chat session** from the tools menu. Do that
+  before starting the recording, not on camera.
+- Developer mode changes the composer's appearance (an orange border) and disables
+  memory for the chat. Both are expected in a dev-mode demo; no need to hide them.
+- Start a fresh chat. Some surfaces need a new chat before the tools menu picks up
+  a newly added app.
+
+### 3. Record
+
+On Linux, OBS Studio is the reliable choice: window capture on the browser, record
+to MP4. GNOME's built-in recorder (Ctrl+Alt+Shift+R) works too, but check its
+maximum length setting first — the default cutoff is short enough to truncate a
+five-minute take. On a phone, use the OS screen recorder.
+
+Prepare a scratch file with the template code and both pwnd blobs and paste from
+it. Do not type a 25-character code on camera, and on mobile send them to yourself
+beforehand rather than typing them at all.
+
+Keep the Cloudflare dashboard, Workers logs and anything carrying account
+identifiers out of frame.
+
+### 4. Host it
+
+The form wants a URL a reviewer can open. An unlisted YouTube video or a
+link-shared Drive file both work; what matters is that it needs no login and no
+access request. Verify the link in a private window before submitting.
+
 ## Shot list
 
 Run in this order. Each shot's prompt is what to type; the point is what a

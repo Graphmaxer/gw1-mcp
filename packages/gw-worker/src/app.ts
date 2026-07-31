@@ -492,6 +492,7 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
     //   blob5  our own error / first validation code
     //   blob6  canonical entity resolved from our data
     //   blob7  context flags the caller set, space separated
+    //   blob8  profession of the resolved entity ("Monk", or "none")
     const onToolCall = (event: ToolCallEvent) => {
       analytics?.writeDataPoint({
         blobs: [
@@ -502,6 +503,7 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
           event.code ?? "",
           event.entity ?? "",
           (event.flags ?? []).join(" "),
+          event.profession ?? "",
         ],
         doubles: [1],
         indexes: ["event:tool_call"],

@@ -42,9 +42,14 @@ export function deriveEvent(
   }
 
   // Canonical entity, only where a single one was resolved.
+  const resolvesEntity = tool === "get_skill" || tool === "get_hero";
   const entity =
-    ok && (tool === "get_skill" || tool === "get_hero") && typeof structured?.["name"] === "string"
+    ok && resolvesEntity && typeof structured?.["name"] === "string"
       ? (structured["name"] as string)
+      : undefined;
+  const profession =
+    entity !== undefined && typeof structured?.["profession"] === "string"
+      ? (structured["profession"] as string)
       : undefined;
 
   // Context flags: typed booleans from the schema, never free text.
@@ -61,6 +66,7 @@ export function deriveEvent(
     ok,
     ...(code !== undefined && { code }),
     ...(entity !== undefined && { entity }),
+    ...(profession !== undefined && { profession }),
     ...(flags.length > 0 && { flags }),
   };
 }
@@ -74,6 +80,13 @@ export interface ToolCallEvent {
   readonly code?: string;
   /** Canonical entity name resolved from our dataset, e.g. "Mystic Regeneration". */
   readonly entity?: string;
+  /**
+   * Profession the resolved entity belongs to, e.g. "Monk", or "none" for common
+   * and PvE-only skills. Present whenever `entity` is, since both get_skill and
+   * get_hero resolve one — which makes a two-level profession/entity reading
+   * possible without a second lookup.
+   */
+  readonly profession?: string;
   /** Context flags the caller actually set, e.g. ["forHero"]. Booleans, not text. */
   readonly flags?: readonly string[];
 }

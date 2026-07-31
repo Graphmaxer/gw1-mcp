@@ -30,7 +30,28 @@ describe("tool call events", () => {
     const events = await collect((c) =>
       c.callTool({ name: "get_skill", arguments: { name: "mystic regeneration" } }),
     );
-    expect(events).toEqual([{ tool: "get_skill", ok: true, entity: "Mystic Regeneration" }]);
+    expect(events).toEqual([
+      { tool: "get_skill", ok: true, entity: "Mystic Regeneration", profession: "Dervish" },
+    ]);
+  });
+
+  it("reports the profession beside the entity, for both skills and heroes", async () => {
+    // Public Grafana dashboards cannot use template variables, so a drilldown is
+    // out; carrying the profession on the same row is what makes a two-level
+    // profession/entity reading possible from one flat query.
+    const skill = await collect((c) =>
+      c.callTool({ name: "get_skill", arguments: { name: "Word of Healing" } }),
+    );
+    expect(skill[0]?.profession).toBe("Monk");
+    const hero = await collect((c) =>
+      c.callTool({ name: "get_hero", arguments: { name: "Dunkoro" } }),
+    );
+    expect(hero[0]?.profession).toBe("Monk");
+    // Common and PvE-only skills belong to no profession; the dataset says "none".
+    const common = await collect((c) =>
+      c.callTool({ name: "get_skill", arguments: { name: "Asuran Scan" } }),
+    );
+    expect(common[0]?.profession).toBe("none");
   });
 
   it("reports a miss with its code, which is how unresolvable names get measured", async () => {

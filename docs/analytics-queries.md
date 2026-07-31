@@ -237,3 +237,31 @@ server already documents.
   actually exercised.
 - **Most requested skills and heroes** — curiosity, not a decision input, and
   noisy until real usage outweighs probes. Recorded because it is free.
+
+## Profession (`blob8`, added 2026-07-31)
+
+Recorded whenever an entity is: both `get_skill` and `get_hero` resolve a profession,
+so one row carries both levels. `"none"` for common and PvE-only skills, which belong
+to no profession — a real value, not a gap.
+
+**Why two panels instead of a drilldown.** A click-through would be the natural shape,
+and Grafana's is a template variable. **Public dashboards do not support template
+variables** — still an open request as of January 2026 — and this dashboard is public
+on purpose. A variable-based panel renders empty for anyone but the owner, which is
+the worst outcome: it works while you build it and is broken for everyone else.
+
+So the two levels are laid out side by side instead: a bar gauge per profession, and a
+table sorted by profession then count. Same reading, no interactivity, and it works for
+an anonymous visitor.
+
+```sql
+-- level one
+SELECT blob8 AS profession, SUM(_sample_interval) AS lookups
+FROM gw1_mcp_usage WHERE blob1 = 'event:tool_call' AND blob8 != ''
+GROUP BY profession ORDER BY lookups DESC
+
+-- level two
+SELECT blob8 AS profession, blob3 AS tool, blob6 AS name, SUM(_sample_interval) AS lookups
+FROM gw1_mcp_usage WHERE blob1 = 'event:tool_call' AND blob8 != '' AND blob6 != ''
+GROUP BY profession, tool, name ORDER BY profession ASC, lookups DESC
+```

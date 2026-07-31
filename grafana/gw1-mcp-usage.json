@@ -974,6 +974,167 @@
           }
         }
       ]
+    },
+    {
+      "id": 22,
+      "type": "bargauge",
+      "title": "Lookups per profession",
+      "description": "Which profession's data is actually consulted, across get_skill and get_hero. 'none' is common and PvE-only skills, which belong to no profession. Level one of a two-level reading; the table beside it is level two.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "aft354s7rt3wgf"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/lookups/",
+          "values": true
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 51
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "aft354s7rt3wgf"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "",
+          "root_selector": "data",
+          "columns": [
+            {
+              "selector": "profession",
+              "text": "profession",
+              "type": "string"
+            },
+            {
+              "selector": "lookups",
+              "text": "lookups",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "global_query_id": "",
+          "computed_columns": [],
+          "filterExpression": "",
+          "summarizeExpression": "",
+          "url_options": {
+            "method": "POST",
+            "body_type": "raw",
+            "body_content_type": "text/plain",
+            "data": "SELECT blob8 AS profession, SUM(_sample_interval) AS lookups FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000) AND blob1 = 'event:tool_call' AND blob8 != '' GROUP BY profession ORDER BY lookups DESC"
+          }
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "type": "table",
+      "title": "Profession → entity",
+      "description": "The two levels on one row. A public Grafana dashboard cannot use template variables, so a click-through drilldown is not available; sorting by profession then count gives the same reading without one.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "aft354s7rt3wgf"
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "countRows": false,
+          "fields": ""
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 8,
+        "y": 51
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "aft354s7rt3wgf"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "",
+          "root_selector": "data",
+          "columns": [
+            {
+              "selector": "profession",
+              "text": "profession",
+              "type": "string"
+            },
+            {
+              "selector": "tool",
+              "text": "tool",
+              "type": "string"
+            },
+            {
+              "selector": "name",
+              "text": "name",
+              "type": "string"
+            },
+            {
+              "selector": "lookups",
+              "text": "lookups",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "global_query_id": "",
+          "computed_columns": [],
+          "filterExpression": "",
+          "summarizeExpression": "",
+          "url_options": {
+            "method": "POST",
+            "body_type": "raw",
+            "body_content_type": "text/plain",
+            "data": "SELECT blob8 AS profession, blob3 AS tool, blob6 AS name, SUM(_sample_interval) AS lookups FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000) AND blob1 = 'event:tool_call' AND blob8 != '' AND blob6 != '' GROUP BY profession, tool, name ORDER BY profession ASC, lookups DESC"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          }
+        },
+        "overrides": []
+      }
     }
   ]
 }

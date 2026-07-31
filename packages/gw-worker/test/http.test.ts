@@ -445,6 +445,22 @@ describe("tool outcome points", () => {
     expect(blobs?.[6]).toBe("forHero forPvp");
   });
 
+  it("records the profession beside the entity, so the two can be read together", async () => {
+    // Public dashboards cannot use template variables, so a real drilldown is out.
+    // Recording the profession on the same row is what makes a two-level
+    // profession/entity reading possible with a flat query.
+    const blobs = await call("get_skill", { name: "Word of Healing" });
+    expect(blobs?.[5]).toBe("Word of Healing");
+    expect(blobs?.[7]).toBe("Monk");
+  });
+
+  it("records 'none' for skills that belong to no profession", async () => {
+    // Common and PvE-only skills have no profession; the dataset says "none"
+    // rather than null, and that distinction is worth keeping visible.
+    const blobs = await call("get_skill", { name: "Asuran Scan" });
+    expect(blobs?.[7]).toBe("none");
+  });
+
   it("leaves the entity empty for tools that resolve no single entity", async () => {
     const blobs = await call("search_skills", { professionName: "Monk", limit: 1 });
     expect(blobs?.[2]).toBe("search_skills");
@@ -555,7 +571,7 @@ describe("usage analytics hook", () => {
     expect(points).toEqual([
       { blobs: ["tool:get_skill", ""], doubles: [1], indexes: ["tool:get_skill"] },
       {
-        blobs: ["event:tool_call", "", "get_skill", "ok", "", "Healing Signet", ""],
+        blobs: ["event:tool_call", "", "get_skill", "ok", "", "Healing Signet", "", "Warrior"],
         doubles: [1],
         indexes: ["event:tool_call"],
       },

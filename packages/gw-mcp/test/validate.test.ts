@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getSkillByName } from "@gw1-mcp/gw-data";
 import { validateBuild } from "../src/validate.js";
 
 describe("attribute point budget", () => {
@@ -358,5 +359,46 @@ describe("profession header rules", () => {
       {},
     );
     expect(r.errors.map((e) => e.code)).toContain("NO_PRIMARY");
+  });
+});
+
+describe("PvE-only skills on a PvP bar", () => {
+  // A PvP character cannot use PvE-only skills at all: they do not exist outside
+  // roleplay areas and a PvP-created character cannot acquire them. This rule was
+  // missing — forPvp only checked the PvE/PvP split VERSIONS of ordinary skills,
+  // which is a different rule — and 54 PvE-only skills carry no profession, so they
+  // passed every other check. Found by walking the game's rules against the
+  // validator rather than reading its code.
+  const asuranScan = getSkillByName("Asuran Scan");
+  const rebirthSignet = getSkillByName("Sunspear Rebirth Signet");
+
+  it("rejects a PvE-only skill when forPvp is set", () => {
+    const report = validateBuild(
+      { primary: 10, secondary: 0, attributes: [], skills: [asuranScan!.id, 0, 0, 0, 0, 0, 0, 0] },
+      { forPvp: true },
+    );
+    expect(report.errors.map((e) => e.code)).toContain("PVE_ONLY_ON_PVP_BUILD");
+  });
+
+  it("allows the same skill on a roleplay bar", () => {
+    const report = validateBuild(
+      { primary: 10, secondary: 0, attributes: [], skills: [asuranScan!.id, 0, 0, 0, 0, 0, 0, 0] },
+      {},
+    );
+    expect(report.errors.map((e) => e.code)).not.toContain("PVE_ONLY_ON_PVP_BUILD");
+  });
+
+  it("reports every offending slot, not only the first", () => {
+    const report = validateBuild(
+      {
+        primary: 10,
+        secondary: 0,
+        attributes: [],
+        skills: [asuranScan!.id, rebirthSignet!.id, 0, 0, 0, 0, 0, 0],
+      },
+      { forPvp: true },
+    );
+    const hits = report.errors.map((e) => e.code).filter((c) => c === "PVE_ONLY_ON_PVP_BUILD");
+    expect(hits).toHaveLength(2);
   });
 });

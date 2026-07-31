@@ -868,6 +868,31 @@ dominated by my own testing (Patient Spirit, Word of Healing, Dunkoro — the de
 bars). Those panels say nothing about users yet and are labelled as curiosity in
 their descriptions.
 
+## Game-rule audit (2026-07-31): one rule was missing
+
+Thirteen real GW1 scenarios were run against `validate_build` — not read against its
+code, which is how the gap survived. Twenty-four rules were already enforced,
+including several I did not expect: `ATTRIBUTE_NOT_TEMPLATABLE` catches points spent
+on a title track, `SAME_PROFESSIONS` catches primary == secondary, and rank 13 is
+rejected by the **schema** before the validator ever sees it, which is better than
+late.
+
+**The gap: `PVE_ONLY_ON_PVP_BUILD`.** A PvP character cannot use PvE-only skills at
+all — they do not exist outside roleplay areas and a PvP-created character cannot
+acquire them. `forPvp` only checked the PvE/PvP split VERSIONS of ordinary skills,
+which is a different rule entirely. And **54 PvE-only skills carry no profession**, so
+they passed every other check: no profession mismatch, no attribute problem, under the
+three-skill cap. `encode_template` would have produced a valid code for an illegal PvP
+bar.
+
+Now an error per offending slot, mirroring `PVE_ONLY_ON_HERO`. Verified failible by
+disabling the branch, which turns two tests red.
+
+Three of my four initial "gaps" were my own bad inputs — a wrong attribute name
+("Sunspear Rank" instead of "Sunspear Title Track"), a skill that does not exist, and
+a Ranger skill on a Dervish bar. Worth recording: when auditing a domain, check the
+fixture before blaming the code.
+
 ## Explicit non-goals for the MVP
 
 - ❌ `complete_build` / `generate_build` from tags or roles — this reintroduces the hard problem; the LLM proposes the 8 skills.

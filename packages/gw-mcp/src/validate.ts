@@ -173,6 +173,19 @@ export function validateBuild(
 
     // PvE-only (roleplay) skills. Detected via the upstream is_rp flag, not
     // an attributeId heuristic that misses no-attribute PvE signets (GW1-AUD-03).
+    // A PvP character cannot use PvE-only skills at all: they are unavailable
+    // outside roleplay areas, and a PvP-created character cannot acquire them.
+    // This mirrors PVE_ONLY_ON_HERO and was missing — forPvp only checked the
+    // PvE/PvP split VERSIONS of ordinary skills, which is a different rule. Found
+    // by walking the game's rules against the validator rather than reading its
+    // code: 54 PvE-only skills have no profession, so they pass every other check.
+    if (options.forPvp && skill.isRoleplay) {
+      errors.push({
+        code: "PVE_ONLY_ON_PVP_BUILD",
+        message: `Slot ${slot + 1}: "${skill.name}" is a PvE-only skill and cannot be used on a PvP character. Remove it, or drop forPvp if this is a roleplay bar.`,
+      });
+    }
+
     if (options.forHero && skill.isRoleplay && skill.name !== SIGNET_OF_CAPTURE) {
       // Heroes cannot equip PvE-only skills at all — this is a hard error, the
       // message claimed impossibility while the code only warned (POC3).

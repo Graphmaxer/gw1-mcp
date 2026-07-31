@@ -186,7 +186,7 @@ describe("documented counts stay true (mechanical lock)", () => {
   // impossible, not merely detectable. Tool and resource counts are fine and
   // stay: those change only deliberately, and already require a new review.
   for (const kit of [
-    "../../../docs/claude-directory-submission.md",
+    "../../../docs/claude-plugin-submission.md",
     "../../../docs/chatgpt-plugin-submission.md",
   ] as const) {
     it(`${kit} quotes no skill count that could go stale`, () => {

@@ -26,13 +26,11 @@ redeploy needed).
   before a code is produced. All tools are read-only; no account or
   authentication needed.
 - Category: Entertainment (or Gaming if available)
-- Logo: upload assets/brand/icon-1024.png. One file for every slot — light mode,
-  dark mode and composer alike. Its rounded tile carries its own contrast
-  (9.17:1) and its corners are transparent, so there is no light/dark variant to
-  pick wrongly. See assets/brand/README.md.
+- Logo: upload `assets/brand/icon-1024.png`. One file for every slot — light
+  mode, dark mode and composer alike; see `assets/brand/README.md` for why.
 - Website / support: https://github.com/Graphmaxer/gw1-mcp
-- Directory icon and composer icon: the same assets/brand/icon-*.png family,
-  sized to whatever the form asks for (1024, 512, 256, 48 available).
+- Directory and composer icons: the same `icon-*.png` family, at whatever size
+  the form asks for (1024, 512, 256, 48 available).
 - Privacy policy: https://gw1-mcp.graphmaxer.workers.dev/privacy
 - Terms of Service: https://gw1-mcp.graphmaxer.workers.dev/terms
   (NOT the repository LICENSE, which was the earlier answer here and is wrong:

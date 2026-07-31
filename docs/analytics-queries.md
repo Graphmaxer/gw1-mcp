@@ -100,119 +100,46 @@ there:
    `2006-01-02 15:04:05`) in the query's column mapping; parser must be
    **Backend** for root selector + column mapping + macros to work.
 
-## Who actually calls this server (Workers Logs, measured 2026-07-29)
+## Who calls this server, and what not to "fix"
 
-The Analytics Engine dataset records a method/tool label and nothing about the
-caller, by design. Caller identity lives in Workers Logs instead, queryable in
-the dashboard under Observability with `$workers.event.request.headers.user-agent`.
-Over 7 days:
+Caller identity is not in the Analytics Engine dataset by design; it lives in Workers
+Logs, queryable in the dashboard on
+`$workers.event.request.headers.user-agent`. Measured over 7 days in July 2026:
+`SentinelOracle` 5 662, `python-httpx` 1 276, `node` 1 178, `aisec-registry` 1 044,
+then `AgenstryBot`, `agent-tools.cloud-crawler`, `ClaudeBot`, `MCPScoringEngine`,
+`402explorer` and `io.verifymcp/probe` in the low hundreds.
 
-| Caller                          | Requests | What it is                                                                                                                                              |
-| ------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SentinelOracle/0.1`            | 5 662    | uptime monitor; `initialize` → `notifications/initialized` → `tools/list` every ~5 min, and it says so in its UA ("liveness-only, never invokes tools") |
-| `python-httpx/0.28.1`           | 1 276    | unattributed generic client                                                                                                                             |
-| `node`                          | 1 178    | unattributed generic client                                                                                                                             |
-| `aisec-registry/0.2`            | 1 044    | security scanner (sec.sqrx.io)                                                                                                                          |
-| `AgenstryBot/0.3.0`             | 330      | self-identified crawler                                                                                                                                 |
-| `agent-tools.cloud-crawler/0.1` | 280      | directory crawler                                                                                                                                       |
-| `ClaudeBot/1.0`                 | 147      | Anthropic's **web** crawler, not MCP traffic                                                                                                            |
-| `MCPScoringEngine/1.0`          | 135      | scores MCP servers                                                                                                                                      |
-| `402explorer/0.1`               | 121      | probes for payment-required support                                                                                                                     |
-| `io.verifymcp/probe`            | 72       | source of the `tool:__verifymcp_auth_probe_*` labels in Grafana                                                                                         |
+**`SentinelOracle` alone is about 65% of all traffic** and its own user-agent says
+"liveness-only, never invokes tools" — it runs `initialize` →
+`notifications/initialized` → `tools/list` every five minutes. That, not directory
+interest, is why "Protocol overhead share" reads ~97.5%. The panel is accurate and
+easy to misread.
 
-**This is why the "Protocol overhead share" panel reads ~97.5%.** One uptime
-monitor is roughly 65% of all traffic and never calls a tool. The panel is
-accurate but easy to misread as "directories are evaluating us": it is mostly a
-health check. Reading real usage requires excluding monitors, which needs a
-client dimension in the dataset that does not exist yet.
+Three classes of failure in the logs are correct behaviour and must not be
+"repaired":
 
-### The 404s in the logs are correct — do not "fix" them
+- **`/mcp/.well-known/oauth-*` → 404.** This server has no authentication, so it is
+  not a protected resource and has no authorization server to advertise. 404 is what
+  tells a client no auth is required, and the same crawler's `POST /mcp` calls all
+  succeed. Serving those documents would advertise an authorization server that does
+  not exist and break any client following the pointer.
+- **`GET /mcp` → 405.** The server is stateless: nothing to stream, nothing to
+  resume. ~36/day against ~1 600, and clients that try GET fall back to POST
+  successfully.
+- **~20 agent-manifest paths → 404** (`ai-plugin.json`, `a2a.json`,
+  `agent-card.json`, `.well-known/mcp.json`, `.well-known/did.json` and so on). One
+  scanner working through a path list — the uniform hit count gives it away — not
+  many directories each wanting a file. Do not advertise an interface that does not
+  exist.
 
-`aisec-registry` probes three paths, 261 times each, all 404:
+`robots.txt` IS served (asked for ~10x/day), disallowing `/mcp` since a crawler
+fetching a POST-only endpoint learns nothing. No `sitemap.xml`: four static routes do
+not warrant one.
 
-```
-/mcp/.well-known/oauth-authorization-server
-/mcp/.well-known/oauth-protected-resource
-/mcp/.well-known/mcp
-```
-
-The first two are MCP authorization discovery (correctly probed relative to the
-`/mcp` endpoint path, not the domain root). **This server has no authentication,
-so it is not a protected resource and has no authorization server to advertise.**
-404 is the answer that tells a client "no auth required", and the same crawler's
-261 `POST /mcp` calls all return 200 — its functional request works.
-
-Serving those documents would be worse than a 404: it would advertise an
-authorization server that does not exist, and a client following that pointer
-would try to authenticate and fail. If auth is ever added, these are the
-endpoints to implement — not before.
-
-### The 404 that was a bug, and is now a decision
-
-`undici` (Glama's crawler) requested `/.well-known/glama.json` 43 times in 7 days
-and got 404 every time, because `GLAMA_MAINTAINER_EMAIL` had never been set — a
-dash-side variable failing silently, so ownership verification had never worked.
-
-Chasing it surfaced the actual question rather than a missing value. Glama
-verifies ownership only by an email in that file matching the account's email:
-no DNS record, no opaque token like OpenAI's challenge. Claiming therefore means
-publishing an address at a predictable public URL, which is a more direct
-scraping target than git metadata. The maintainer declined and deleted the Glama
-account, so **the route was removed** and a test now asserts its absence.
-
-Nothing was lost: the Glama listing stayed live and scored A throughout, because
-Glama indexes and health-checks from the official MCP Registry. Claiming would
-only have added listing-copy control and usage reports already covered elsewhere.
-
-The lesson worth keeping: three suspicions (405s breaking health checks, missing
-manifests, directories hammering the server) all dissolved under measurement, and
-the two real defects — this one and the trailing slash below — were things nobody
-suspected, visible only because crawlers kept retrying.
-
-### The other real bug: `/mcp/` with a trailing slash 404'd
-
-21 requests in 7 days hit `/mcp` and got a 404, which should have been
-impossible: POST works, GET and DELETE answer 405, and `app.all` catches the
-rest. Reproduced locally — Hono routes **`/mcp/` as a path distinct from
-`/mcp`**, so any client that builds its URL by joining a trailing slash fell
-through every route and got a bare 404. It failed outright; there was no
-fallback. (`/MCP` also 404s, correctly: paths are case-sensitive.)
-
-Fixed by registering every middleware and handler against both spellings through
-a single list, so the two cannot drift apart, with tests asserting identical
-behaviour on both for the tool call, the hardening headers, the GET 405, the
-preflight and the origin rejection.
-
-Note the contrast with the section below: here the capability existed and only
-the path spelling differed, so accepting both is interoperability. Serving a
-discovery document for an interface that does not exist would be a false claim.
-
-### Manifests deliberately NOT served
-
-One scanner brute-forces roughly twenty agent-discovery conventions, ~11 hits
-each: `/.well-known/ai-plugin.json`, `/a2a.json`, `/agent-card.json`,
-`/agent.json`, `/agent`, `/.well-known/agent.json`, `/.well-known/agents.json`,
-`/.well-known/ai-agent.json`, `/.well-known/mcp.json`, `/.well-known/did.json`,
-`/.well-known/x402`, `/openrpc.json`, `/api/agent.json`, `/api/agent-card.json`,
-`/agents/agent-card.json`, `/a2a/.well-known/agent-card.json`,
-`/agent/authenticatedExtendedCard` and more. The uniform count reveals a single
-crawler working through a path list, not many directories each wanting a file. None are served, on purpose: the ChatGPT plugin manifest
-is superseded by Apps/MCP, the A2A agent cards would describe an agent this is
-not, and `/.well-known/mcp.json` has no schema in the MCP specification. Same
-rule as the OAuth endpoints — do not advertise an interface you do not implement.
-
-`robots.txt` IS now served (ClaudeBot asked ~10x/day), disallowing `/mcp` since a
-crawler fetching a POST-only JSON-RPC endpoint gets a 405 and learns nothing. No
-`sitemap.xml`: four static routes do not warrant one, and advertising a sitemap
-that does not exist would be worse than the 404.
-
-### The 405s are not a problem either
-
-250 over 7 days (~36/day against ~1 600/day), from `GET /mcp`, which returns 405
-because the server is stateless (see the B2 note in the app). `node` receives
-405s on GET **and** succeeds with 760 POSTs — clients fall back correctly. This
-was investigated as a possible directory-health-check failure and the data does
-not support it.
+Two real defects came out of the same exercise and are fixed: `/mcp/` with a trailing
+slash returned a bare 404 because Hono routes it as a distinct path, and
+`/.well-known/glama.json` 404'd because a dashboard variable was never set — that
+route has since been removed deliberately (see the debt register).
 
 ## Client attribution (`blob2`, added 2026-07-29)
 

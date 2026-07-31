@@ -1,0 +1,157 @@
+# Claude plugin submission
+
+Submission is via the public form (always open):
+https://clau.de/mcp-directory-submission — no Team/Enterprise org needed.
+Escalations/status: usersubmissions@anthropic.com. Answers below map to
+the form's "What you'll need" list.
+
+## Server basics
+
+- Name: GW1 Build Assistant
+- URL: https://gw1-mcp.graphmaxer.workers.dev/mcp
+- Tagline: Design, validate and encode Guild Wars 1 builds with live
+  Reforged data.
+- Description: A deterministic build compiler for the original Guild
+  Wars. Look up any skill in the game with current Guild Wars
+  Reforged stats, search by profession/attribute/campaign, browse the
+  hero roster, decode any in-game template code or paw-ned2 team blob,
+  and compile builds into official template codes — validated against
+  the real game rules before a code is produced. Unofficial fan-made
+  tool; Guild Wars is a registered trademark of NCSoft Corporation; not
+  affiliated with or endorsed by NCSoft or ArenaNet.
+- Use cases: decode/explain a template code; design a hero or player
+  skill bar and get a paste-ready code; compare skills under the current
+  balance patch; plan hero team composition and unlocks.
+
+## Connection details
+
+- Auth type: none (open, read-only data service)
+- Transport: streamable-http
+- Read/write: strictly read-only — every tool is a pure computation over
+  game data bundled at deploy time; no state, no side effects, no
+  external calls at request time
+- Connection requirements: none
+
+## Data & compliance
+
+- Data handling: no personal data collected or processed; stateless; no
+  request content persisted by the application (Cloudflare operational
+  logs per their policy)
+- Third-party connections: none at request time (data is imported at
+  build time from build-wars/gw-skilldata; its code is MIT but the skill
+  descriptions are GFDL/CC-BY-NC-SA — see THIRD_PARTY_NOTICES.md)
+- Health data: none
+- Category: Entertainment / Gaming
+- Allowed link URIs: N/A (the connector opens no links)
+
+## Tools, resources & prompts (form asks for all three)
+
+All 8 tools carry title + readOnlyHint: true, destructiveHint: false
+(accurate: pure lookups/computations). get_skill, search_skills,
+get_hero, list_heroes, decode_template, decode_pawned_team,
+validate_build, encode_template. 3 resources (meta, professions guide,
+build workflow guide). No prompts — the `prompts` capability is not
+declared, so `prompts/list` correctly returns -32601. Server-level
+instructions declare the code-integrity rules.
+
+## Documentation & support
+
+- Docs: https://github.com/Graphmaxer/gw1-mcp (README covers setup,
+  usage, architecture; public well before publish date)
+- Privacy policy: https://gw1-mcp.graphmaxer.workers.dev/privacy
+  (also summarized in the README's Privacy Policy section)
+- Support: GitHub issues on the repository
+
+## Test account
+
+None needed — no authentication. Reviewer test script:
+
+1. Connect to the URL above (no credentials).
+2. Ask: "Decode this GW1 template code: OgCjkurIrSuXaXPXBYihygvlYcA"
+   → expect a Dervish bar (Scythe 11 / Earth Prayers 8 / Mysticism 10).
+3. Ask: "Design a Motivation Paragon hero bar for General Morgahn and
+   give me the template code" → expect search/validate/encode calls and
+   a code verified by decode_template.
+4. Ask: "Look up the skill 'Mystic Regenration'" (misspelled) → expect
+   the tool's closest-match suggestions to be used to recover.
+
+## Launch readiness
+
+- GA: already live (deployed on Cloudflare Workers, CI/CD from the
+  public repository)
+- Surfaces tested: Claude Code (streamable-http), ChatGPT developer
+  mode, Cloudflare AI Playground (multiple models)
+
+## Branding
+
+- Logo (upload): assets/brand/icon-1024.png (1024x1024 PNG — the scythe +
+  8-slot skill-bar badge on a rounded tile with transparent corners, so one file
+  works on light and dark surfaces alike). 512, 256 and 48 sizes sit beside it.
+  See assets/brand/README.md. The worker also serves a 32px PNG favicon derived from this same logo at
+  /favicon.ico and /logo.png, but upload the 1024px PNG on the form.
+- Favicon: /favicon.ico on the MCP hostname (32px PNG derived from the logo)
+- Screenshots: N/A — not an MCP App (no interactive UI); the directory
+  requires carousel screenshots only for MCP Apps
+
+## Technical requirements checklist
+
+- HTTPS: yes (Cloudflare Workers)
+- OAuth: N/A (no authenticated service)
+- CORS: open (`Access-Control-Allow-Origin: *`) with preflight handled on
+  /mcp, so browser-based MCP clients and web playgrounds work. This is a
+  deliberate decision, not an oversight: the service is public, read-only
+  and credential-free — there is no cookie, session or Authorization
+  header, so a permissive CORS policy grants a browser nothing that a
+  plain `curl` does not already have.
+- Origin-header validation: a well-formedness check, NOT an allowlist. A
+  malformed or non-https Origin is rejected with 403 (loopback http is
+  allowed for local development); any well-formed https Origin is
+  accepted. It is deliberately not an origin restriction — with no
+  session or credential to ride on, there is no CSRF surface to protect,
+  and DNS-rebinding advice targets servers bound to localhost.
+- Method handling on /mcp: POST only. GET and DELETE return 405 (the
+  server is stateless — no SSE stream to resume, no session to delete),
+  as the Streamable HTTP spec permits.
+- Response headers: X-Content-Type-Options, Referrer-Policy,
+  Cache-Control: no-store on /mcp
+- Tool annotations: title + readOnlyHint on every tool, values served
+  by the server itself
+- Skills: optionally bundle the gw1-build-assistant skill (also part of
+  the ChatGPT submission) via the plugins flow
+
+## Status: submitted 2026-07-31, pending review
+
+Route used: the **Console form** at https://platform.claude.com/plugins/submit.
+(The claude.ai form needs a Team or Enterprise organisation; individual authors use
+the Console. Only the Console route is relevant here.)
+
+Form values: link to plugin = the repository URL, **path within repository = blank**
+(the plugin root is the repository root), homepage = same URL, plugin name =
+`gw1-mcp`, license = MIT, privacy policy = the `/privacy` URL. The contact email is
+private — Anthropic uses it to reach the maintainer, so unlike a published
+`.well-known` file it is a normal place for a real address.
+
+`claude plugin validate .` passed with one warning: a `CLAUDE.md` at the plugin root
+is not loaded as plugin context. Expected and left alone — the context plugin users
+should receive already ships as `skills/gw1-build-assistant/SKILL.md`, which is what
+the warning recommends. **Do not add `--strict` to CI**: it would turn that warning
+into an error.
+
+## Known issue in the live description
+
+It says "decode **any in-game template code**". The codec accepts skill templates
+only and rejects the rest outright, and the non-goals say so — it should read "any
+in-game **skill** template code". One word, worth fixing at the next version, since
+the description is submitted per version. Recorded rather than corrected here,
+because the inaccurate text lives on Anthropic's side.
+
+## Things that will bite on the next release
+
+- `.mcp.json` **requires `"type": "http"`**. Without it the config fails schema
+  validation silently: no error, the tools simply never appear.
+- `plugin.json`'s `version` is a commitment. Users receive an update only when it is
+  bumped — pushing commits does nothing, and `/plugin update` reports "already at
+  the latest version". release-please keeps it in step via `extra-files`.
+- After approval the plugin is pinned to a commit SHA in
+  `anthropics/claude-plugins-community`, CI advances the pin as commits land, and
+  the public catalog syncs nightly, so installability lags approval.

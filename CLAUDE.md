@@ -372,19 +372,17 @@ Levenshtein length guard, 512 KiB body limit); data licensing (AUD-02 —
 THIRD_PARTY_NOTICES.md: descriptions are GFDL/CC-BY-NC-SA, not MIT — LEGAL
 SIGN-OFF STILL OWED before any commercial redistribution, and note that
 submitting to a public directory is arguably the distribution event that
-trigger names. TRACED from upstream code 2026-07-29 and the notice
-corrected: the CC BY-NC-SA attribution pointed at guildwars.fandom.com, which
-is NOT in the pipeline. build-wars/gw-skilldata has exactly two fetchers —
-English from wiki.guildwars.com (official, GFDL 1.3, which PERMITS commercial
-use) and German from guildwiki.de (BY-NC-SA). KEYS_DESC (name, description,
-concise) comes from the language's own wiki, so all English text we ship is
-GFDL; guildwiki.de contributes only the seven numeric stat fields via
-USE_FIELDS. So the NonCommercial clause this sign-off was feared for does not
-appear to touch the text at all. The sharper question, and the one for counsel:
-both wikis state that in-game names and texts are ArenaNet/NCsoft copyright
-used under the Community Fansite Program and NOT covered by their own content
-license — and a skill description is a verbatim in-game string, not editor
-prose. So neither GFDL nor CC may be the operative instrument. No CC text is
+trigger names. TRACED from upstream code 2026-07-29. The CC BY-NC-SA
+attribution pointed at guildwars.fandom.com, which is NOT in the pipeline:
+build-wars/gw-skilldata has two fetchers, English from wiki.guildwars.com (official,
+GFDL 1.3, which PERMITS commercial use) and German from guildwiki.de (BY-NC-SA), and
+all English text we ship comes from the former. So the NonCommercial clause this
+sign-off was feared for does not appear to touch the text at all. The sharper
+question, and the one for counsel: both wikis state that in-game names and texts are
+ArenaNet/NCsoft copyright used under the Community Fansite Program and NOT covered by
+their own licence — and a skill description is a verbatim in-game string, not editor
+prose, evidenced by 34 `<sic/>` markers and 403 `<gray>` tags mirroring the game's own
+presentation. Full reasoning in THIRD_PARTY_NOTICES.md. No CC text is
 vendored under LICENSES/ because it is not established that a CC license
 applies to anything we ship as prose); privacy/security
 text accuracy (AUD-06); provenance hashes all 5 artifacts (AUD-05); export
@@ -407,24 +405,18 @@ is_rp.
    re-apply those two settings first. GitHub CI and Workers Builds both run
    the test suite per push — deliberate redundancy (PR signal vs deploy
    gate).
-   **A dash-side var was found missing in production, 2026-07-29, and the
-   feature was then REMOVED rather than fixed.** Workers Logs showed Glama's
-   crawler (`undici`) requesting `/.well-known/glama.json` 43 times in 7 days and
-   getting 404: `GLAMA_MAINTAINER_EMAIL` had never been set, so connector
-   ownership verification had never worked. Investigating it turned up the real
-   issue — Glama's only verification is an email in that file matching the
-   account's email (no DNS record, no opaque token like OpenAI's challenge), so
-   claiming the listing means publishing an address at a predictable public URL.
-   The maintainer signed in via GitHub, found the account still held his personal
-   address, declined, and DELETED the Glama account. The route, its env field and
-   its test are gone; a test now asserts the 404 so nobody "restores" it after
-   reading that 404 as a bug. Nothing was lost: Glama indexes and health-checks
-   from the official MCP Registry regardless — the listing was live and scoring A
-   the whole time the route was 404ing.
-   Dash-side settings this project still depends on, so they can be checked:
-   Workers Builds root directory, `OPENAI_APPS_CHALLENGE` (set only during a
-   submission), the `MCP_ANALYTICS` and `RATE_LIMITER` bindings, and the Infinity
-   datasource credentials on the Grafana side.
+   **Dash-side config has cost something real.** `GLAMA_MAINTAINER_EMAIL` was
+   never set, so `/.well-known/glama.json` 404'd for weeks and Glama's crawler kept
+   retrying. Investigating it surfaced the actual question: Glama verifies ownership
+   only by an email in that file matching the account's, so claiming the listing
+   means publishing an address at a predictable public URL. Declined, the Glama
+   account deleted, and the route REMOVED — a test asserts the 404 so nobody
+   restores it after reading that 404 as a bug. Nothing was lost: the listing stayed
+   live and scored A throughout, because Glama indexes from the MCP Registry.
+   Dash-side settings still depended on, so they can be checked:
+   Workers Builds root directory, `OPENAI_APPS_CHALLENGE` (submission-time only),
+   the `MCP_ANALYTICS` and `RATE_LIMITER` bindings, and the Grafana Infinity
+   datasource credentials.
 2. The C++ plugin compiled clean on the first CI run (/W4 /WX, zero
    warnings — 2026-07-11) but has never been loaded in-game. Trigger:
    the maintainer runs /exportaccount with the artifact DLL.
@@ -659,57 +651,23 @@ re-submitting to every directory rather than editing a URL.
 ## Later milestones (context, not current work)
 
 1. ~~MCP `resources`~~ — gw1://guide/build-workflow, gw1://meta and gw1://heroes
-   are live. **Mission threat summaries: DECLINED 2026-07-29**, same treatment as
-   item 2 — a written decision rather than a leftover that reads like planned
-   work.
-   - There is no missions dataset here, so it would mean curating one by hand,
-     against a game Reforged is still changing.
-   - It is the non-goal, not an exception to it: "storing or reproducing GWPvX
-     build pages, guides, or strategy content — game data only". A threat
-     summary is an interpretation of a mission, which is strategy content.
-   - And it is the one place where the licensing actually would bite. The
-     provenance work of 2026-07-29 concluded that skill descriptions are
-     transcriptions of ArenaNet's own in-game strings, which is why the wiki
-     copyleft has little purchase on them. Mission threat summaries have **no
-     in-game equivalent to transcribe** — they exist only as wiki editors' own
-     prose, which is precisely the category the GFDL and CC BY-NC-SA
-     unambiguously cover. Importing them would move this project from "arguable"
-     to "clearly carrying copyleft obligations", and would do it voluntarily.
-
-   The capability already exists without the data: a model can ask the player
-   which mission they are attempting and reason about the bar from
-   `search_skills` plus its own knowledge of the game. Reopen only if an
-   openly-licensed mission dataset appears — not by transcribing wiki articles.
-
-2. `heroes_from_progression` tool — **DECLINED 2026-07-29**, kept here as a
-   documented decision rather than pending work, so the analysis is not redone.
-   The obstacle is not implementation difficulty, it is that the data the tool
-   would need does not exist anywhere in this project:
-   - The 31 unlock notes in `heroes.json` are prose ("Nightfall — story branch
-     in Kourna (mutually exclusive with Margrid)"). They are not machine
-     decidable: no quest or mission identifiers, no ordering, and at least one
-     genuinely branching condition.
-   - Making them decidable means adding a quests/missions dataset. That is a new
-     data domain, and it walks into the non-goal about not becoming a guide or
-     strategy database.
-   - There is no trustworthy input either. The AccountExport plugin exports
-     `unlockedAccountSkills` and nothing about quest, mission or campaign
-     progress, so the input would be the player describing their progress in
-     prose — which is exactly what an LLM already handles well from the notes.
-   - Reforged is still adding content, so any curated unlock table would need
-     maintaining against a moving target.
-   - And every added tool widens `tools/list`, whose ~4 550 tokens are paid by
-     every conversation (debt #10).
-
-   The prose notes are already the right interface for the consumer this server
-   actually has: a model reading "mutually exclusive with Margrid", plus a user
-   saying which branch they took, reaches the correct answer without any of the
-   above.
-
-   Reopen if either of these changes: the export plugin gains real progression
-   state (quest or mission completion), or an upstream dataset makes unlock
-   conditions available structurally rather than as curated prose.
-
+   are live. **Mission threat summaries: DECLINED 2026-07-29.** It is the non-goal,
+   not an exception to it — a threat summary is an interpretation of a mission, so
+   strategy content. And it is the one place the wiki copyleft would actually bite:
+   skill descriptions are transcribed in-game strings, but threat summaries have no
+   in-game equivalent and exist only as editors' own prose, which those licences
+   unambiguously cover. Importing them would move the project from "arguable" to
+   "clearly carrying copyleft obligations", voluntarily. Reopen only for an
+   openly-licensed mission dataset — not by transcribing wiki articles.
+2. `heroes_from_progression` tool — **DECLINED 2026-07-29.** Not a difficulty
+   problem: the data does not exist. The 31 unlock notes are prose with no quest or
+   mission identifiers and at least one branching condition (Master of Whispers is
+   exclusive with Margrid); making them decidable means a quests/missions dataset,
+   which is the guide-database non-goal; and the export plugin carries
+   `unlockedAccountSkills` and no progression state, so the input would be the
+   player's prose anyway — which is what an LLM already handles well from the notes.
+   Reopen only if the plugin gains real quest/mission state, or an upstream dataset
+   exposes unlock conditions structurally.
 3. Cloudflare Workers deployment + custom connector on claude.ai; then Anthropic connectors directory submission.
 4. ~~GWToolbox export plugin~~ — written in gwtoolbox-plugin/AccountExport; needs first Windows build, then consider upstreaming as a PR to GWToolbox's Completion window.
 

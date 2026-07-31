@@ -111,6 +111,50 @@ same seven prompts on mobile kept tight — the mobile passes exist to prove the
 surface works, not to re-teach the workflow. If in doubt, do all seven everywhere
 and keep each mobile shot to ten or fifteen seconds.
 
+### No iOS device: what to do about it
+
+There is no iPhone available, so iOS footage cannot be produced. That is a fact to
+declare, not to work around.
+
+**Resolve the order of questions first.** Developer mode is documented as a web
+feature. If the developer-mode plugin does not appear in the ChatGPT mobile apps at
+all, then _no_ mobile footage is possible before publication — Android included —
+and the honest deliverable is a web recording plus a note. Check that before
+worrying specifically about iOS.
+
+**If Android does work and only iOS is missing**, in order of preference:
+
+1. **Borrow a device for twenty minutes.** The mobile pass is seven short prompts
+   pasted from a note. It does not need a dedicated phone, just one for the length
+   of a coffee.
+2. **State the gap plainly.** Add a title card in the video reading "iOS: not
+   covered, no device available" and say the same in the submission notes. Reviewers
+   handle incomplete coverage constantly; what they cannot handle is a video that
+   silently omits a platform and looks like carelessness.
+3. Consider whether ChatGPT **web in mobile Safari** satisfies what the requirement
+   is actually testing, and if you show it, label it as exactly that rather than
+   letting it pass for the iOS app.
+
+**What not to do**, stated because it is tempting: do not use a simulator mock-up,
+do not reuse Android footage cropped to an iPhone aspect ratio, and do not leave the
+platform question unmentioned and hope it is not noticed. The submission requires
+accurate information, and a fabricated platform claim is the kind of inaccuracy that
+is both easy to spot and hard to explain afterwards.
+
+### Note to paste into the submission
+
+> Demo recording covers ChatGPT web in developer mode, which is where a
+> pre-publication MCP app is reachable. Android is included [delete if not
+> applicable]. iOS is not covered: no iOS device is available to the maintainer, and
+> the plugin is a text-only MCP server with no platform-specific surface — the same
+> seven tool flows shown on web are the entirety of its functionality. Happy to
+> supply iOS footage if a reviewer considers it blocking.
+
+The second sentence is the one that matters: the app has no widgets and no UI
+surface, so there is no platform-specific behaviour that iOS footage would reveal
+and web footage would hide. That is a real argument, not an excuse — and it is only
+available because the app genuinely is text-only.
+
 ### 4b. Host it
 
 The form wants a URL a reviewer can open. An unlisted YouTube video or a

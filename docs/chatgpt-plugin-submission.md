@@ -33,8 +33,19 @@ redeploy needed).
   charcoal tile: the mark is gold and measures 1.77:1 against white versus
   9.17:1 against dark. See assets/brand/README.md.
 - Website / support: https://github.com/Graphmaxer/gw1-mcp
+- Directory icon: assets/brand/submission/directory-icon-light-512.png and
+  directory-icon-dark-512.png. The LIGHT-mode file is the dark-tile variant on
+  purpose: the gold mark measures 1.77:1 against white and 9.17:1 against dark,
+  so the tile is what makes it read on a light directory page. The dark-mode file
+  is the transparent mark.
+- ChatGPT composer icon: assets/brand/submission/composer-icon-48.png (96px
+  variant beside it). Tile, not transparent: at 48px only ~10% of pixels carry
+  the mark and a transparent version is near-invisible.
 - Privacy policy: https://gw1-mcp.graphmaxer.workers.dev/privacy
-- Terms: repository MIT license page
+- Terms of Service: https://gw1-mcp.graphmaxer.workers.dev/terms
+  (NOT the repository LICENSE, which was the earlier answer here and is wrong:
+  MIT governs the code, not the use of a hosted service, and it says nothing
+  about the third-party game data this service redistributes.)
   (https://github.com/Graphmaxer/gw1-mcp/blob/main/LICENSE)
 
 ## MCP tab

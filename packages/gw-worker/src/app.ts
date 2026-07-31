@@ -138,6 +138,54 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
   app.get("/favicon.png", (c) => serveFavicon(c));
   app.get("/logo.png", (c) => serveFavicon(c));
 
+  // Terms of use. The ChatGPT plugin form requires a Terms of Service URL, and
+  // the submission kit previously pointed at the repository's MIT LICENSE. That
+  // does not hold: MIT governs the CODE, not the use of a hosted service, and it
+  // says nothing about the third-party game data this service redistributes. This
+  // page is deliberately short and makes no promises the service cannot keep.
+  app.get("/terms", (c) =>
+    c.text(
+      [
+        "gw1-mcp terms of use",
+        "",
+        "What this is. A free, public, read-only tool that looks up Guild Wars 1",
+        "skill and hero data and compiles or decodes in-game skill template codes.",
+        "There are no accounts, no payments, and nothing is sold. Use of the",
+        "service means accepting these terms.",
+        "",
+        "No warranty, no service level. The service is provided as is, without",
+        "warranty of any kind. It may be slow, wrong, rate-limited, changed, or",
+        "shut down at any time and without notice. It is a personal project run at",
+        "no cost, not a product with an availability commitment. Do not build",
+        "anything on it that you cannot afford to see stop working.",
+        "",
+        "Verify what you use in game. Template codes are produced by this",
+        "service's own encoder and validated against the game's build rules, but",
+        "game data is imported from third-party sources and can be out of date or",
+        "wrong. Treat any output as a suggestion to check, not as an authority.",
+        "",
+        "Fair use. Automated access is expected — this is an MCP server. Requests",
+        "are rate-limited per address. Do not attempt to circumvent that limit, to",
+        "disrupt the service, or to use it to attack anything else.",
+        "",
+        "Code and data are governed separately. The source code is MIT licensed",
+        `(${REPO_URL}). The game data is NOT: skill names,`,
+        "descriptions and related text originate with the game and its community",
+        "wikis, and the rights in that material belong to their respective",
+        "holders. THIRD_PARTY_NOTICES.md in the repository records what is known",
+        "about that provenance, including what remains unresolved. Nothing here",
+        "grants you rights in that material.",
+        "",
+        DISCLAIMER,
+        "",
+        `Contact: ${SECURITY_CONTACT}`,
+        `Source: ${REPO_URL}`,
+      ].join("\n"),
+      200,
+      { "Cache-Control": "public, max-age=3600" },
+    ),
+  );
+
   app.get("/privacy", (c) =>
     c.text(
       [

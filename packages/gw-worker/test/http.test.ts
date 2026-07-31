@@ -257,6 +257,36 @@ describe("robots.txt", () => {
   });
 });
 
+describe("terms of use", () => {
+  it("is served, since the plugin form requires a Terms of Service URL", async () => {
+    const res = await createApp().request("/terms");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+  });
+
+  it("separates the code licence from the game data rights", async () => {
+    // The submission kit used to offer the repository's MIT LICENSE as terms of
+    // service. MIT governs the CODE; it says nothing about using a hosted service
+    // and nothing about the third-party game data this service redistributes.
+    const body = await (await createApp().request("/terms")).text();
+    expect(body).toMatch(/MIT/);
+    expect(body).toMatch(/game data is NOT/);
+    expect(body).toMatch(/THIRD_PARTY_NOTICES/);
+  });
+
+  it("promises nothing the service cannot keep", async () => {
+    const body = await (await createApp().request("/terms")).text();
+    expect(body).toMatch(/without\s+warranty of any kind/);
+    expect(body).toMatch(/shut down at any time/);
+    expect(body).toMatch(/rate-limited/);
+  });
+
+  it("carries the trademark disclaimer", async () => {
+    const body = await (await createApp().request("/terms")).text();
+    expect(body).toMatch(/NCSoft/);
+  });
+});
+
 describe("privacy policy covers what the directory requires", () => {
   // The connectors directory lists five mandatory topics and states that a
   // missing or incomplete privacy policy is an immediate rejection. Retention

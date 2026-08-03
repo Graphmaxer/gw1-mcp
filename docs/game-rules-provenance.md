@@ -98,3 +98,36 @@ Cite a primary source at the rule in `validate.ts`, prefer wiki.guildwars.com ov
 Fandom where both exist, and add a test that fails when the rule is disabled. If a
 source contradicts the code, the source wins — that is how the Signet of Capture
 defect was found.
+
+## Cross-checked by a second model (2026-07-31)
+
+The prompt in `game-rules-verification-prompt.md` was run through ChatGPT. It agreed on
+ten rules with HIGH confidence and found one better source than ours — the Hero page
+states the PvE-only restriction directly, which we had been sourcing from the Signet of
+Capture page. That quote was verified by fetching the page.
+
+**What it could not find**, returning NOT FOUND rather than inventing: `SAME_PROFESSIONS`,
+`DUPLICATE_SKILL`, `ATTRIBUTE_NOT_TEMPLATABLE`. That is consistent with there being no
+direct sentence for any of the three, which is exactly why `SAME_PROFESSIONS` rests on
+the combination arithmetic (30 = 6x5, 56 = 8x7, 90 = 10x9) instead — an argument it did
+not find. A second reader failing to find a sentence strengthens the case for keeping
+the arithmetic proof, not for weakening the rule.
+
+**On the two split-version rules it said WRONG, at LOW confidence, citing the same 2009
+comment we had already found.** That is not corroboration: two readers of one page are
+one piece of evidence. The in-game test below remains the decisive step and the rules
+stay unchanged.
+
+**One of its citations did not survive checking.** For `PROFESSION_MISMATCH` it quoted
+"The Skills section allows you to customize the skills allocated to you and your heroes'
+primary and secondary attributes" from the Skills and Attributes Panel page. The actual
+sentence is about the **Attributes** section and attribute points, not skills — the
+quote had been reshaped to fit the rule. The rule is still correct on the GWW Skill page
+("only characters of the respective profession can use it"), but that citation is
+discarded. Calibration worth keeping: of the citations spot-checked, one in a handful was
+altered, which is why the prompt tells the reader to open every link.
+
+**One of its warnings was checked and does not apply.** It flagged that requiring eight
+non-empty skills would be too strict, since template id 0 is "No Skill". Tested: a bar
+with one skill and seven empty slots validates, eight empty slots validate, and a
+seven-element array is rejected by the schema. No change needed.

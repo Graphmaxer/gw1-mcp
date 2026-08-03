@@ -5,8 +5,9 @@ sources, and two of them turned out to be wrong once checked. A build compiler t
 enforces a rule the game does not have is worse than one that misses a rule: it
 rejects legal builds, and the user has no way to tell it is the tool that is wrong.
 
-**Status: 14 verified (three of them in game, which outranks the wiki), 1 partial, 0
-unverified, 9 that are not game rules.** Sources are cited inline at each rule in
+**Status: 15 verified, 0 partial, 0 unverified, 9 that are not game rules.** Seven were
+settled by testing in game, which outranks the wiki wherever the question is about what
+the client does rather than what a character may have. Sources are cited inline at each rule in
 `packages/gw-mcp/src/validate.ts`. Prefer wiki.guildwars.com over Fandom where both
 cover a point.
 
@@ -149,3 +150,35 @@ now says what will happen rather than only stating the rule.
 
 Raised by accident: the control code used to test wide ids happened to contain two
 elites (Energy Surge and Psychic Distraction).
+
+## In-game verdicts, 2026-08-01
+
+A PvP-only Mesmer loaded hand-built codes. Two distinct failure modes appeared, and the
+difference between them is the important part.
+
+**Refused outright** — Load button greyed, header shown as "...", eight empty slots. The
+template is rejected whole, with no message, but the refusal is at least visible:
+
+| Code tests                                                  | Rule confirmed                                                                                                                                                                                                             |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| a PvP-version skill id (any single one)                     | `PVP_VERSION_IN_TEMPLATE` — error                                                                                                                                                                                          |
+| a title track in the attributes (Sunspear, id 102)          | `ATTRIBUTE_NOT_TEMPLATABLE` — was the last partial rule, now verified                                                                                                                                                      |
+| an attribute rank of 15                                     | `RANK_OUT_OF_RANGE` — the 0-12 bound holds at the loader, not only in the panel                                                                                                                                            |
+| an attribute of a third profession (Fire Magic on a Mesmer) | `ATTRIBUTE_PROFESSION_MISMATCH`                                                                                                                                                                                            |
+| primary equal to secondary                                  | `SAME_PROFESSIONS` — and elegantly: the dialog prints "Envoûteur/**Envoûteur**" with the second in RED, so the client names the offending field. Better than any wiki sentence, and it confirms the combination arithmetic |
+
+**Accepted, then silently altered** — dialog shows all eight skills with Load enabled, and
+the loaded bar differs from the code. This is the dangerous mode: a refusal is visible, a
+substitution is not.
+
+| Code tests                 | Rule confirmed                                                                                                            |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| two elite skills           | `MULTIPLE_ELITES` — the later elite is dropped, leaving an empty slot                                                     |
+| the same skill three times | `DUPLICATE_SKILL` — the extra copies are dropped, leaving empty slots. No source states this rule; observation settled it |
+
+Both messages now state the consequence, not only the rule, since "at most one elite" does
+not tell a caller it will silently lose a skill.
+
+**Still untested:** a skill from a third profession (`PROFESSION_MISMATCH`). Its preview is
+accepted with Load enabled, so it belongs to one of the two groups above and only a load
+will say which.

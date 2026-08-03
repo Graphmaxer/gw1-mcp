@@ -208,6 +208,36 @@ describe("UNUSED_ATTRIBUTE never fires on a primary attribute", () => {
   });
 });
 
+describe("duplicate skills — verified in game 2026-08-01", () => {
+  // Same silent failure as two elites: the client ACCEPTS the template (dialog shows all
+  // eight skills, Load enabled) and on load the extra copies vanish, leaving empty slots.
+  // No source states this rule — neither we nor a second model found a sentence, and the
+  // only hint, GWW Talk:Skill_template_format saying such a template "does load", is true
+  // and misleading. Observation settled it.
+  const threeCopies = {
+    primary: 5,
+    secondary: 0,
+    attributes: [
+      { attributeId: 0, rank: 8 },
+      { attributeId: 2, rank: 12 },
+      { attributeId: 3, rank: 10 },
+    ],
+    skills: [23, 42, 39, 68, 40, 23, 23, 2],
+  };
+
+  it("rejects a repeated skill and names every slot", () => {
+    const report = validateBuild(threeCopies as never, {} as never);
+    const message = report.errors.find((e) => e.code === "DUPLICATE_SKILL")?.message ?? "";
+    expect(message).toContain("slots 1, 6, 7");
+  });
+
+  it("says the extra slots are silently emptied, not that the code is refused", () => {
+    const report = validateBuild(threeCopies as never, {} as never);
+    const message = report.errors.find((e) => e.code === "DUPLICATE_SKILL")?.message ?? "";
+    expect(message).toMatch(/silently empty/);
+  });
+});
+
 describe("two elites — verified in game 2026-08-01", () => {
   // The client does NOT refuse a two-elite template. The load dialog shows all eight
   // skills with the button enabled, and pressing Charger loads the bar with the SECOND

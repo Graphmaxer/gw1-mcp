@@ -135,12 +135,19 @@ export function validateBuild(
     if (!slots || slots[0] !== slot) continue; // report once, at first occurrence
     const limit = skill.name === SIGNET_OF_CAPTURE ? 3 : 1;
     if (slots.length > limit) {
+      // Verified in game 2026-08-01, same silent failure as MULTIPLE_ELITES: the client
+      // ACCEPTS a duplicate template — dialog shows all eight skills, Load enabled — and
+      // on load the extra copies vanish, leaving empty slots. So the bar does not match
+      // the code and nothing says so. No source states the rule (neither we nor a second
+      // model found a sentence; the only hint was GWW Talk:Skill_template_format saying
+      // such a template "does load", which is true and misleading). Observation settled
+      // it, and the message says the consequence rather than only the rule.
       errors.push({
         code: "DUPLICATE_SKILL",
         message:
           limit === 1
-            ? `"${skill.name}" appears in slots ${slots.map((s) => s + 1).join(", ")}`
-            : `"${skill.name}" may appear at most ${limit} times, found ${slots.length}`,
+            ? `"${skill.name}" appears in slots ${slots.map((s) => s + 1).join(", ")}. The game will load this template and silently empty the extra slots, so the bar in game will not match this code.`
+            : `"${skill.name}" may appear at most ${limit} times, found ${slots.length}. Copies beyond the limit are silently dropped on load.`,
       });
     }
   }

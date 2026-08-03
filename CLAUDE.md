@@ -824,6 +824,35 @@ came out only after checking sources, not after reading code. Reading the
 implementation cannot tell you the rule is wrong; it can only tell you the code does
 what it says.
 
+## Repository layout
+
+Eighteen files at the root, **twelve of them mandated by a tool that looks there**:
+`package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `tsconfig.base.json`,
+`server.json` (the MCP Registry requires the root), `LICENSE`, `README.md`,
+`CHANGELOG.md` (release-please writes it), `CLAUDE.md` (Claude Code looks there),
+`knip.json`, `codecov.yml` and `release-please-config.json`.
+
+The other six are a deliberate choice, not drift. `CONTRIBUTING.md`,
+`CODE_OF_CONDUCT.md` and `SECURITY.md` are recognised by GitHub in `.github/` or
+`docs/` too, and moving them would trim the root by three — **not worth it**: the root
+is where a visitor looks, and a security policy that is harder to find is worse than a
+tidy listing. `THIRD_PARTY_NOTICES.md` stays for the same reason, and
+`chatgpt-app-submission.json` is generated at the root by the submission skill's own
+contract and uploaded as-is.
+
+**One genuine question mark: `glama.json`.** It declares
+`{"maintainers": ["Graphmaxer"]}` and nothing in this repository references it. Its
+purpose was Glama-side maintainer attribution, and the Glama account was deleted when
+we declined the email-in-a-public-file verification — while the listing stayed live and
+quality A, because Glama indexes from the MCP Registry. So the file may now be inert.
+It is kept because it carries no email and no risk, and deleting it on a guess could
+silently drop maintainer attribution from a listing that currently works. Do not treat
+its presence as evidence that it does anything.
+
+Directories: `packages/` (four workspaces), `gwtoolbox-plugin/` (the C++ export
+plugin), `skills/`, `assets/`, `docs/`, `grafana/`, `types/`, `LICENSES/`,
+`.github/`, `.githooks/`.
+
 ## Explicit non-goals for the MVP
 
 - ❌ `complete_build` / `generate_build` from tags or roles — this reintroduces the hard problem; the LLM proposes the 8 skills.

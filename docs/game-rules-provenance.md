@@ -5,7 +5,7 @@ sources, and two of them turned out to be wrong once checked. A build compiler t
 enforces a rule the game does not have is worse than one that misses a rule: it
 rejects legal builds, and the user has no way to tell it is the tool that is wrong.
 
-**Status: 13 verified against primary sources (one of them in game), 1 partial, 0
+**Status: 14 verified (three of them in game, which outranks the wiki), 1 partial, 0
 unverified, 9 that are not game rules.** Sources are cited inline at each rule in
 `packages/gw-mcp/src/validate.ts`. Prefer wiki.guildwars.com over Fandom where both
 cover a point.
@@ -133,21 +133,19 @@ non-empty skills would be too strict, since template id 0 is "No Skill". Tested:
 with one skill and seven empty slots validates, eight empty slots validate, and a
 seven-element array is rejected by the schema. No change needed.
 
-## Open: does a template with TWO elite skills load?
+## Two elites: verified in game, and the failure is silent
 
-`MULTIPLE_ELITES` is an error and was listed as verified, from GWW Skill: "to a maximum
-of 8 skills (including at most one elite skill) at a time". But that sentence describes
-EQUIPPING, and a template is a stored code.
+`MULTIPLE_ELITES` was listed as verified from GWW Skill — "to a maximum of 8 skills
+(including at most one elite skill) at a time" — but that sentence is about EQUIPPING and
+says nothing about loading a template. Tested on 2026-08-01, and the answer matters:
 
-Raised by accident: the control code used above to test wide ids,
-`OQBDAowjOXAVwJgIgC6gaABA`, happens to contain **two** elites — Energy Surge (39) and
-Psychic Distraction (1053) — and the load dialog showed all eight skills with the Load
-button **enabled**, where a PvP id greys it out. So the preview accepts two elites.
+**The client loads the template and silently drops the second elite, leaving an empty
+slot.** The load dialog shows all eight skills with the button enabled, unlike a
+PvP-version id which greys it out. Pressing Charger produces a seven-skill bar.
 
-Preview is not loading, though. What is still unknown: whether clicking Load succeeds,
-refuses, or silently drops one. Until that is known, the rule stays an error — the
-conservative direction here, since a bar with two elites cannot be legally equipped
-whatever the loader does with it.
+So the user gets a bar that does not match the code, with no message. That is worse than
+a refusal — a refusal is visible — and it is why the rule is an error and why the message
+now says what will happen rather than only stating the rule.
 
-**The test**: load `OQBDAowjOXAVwJgIgC6gaABA` and press Charger. Report whether the bar
-ends up with both elites, one, or none.
+Raised by accident: the control code used to test wide ids happened to contain two
+elites (Energy Surge and Psychic Distraction).

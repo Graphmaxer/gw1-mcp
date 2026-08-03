@@ -145,13 +145,29 @@ export function validateBuild(
     }
   }
 
+  // Verified in game 2026-08-01, and the failure mode is the dangerous one. The client
+  // does NOT refuse a two-elite template: the load dialog shows all eight skills with
+  // the button enabled, and pressing Charger loads the bar with the SECOND ELITE
+  // SILENTLY DROPPED, leaving an empty slot. So the user gets a different bar from the
+  // one encoded and is told nothing.
+  //
+  // That is worse than a refusal and is why this is an error rather than a warning: a
+  // refusal is visible, a silent substitution is not. The message says what will
+  // happen, since "at most one elite" alone does not tell the caller it will lose a
+  // skill without notice.
+  //
+  // (GWW Skill states the equipping rule — "to a maximum of 8 skills (including at
+  // most one elite skill) at a time" — but says nothing about template loading, which
+  // is why this needed testing rather than citing.)
   const elites = resolved.filter(({ skill }) => skill.elite);
   if (elites.length > 1) {
     errors.push({
       code: "MULTIPLE_ELITES",
       message: `At most one elite skill per bar, found ${elites.length}: ${elites
         .map((e) => e.skill.name)
-        .join(", ")}`,
+        .join(
+          ", ",
+        )}. The game will load this template anyway and silently drop the later elite, leaving an empty slot — so the bar in game will not match this code. Keep one elite and fill the slot with something else.`,
     });
   }
 

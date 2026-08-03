@@ -208,6 +208,43 @@ describe("UNUSED_ATTRIBUTE never fires on a primary attribute", () => {
   });
 });
 
+describe("two elites — verified in game 2026-08-01", () => {
+  // The client does NOT refuse a two-elite template. The load dialog shows all eight
+  // skills with the button enabled, and pressing Charger loads the bar with the SECOND
+  // ELITE SILENTLY DROPPED, leaving an empty slot. The user gets a different bar from
+  // the one encoded, with no message — which is why this is an error and why the
+  // message says what will happen.
+  //
+  // GWW Skill states the equipping rule ("including at most one elite skill") but says
+  // nothing about loading a template, so this needed testing rather than citing.
+  const twoElites = {
+    primary: 5,
+    secondary: 0,
+    attributes: [
+      { attributeId: 0, rank: 8 },
+      { attributeId: 2, rank: 12 },
+      { attributeId: 3, rank: 10 },
+    ],
+    // Energy Surge (39) and Psychic Distraction (1053) are both elite.
+    skills: [23, 42, 39, 68, 40, 1053, 26, 2],
+  };
+
+  it("rejects two elites", () => {
+    const report = validateBuild(twoElites as never, {} as never);
+    expect(report.errors.map((e) => e.code)).toContain("MULTIPLE_ELITES");
+  });
+
+  it("names both elites and warns that the game drops one silently", () => {
+    const report = validateBuild(twoElites as never, {} as never);
+    const message = report.errors.find((e) => e.code === "MULTIPLE_ELITES")?.message ?? "";
+    expect(message).toContain("Energy Surge");
+    expect(message).toContain("Psychic Distraction");
+    // The consequence matters more than the rule: without it the caller does not know
+    // the code will load and lose a skill unannounced.
+    expect(message).toMatch(/silently drop/);
+  });
+});
+
 describe("PvP/PvE split skills — proven in game 2026-08-01", () => {
   // The decisive evidence: a PvP-only Mesmer equipped Fragility and Empathy, both
   // split skills, saved a skill template, and the code OQBDAowjCXoyJEhyEaIA decodes

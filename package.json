@@ -5,14 +5,16 @@
   "description": "A Guild Wars 1 build compiler for LLMs (MCP server)",
   "license": "MIT",
   "scripts": {
-    "test": "pnpm -r test",
     "bench": "pnpm -r bench",
-    "typecheck": "pnpm -r typecheck",
-    "test:coverage": "pnpm -r exec vitest run --coverage --coverage.reporter=text",
-    "lint": "oxlint --deny-warnings packages types",
     "fmt": "oxfmt .",
     "fmt:check": "oxfmt --check .",
-    "knip": "knip"
+    "knip": "knip",
+    "lint": "oxlint --deny-warnings packages types",
+    "prepare": "git config core.hooksPath .githooks || true",
+    "test": "pnpm -r test",
+    "test:coverage": "pnpm -r exec vitest run --coverage --coverage.reporter=text",
+    "typecheck": "pnpm -r typecheck",
+    "verify": "pnpm -r typecheck && pnpm lint && pnpm fmt:check && pnpm -r test && pnpm knip"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.10",

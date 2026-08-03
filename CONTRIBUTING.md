@@ -117,3 +117,29 @@ failure. Verified failible: adding one unused import makes it exit 1.
 
 If a rule ever needs an exception, silence that rule for that line rather than
 removing the flag. A linter nobody has to satisfy is decoration.
+
+## `pnpm verify` and the pre-push hook
+
+`pnpm verify` runs the whole gate: typecheck, lint, format, tests, knip. The
+`.githooks/pre-push` hook calls **only that**, so there is one source of truth — add a
+gate to `verify` and the hook follows. A hook with its own hardcoded list drifts from
+CI, and a drifting hook is worse than none: it teaches you that green locally means
+green in CI.
+
+`prepare` points `core.hooksPath` at `.githooks` on install, so there is no husky.
+Bypass a run deliberately with `git push --no-verify`.
+
+**Why it exists**: on 2026-07-31, nine commits were fixes for things this would have
+caught before the push — three consecutive knip failures, and eight lint warnings that
+had accumulated because oxlint exits 0 on warnings.
+
+**Why not lint-staged**: the failures it catches are whole-project by nature. knip
+looks for unused exports across files; `tsc` is a whole-program checker, so a change in
+one file breaks another. Filtering to staged files would have caught none of the nine.
+
+**Why not husky or lefthook**: husky's function is the one `git config` line above.
+lefthook would parallelise, and the battery measures roughly 33s serial against an
+~18s floor — less in practice, since `pnpm -r` already parallelises across the four
+packages and tsc and vitest would contend for cores. Fifteen seconds does not buy a
+binary dependency in a repository with a single runtime dependency and SHA-pinned
+everything else.

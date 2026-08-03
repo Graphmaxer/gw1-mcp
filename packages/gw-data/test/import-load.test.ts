@@ -76,22 +76,45 @@ describe("loadUpstream (Pages source)", () => {
     await expect(loadUpstream(PAGES)).rejects.toThrow();
   });
 
-  it("records provenance as a hash of the bytes it actually fetched", async () => {
-    stubPages();
-    const upstream = await loadUpstream(PAGES);
-    const digest = (s: string) => createHash("sha256").update(s).digest("hex").slice(0, 16);
-    expect(upstream.version).toContain(`skilldata:${digest(skilldataText)}`);
-    expect(upstream.version).toContain(`desc:${digest(descText)}`);
-    expect(upstream.version).toContain(`bundle:${digest(bundleSource)}`);
-  });
+  /**
+   * Both tests below evaluate the fetched CJS bundle, and their duration varies by an
+   * order of magnitude with cache state: measured 3944 ms cold and 292 ms warm under
+   * `--coverage.enabled=true`, against 959 ms and 352 ms with coverage off. Vitest's
+   * default 5000 ms timeout sits INSIDE that variance band, so CI — always cold, always
+   * instrumented, on a shared runner — fails them at random. It first bit a Dependabot PR
+   * on 2026-08-02 at 9504 ms, which looked like a dependency regression and was not: none
+   * of the seven bumps touches this package at runtime.
+   *
+   * The explicit timeout is deliberately generous. Its job is not to police speed — no
+   * other test in the repository exceeds 300 ms under coverage — but to stop a
+   * cache-dependent duration from deciding whether the suite passes.
+   */
+  const BUNDLE_EVAL_TIMEOUT_MS = 30_000;
 
-  it("returns the constant tables from the fetched bundle, not a bundled copy", async () => {
-    stubPages();
-    const upstream = await loadUpstream(PAGES);
-    expect(upstream.PROFESSIONS).toEqual({ 1: "Warrior" });
-    expect(upstream.SKILLTYPES).toEqual({ 1: "Skill" });
-    expect(upstream.skilldata).toEqual({ 1: { id: 1 } });
-  });
+  it(
+    "records provenance as a hash of the bytes it actually fetched",
+    async () => {
+      stubPages();
+      const upstream = await loadUpstream(PAGES);
+      const digest = (s: string) => createHash("sha256").update(s).digest("hex").slice(0, 16);
+      expect(upstream.version).toContain(`skilldata:${digest(skilldataText)}`);
+      expect(upstream.version).toContain(`desc:${digest(descText)}`);
+      expect(upstream.version).toContain(`bundle:${digest(bundleSource)}`);
+    },
+    BUNDLE_EVAL_TIMEOUT_MS,
+  );
+
+  it(
+    "returns the constant tables from the fetched bundle, not a bundled copy",
+    async () => {
+      stubPages();
+      const upstream = await loadUpstream(PAGES);
+      expect(upstream.PROFESSIONS).toEqual({ 1: "Warrior" });
+      expect(upstream.SKILLTYPES).toEqual({ 1: "Skill" });
+      expect(upstream.skilldata).toEqual({ 1: { id: 1 } });
+    },
+    BUNDLE_EVAL_TIMEOUT_MS,
+  );
 });
 
 describe("upstream description plausibility gate (audit C1)", () => {

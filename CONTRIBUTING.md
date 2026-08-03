@@ -155,3 +155,19 @@ A machine that cannot allocate 6 GiB cannot run knip at all. Use `git push --no-
 and let CI decide; the runners have the memory. **Do not remove knip from `verify`** to
 work around a local limit — that weakens the gate for every environment that can run
 it. The hook prints this hint when it fails, so the RangeError is not mysterious.
+
+## Coverage changes test timings, so CI is not comparable to a local run
+
+CI runs `vitest --coverage.enabled=true`; `pnpm verify` and `pnpm -r test` do not. That
+gap is not cosmetic. The two tests in `gw-data/test/import-load.test.ts` that evaluate the
+fetched CJS bundle measured **3944 ms cold with coverage against 959 ms without**, and
+292 ms warm — an order of magnitude of variance, with vitest's default 5000 ms timeout
+sitting inside it.
+
+They now carry an explicit 30-second timeout. It is deliberately generous: no other test
+in the repository exceeds 300 ms under coverage, so the timeout is not there to police
+speed but to stop a cache-dependent duration from deciding whether the suite passes.
+
+**If a test fails in CI and passes locally, run it with coverage before looking for a
+cause in the diff.** On 2026-08-02 this failure landed on a Dependabot PR and looked like a
+dependency regression; none of the seven bumps touches that package at runtime.

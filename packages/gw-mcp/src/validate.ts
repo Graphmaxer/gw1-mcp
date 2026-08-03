@@ -59,7 +59,12 @@ export function validateBuild(
       // this file, so a model overspending had no way to compute a fix and would
       // guess again. ATTRIBUTE_POINTS_EXCEEDED is the most frequent validation
       // failure in production for exactly that reason.
-      message: `This attribute spread costs ${spentPoints} points; a level 20 character has at most ${MAX_ATTRIBUTE_POINTS} (170 base + 30 from quests). Cumulative cost per rank is non-linear: ${RANK_COST.map((c, r) => `${r}=${c}`).join(", ")}. Lower some ranks so the total fits.`,
+      // Verified in game 2026-08-01, and it is a TRIMMING rule, not a refusal: a
+      // 12/12/12 Mesmer template (291 points) loads, and the client silently REDUCES
+      // the ranks to fit, leaving unused points. The most dangerous case in the series
+      // — an emptied skill slot is visible, a quietly different attribute spread is
+      // not, and it changes the numbers on every skill in the bar.
+      message: `This attribute spread costs ${spentPoints} points; a level 20 character has at most ${MAX_ATTRIBUTE_POINTS} (170 base + 30 from quests). Cumulative cost per rank is non-linear: ${RANK_COST.map((c, r) => `${r}=${c}`).join(", ")}. The game will load this template anyway and silently lower ranks to fit, so every skill's numbers will differ from what this build intends. Lower some ranks yourself so the total fits.`,
     });
   }
 

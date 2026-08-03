@@ -192,12 +192,27 @@ The two groups do not split by severity but by **kind**:
 - **What merely EXCEEDS a limit is trimmed silently.** A second elite, a repeated skill.
   The template loads and the offending slots come up empty, with no message.
 
-That is coherent enough to be predictive, which makes it useful rather than merely tidy.
-It says `TOO_MANY_PVE_SKILLS` — a limit, not an impossibility — should load and drop the
-fourth PvE-only skill rather than refuse. **Untested**, and it needs a roleplaying
-character since a PvP one cannot hold PvE-only skills at all. If it turns out to be
-refused instead, the pattern is wrong and worth revisiting.
+**The pattern made a prediction and the prediction held.** `ATTRIBUTE_POINTS_EXCEEDED` is
+a limit, so it should trim rather than refuse — and it does: a 12/12/12 Mesmer template
+(291 points) loads, and the client silently lowers the ranks to fit, leaving unused points.
+Tested 2026-08-01.
+
+That is the most dangerous case in the whole series. An emptied skill slot is visible; a
+quietly different attribute spread is not, and it changes the numbers on **every** skill in
+the bar. The message now says so.
+
+Still predicted and untested: `TOO_MANY_PVE_SKILLS`, also a limit, should load and drop the
+fourth PvE-only skill. It needs a roleplaying character, since a PvP one cannot hold
+PvE-only skills at all. If it were refused instead, the pattern would be wrong and worth
+revisiting.
 
 Consequence for messages: the trimming rules must say so, because a caller cannot see it.
 `MULTIPLE_ELITES` and `DUPLICATE_SKILL` now do. The refusal rules say the whole code will
 not load, which is more useful than naming the rule.
+
+## Hero bars load
+
+Reported by the maintainer from earlier testing: codes produced by this project load
+correctly onto heroes. That closes the widest verification gap before 1.0 — hero bar
+construction is the project's primary use case, and until then it had only unit tests
+behind it.

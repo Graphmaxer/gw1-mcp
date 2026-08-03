@@ -233,22 +233,38 @@ describe("PvP/PvE split skills — proven in game 2026-08-01", () => {
     expect(report.errors).toEqual([]);
   });
 
-  it("warns on a PvP-version id, which the game never writes", () => {
+  it("rejects a PvP-version id: one makes the whole template unloadable", () => {
+    // Established in game: three hand-built codes — both split skills as PvP ids, then
+    // Fragility alone, then Empathy alone — all failed to load. Eight empty slots,
+    // professions shown as "...", Load button greyed. The entire template is refused,
+    // with no message. Isolated from a format problem: the same bar with a legitimate
+    // high-id skill (Psychic Distraction, 1053) encodes to the same wide id field and
+    // loads perfectly.
     const report = validateBuild(
-      { ...REAL_PVP_TEMPLATE, skills: [2998, 0, 0, 0, 0, 0, 0, 0] } as never,
+      { ...REAL_PVP_TEMPLATE, skills: [23, 42, 39, 68, 40, 2998, 26, 2] } as never,
       {} as never,
     );
-    expect(report.warnings.map((w) => w.code)).toContain("PVP_VERSION_IN_TEMPLATE");
-    // A warning, not an error: the id names a real skill.
-    expect(report.errors.map((e) => e.code)).not.toContain("PVP_VERSION_IN_TEMPLATE");
+    expect(report.errors.map((e) => e.code)).toContain("PVP_VERSION_IN_TEMPLATE");
   });
 
-  it("warns regardless of forPvp, since forPvp cannot legitimise it", () => {
+  it("rejects it regardless of forPvp, since forPvp cannot legitimise it", () => {
     const report = validateBuild(
-      { ...REAL_PVP_TEMPLATE, skills: [2998, 0, 0, 0, 0, 0, 0, 0] } as never,
+      { ...REAL_PVP_TEMPLATE, skills: [23, 42, 39, 68, 40, 2998, 26, 2] } as never,
       { forPvp: true } as never,
     );
-    expect(report.warnings.map((w) => w.code)).toContain("PVP_VERSION_IN_TEMPLATE");
+    expect(report.errors.map((e) => e.code)).toContain("PVP_VERSION_IN_TEMPLATE");
+  });
+
+  it("accepts a legitimate high id, which needs the same wide field", () => {
+    // The control that separates "wide ids are broken" from "PvP ids are refused".
+    // 1053 is Psychic Distraction: normal skill, not PvE-only, not a PvP version.
+    // Verified in game: this code loads. (Note it also carries a second elite, which
+    // is a separate open question — see the MULTIPLE_ELITES note.)
+    const report = validateBuild(
+      { ...REAL_PVP_TEMPLATE, skills: [23, 42, 1053, 68, 40, 19, 26, 2] } as never,
+      {} as never,
+    );
+    expect(report.errors.map((e) => e.code)).not.toContain("PVP_VERSION_IN_TEMPLATE");
   });
 
   it("leaves unsplit skills alone", () => {

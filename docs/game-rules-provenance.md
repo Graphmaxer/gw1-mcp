@@ -44,11 +44,15 @@ Two consequences, both applied:
 - **`PVE_VERSION_ON_PVP_BUILD` deleted.** Run against that exact template with
   `forPvp: true`, it produced two errors telling the player to use ids the game had
   deliberately not written. It rejected the normal case for all 156 split skills.
-- **`PVP_VERSION_ON_PVE_BUILD` replaced by `PVP_VERSION_IN_TEMPLATE`**, a warning
-  independent of `forPvp`. A PvP-version id means the code was not produced in-game, in
-  either mode — so `forPvp` cannot legitimise it, and the old condition was wrong too.
-  A warning rather than an error because the id names a real skill and nothing says the
-  client refuses it.
+- **`PVP_VERSION_ON_PVE_BUILD` replaced by `PVP_VERSION_IN_TEMPLATE`, an ERROR
+  independent of `forPvp`.** The client does not merely dislike a PvP id, it refuses the
+  **entire template**: three hand-built codes — both split skills as PvP ids, then
+  Fragility alone, then Empathy alone — all failed to load, showing eight empty slots,
+  professions as "...", and a greyed Load button. No message. One such id costs the user
+  the whole bar. Isolated from a format problem rather than assumed: the same bar with a
+  legitimate high id (Psychic Distraction, 1053) needs the same wide
+  `bits_per_skill_id` field and loads perfectly, so the width is fine and the ids are
+  the cause. The original rule had the severity right and the condition wrong.
 
 The template is now a test fixture, so the false positive cannot return.
 
@@ -128,3 +132,22 @@ altered, which is why the prompt tells the reader to open every link.
 non-empty skills would be too strict, since template id 0 is "No Skill". Tested: a bar
 with one skill and seven empty slots validates, eight empty slots validate, and a
 seven-element array is rejected by the schema. No change needed.
+
+## Open: does a template with TWO elite skills load?
+
+`MULTIPLE_ELITES` is an error and was listed as verified, from GWW Skill: "to a maximum
+of 8 skills (including at most one elite skill) at a time". But that sentence describes
+EQUIPPING, and a template is a stored code.
+
+Raised by accident: the control code used above to test wide ids,
+`OQBDAowjOXAVwJgIgC6gaABA`, happens to contain **two** elites — Energy Surge (39) and
+Psychic Distraction (1053) — and the load dialog showed all eight skills with the Load
+button **enabled**, where a PvP id greys it out. So the preview accepts two elites.
+
+Preview is not loading, though. What is still unknown: whether clicking Load succeeds,
+refuses, or silently drops one. Until that is known, the rule stays an error — the
+conservative direction here, since a bar with two elites cannot be legally equipped
+whatever the loader does with it.
+
+**The test**: load `OQBDAowjOXAVwJgIgC6gaABA` and press Charger. Report whether the bar
+ends up with both elites, one, or none.

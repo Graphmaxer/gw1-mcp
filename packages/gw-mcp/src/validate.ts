@@ -240,20 +240,29 @@ export function validateBuild(
   // shown. Mirrors forHero: the caller states the context, the validator checks
   // it, in both directions.
   for (const { slot, skill } of resolved) {
-    // A skill template NEVER carries a PvP-version id, in either mode. PROVEN IN
-    // GAME on 2026-08-01: a PvP-only character equipped Fragility and Empathy, both
-    // split skills, saved a template, and the code
-    // `OQBDAowjCXoyJEhyEaIA` decodes to skills [23, 42, 39, 68, 40, 19, 26, 2] —
-    // ids 19 and 26, the PvE versions, not 2998 and 3151. The client normalises when
-    // writing, which is what lets a PvP build load in PvE and back.
+    // A PvP-version id makes the WHOLE template unloadable. Both halves of this were
+    // established in game on 2026-08-01, on a PvP-only Mesmer:
     //
-    // So a PvP-version id means the code did not come from the game. A WARNING, not
-    // an error: the id names a real skill and nothing says the client refuses it.
-    // Independent of forPvp, because forPvp cannot make it legitimate.
+    // 1. The client never WRITES a PvP id. Equipping Fragility and Empathy and saving
+    //    produced `OQBDAowjCXoyJEhyEaIA` = skills [23,42,39,68,40,19,26,2] — ids 19
+    //    and 26, the PvE versions, not 2998 and 3151.
+    // 2. The client refuses to READ one. Three hand-built codes — both skills as PvP
+    //    ids, then Fragility alone, then Empathy alone — all failed to load: eight
+    //    empty slots, professions shown as "...", Load button greyed. Not slot by
+    //    slot: the entire template is rejected, with no message.
+    //
+    // Isolated from a format problem rather than assumed: the same bar with a
+    // legitimate high-id skill (Psychic Distraction, 1053) encodes to a 24-character
+    // code with the same wide `bits_per_skill_id` field and loads perfectly. So the
+    // width is fine and the ids are the cause.
+    //
+    // Hence an ERROR, and independent of forPvp — the original rule had the severity
+    // right and the condition wrong. One such id costs the user the whole bar, which
+    // is exactly the failure this project exists to prevent.
     if (skill.isPvpVersion) {
-      warnings.push({
+      errors.push({
         code: "PVP_VERSION_IN_TEMPLATE",
-        message: `Slot ${slot + 1}: "${skill.name}" is a PvP-version skill id. The game writes the PvE id even on a PvP character, so this code was not produced in-game. The PvE id is ${skill.splitId ?? "the unsplit version"}.`,
+        message: `Slot ${slot + 1}: "${skill.name}" is a PvP-version skill id. The game never writes one — not even on a PvP character — and refuses to load any template containing one, silently and entirely. Use the PvE id ${skill.splitId ?? "of the unsplit version"}; the client switches to the PvP version by zone.`,
       });
     }
 

@@ -143,3 +143,15 @@ lefthook would parallelise, and the battery measures roughly 33s serial against 
 packages and tsc and vitest would contend for cores. Fifteen seconds does not buy a
 binary dependency in a repository with a single runtime dependency and SHA-pinned
 everything else.
+
+### If knip crashes with "Array buffer allocation failed"
+
+That is the machine, not the code. knip 6 parses through `oxc-parser`, which reserves
+one ArrayBuffer of `BLOCK_SIZE` (2 GiB) + `BLOCK_ALIGN` (4 GiB) = **6 GiB**. Measured
+from `oxc-parser/src-js/generated/constants.js`, and 0.142.0 carries the same values as
+0.140.0 — a design choice of oxc's fixed-size allocator, so upgrading does not help.
+
+A machine that cannot allocate 6 GiB cannot run knip at all. Use `git push --no-verify`
+and let CI decide; the runners have the memory. **Do not remove knip from `verify`** to
+work around a local limit — that weakens the gate for every environment that can run
+it. The hook prints this hint when it fails, so the RangeError is not mysterious.

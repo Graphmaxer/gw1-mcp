@@ -1,0 +1,40 @@
+#!/bin/sh
+# Runs the same battery as CI before letting a push through: `pnpm verify`.
+#
+# Why it calls only `pnpm verify`: one source of truth. Add a gate to that script and
+# this hook follows. A hook with its own hardcoded list drifts from CI, and a drifting
+# hook is worse than none — it teaches you that green locally means green in CI.
+#
+# Why not lint-staged: the failures this catches are whole-project by nature. knip
+# looks for unused exports ACROSS files, and tsc is a whole-program checker, so a
+# change in one file breaks another. Filtering to staged files would catch neither.
+#
+# Why not husky or lefthook: husky's function is `git config core.hooksPath`, which the
+# `prepare` script does in one line. lefthook would parallelise, and the battery
+# measures ~33s serial against an ~18s floor — less in practice, since `pnpm -r`
+# already parallelises across the four packages and tsc and vitest contend for cores.
+#
+# Bypass deliberately with `git push --no-verify`.
+
+echo "pre-push: running pnpm verify (about 35s; --no-verify to skip)"
+
+if pnpm verify; then
+  exit 0
+fi
+
+cat >&2 <<'HINT'
+
+pre-push: verify failed, so the push was refused.
+
+If the failure was `RangeError: Array buffer allocation failed` inside knip, that is
+your MACHINE, not your code. knip 6 parses through oxc-parser, which reserves a single
+ArrayBuffer of BLOCK_SIZE (2 GiB) + BLOCK_ALIGN (4 GiB) = 6 GiB. It is by design and
+identical in the latest release, so upgrading does not help. A machine that cannot
+allocate that cannot run knip at all.
+
+In that case `git push --no-verify` is right: CI runs knip on a runner with enough
+memory and stays authoritative. Do NOT remove knip from `verify` to work around a
+local memory limit — that would weaken the gate for every machine that can run it.
+
+HINT
+exit 1

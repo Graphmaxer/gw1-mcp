@@ -188,7 +188,13 @@ export function validateBuild(
       const prof = getProfessionById(skill.professionId);
       errors.push({
         code: "PROFESSION_MISMATCH",
-        message: `Slot ${slot + 1}: "${skill.name}" is a ${prof?.name ?? "?"} skill, not available to ${primary?.abbr ?? "?"}/${secondary?.abbr ?? "?"}`,
+        // Verified in game 2026-08-01: the client REFUSES the whole template — Load
+        // greyed, header "...", eight empty slots — rather than emptying the slot. Same
+        // group as a wrong-profession ATTRIBUTE, so skills and attributes behave alike.
+        // Contrast the limit rules (MULTIPLE_ELITES, DUPLICATE_SKILL), which load and
+        // trim silently. The pattern across every case tested: what is IMPOSSIBLE is
+        // refused outright, what merely EXCEEDS a limit is trimmed without a word.
+        message: `Slot ${slot + 1}: "${skill.name}" is a ${prof?.name ?? "?"} skill, not available to ${primary?.abbr ?? "?"}/${secondary?.abbr ?? "?"}. The game refuses to load a template containing it — the entire code, not just this slot.`,
       });
     }
 

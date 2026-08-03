@@ -179,6 +179,25 @@ substitution is not.
 Both messages now state the consequence, not only the rule, since "at most one elite" does
 not tell a caller it will silently lose a skill.
 
-**Still untested:** a skill from a third profession (`PROFESSION_MISMATCH`). Its preview is
-accepted with Load enabled, so it belongs to one of the two groups above and only a load
-will say which.
+`PROFESSION_MISMATCH` joins the refusal group: Protective Spirit (Monk, non-elite) on a
+Mesmer with no secondary is refused outright. So skills and attributes behave alike.
+
+## The pattern, and what it predicts
+
+The two groups do not split by severity but by **kind**:
+
+- **What is IMPOSSIBLE is refused outright.** A skill id the character cannot have, a
+  profession that does not fit, an attribute outside the two professions, a rank above 12,
+  a duplicated profession. Visible: the button greys and the header shows "...".
+- **What merely EXCEEDS a limit is trimmed silently.** A second elite, a repeated skill.
+  The template loads and the offending slots come up empty, with no message.
+
+That is coherent enough to be predictive, which makes it useful rather than merely tidy.
+It says `TOO_MANY_PVE_SKILLS` — a limit, not an impossibility — should load and drop the
+fourth PvE-only skill rather than refuse. **Untested**, and it needs a roleplaying
+character since a PvP one cannot hold PvE-only skills at all. If it turns out to be
+refused instead, the pattern is wrong and worth revisiting.
+
+Consequence for messages: the trimming rules must say so, because a caller cannot see it.
+`MULTIPLE_ELITES` and `DUPLICATE_SKILL` now do. The refusal rules say the whole code will
+not load, which is more useful than naming the rule.

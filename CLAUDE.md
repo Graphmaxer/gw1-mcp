@@ -854,6 +854,28 @@ Directories: `packages/` (four workspaces), `gwtoolbox-plugin/` (the C++ export
 plugin), `skills/`, `assets/`, `docs/`, `grafana/`, `types/`, `LICENSES/`,
 `.github/`, `.githooks/`.
 
+## CodSpeed: the createApp benchmark is the noise floor
+
+On 2026-08-01 CodSpeed failed a commit with a **16% regression on `createApp`**. The commit
+changed one error-message string and some comments — code that benchmark never executes.
+It was a false positive, and four things said so: CodSpeed's own "different runtime
+environments" warning, a diff touching no executed path, every other benchmark drifting the
+same direction (-3%, -1%) which is systematic rather than targeted, and `createApp` being
+the smallest benchmark in the suite at roughly 1 ms.
+
+Worth knowing what it measures, because the name oversells it: `createServer` is called
+INSIDE the /mcp handler, not in `createApp`, so this covers route registration only —
+0.07 ms against 2.0 ms locally, about **3.5% of real startup**. The number to watch for
+isolate cost is `createServer`, which has its own benchmark.
+
+**When it goes red**: check whether the whole run drifted, and look at `createServer`,
+before believing route registration got slower. It was deliberately NOT deleted — removing
+a benchmark because it flagged is how a suite stops being trusted — but its docblock now
+says what it can and cannot tell you.
+
+If this recurs often enough to be noise, the right fix is a CodSpeed threshold in the
+dashboard, not a smaller suite.
+
 ## Explicit non-goals for the MVP
 
 - ❌ `complete_build` / `generate_build` from tags or roles — this reintroduces the hard problem; the LLM proposes the 8 skills.

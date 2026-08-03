@@ -240,20 +240,30 @@ export function validateBuild(
   // shown. Mirrors forHero: the caller states the context, the validator checks
   // it, in both directions.
   for (const { slot, skill } of resolved) {
-    if (skill.isPvpVersion && !options.forPvp) {
-      errors.push({
-        code: "PVP_VERSION_ON_PVE_BUILD",
-        message: `Slot ${slot + 1}: "${skill.name}" is the PvP version of a split skill and only exists on PvP characters. Use the PvE version, or pass forPvp: true.`,
+    // A skill template NEVER carries a PvP-version id, in either mode. PROVEN IN
+    // GAME on 2026-08-01: a PvP-only character equipped Fragility and Empathy, both
+    // split skills, saved a template, and the code
+    // `OQBDAowjCXoyJEhyEaIA` decodes to skills [23, 42, 39, 68, 40, 19, 26, 2] —
+    // ids 19 and 26, the PvE versions, not 2998 and 3151. The client normalises when
+    // writing, which is what lets a PvP build load in PvE and back.
+    //
+    // So a PvP-version id means the code did not come from the game. A WARNING, not
+    // an error: the id names a real skill and nothing says the client refuses it.
+    // Independent of forPvp, because forPvp cannot make it legitimate.
+    if (skill.isPvpVersion) {
+      warnings.push({
+        code: "PVP_VERSION_IN_TEMPLATE",
+        message: `Slot ${slot + 1}: "${skill.name}" is a PvP-version skill id. The game writes the PvE id even on a PvP character, so this code was not produced in-game. The PvE id is ${skill.splitId ?? "the unsplit version"}.`,
       });
     }
-    // Symmetric case, but only where a split actually exists: an unsplit skill
-    // is the same skill in both formats and is correct on a PvP bar.
-    if (options.forPvp && !skill.isPvpVersion && skill.pvpSplit) {
-      errors.push({
-        code: "PVE_VERSION_ON_PVP_BUILD",
-        message: `Slot ${slot + 1}: "${skill.name}" has a separate PvP version (skill id ${skill.splitId}); a PvP bar should use that one.`,
-      });
-    }
+
+    // There is deliberately NO rule for "PvE version on a PvP bar". It was an error
+    // here until 2026-08-01 and it rejected the NORMAL case: run against the very
+    // template above, saved by a PvP character, it produced two errors telling the
+    // player to use ids the game had deliberately not written. Every genuine PvP
+    // template carries PvE ids for all 156 split skills, and the client swaps by zone
+    // — "split versions for PvE and PvP ... update automatically when in each
+    // respective zone" (wiki.guildwars.com/wiki/Skill).
   }
 
   // A player bar may hold at most 3 PvE-only skills (POC1), and Signet of Capture

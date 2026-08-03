@@ -208,45 +208,55 @@ describe("UNUSED_ATTRIBUTE never fires on a primary attribute", () => {
   });
 });
 
-describe("PvP/PvE split skills (audit I1)", () => {
-  // Mind Wrack (PvP) id 2734 is the PvP version of a split skill; Fragility
-  // id 19 is a Mesmer PvE skill that HAS a PvP version (id 2998).
-  const mesmer = { primary: 5, secondary: 0, attributes: [] };
+describe("PvP/PvE split skills — proven in game 2026-08-01", () => {
+  // The decisive evidence: a PvP-only Mesmer equipped Fragility and Empathy, both
+  // split skills, saved a skill template, and the code OQBDAowjCXoyJEhyEaIA decodes
+  // to [23, 42, 39, 68, 40, 19, 26, 2]. Ids 19 and 26 are the PvE versions; the PvP
+  // ids 2998 and 3151 are absent. The client normalises when it writes a template,
+  // which is what lets a PvP build load in PvE and back.
+  const REAL_PVP_TEMPLATE = {
+    primary: 5,
+    secondary: 0,
+    attributes: [
+      { attributeId: 0, rank: 8 },
+      { attributeId: 2, rank: 12 },
+      { attributeId: 3, rank: 10 },
+    ],
+    skills: [23, 42, 39, 68, 40, 19, 26, 2],
+  };
 
-  it("raises PVP_VERSION_ON_PVE_BUILD", () => {
-    // Previously: valid=true, no remark, and an encodable code that does not
-    // produce the shown bar on a PvE character.
-    const r = validateBuild(
-      { ...mesmer, skills: [2734, 0, 0, 0, 0, 0, 0, 0] } as never,
+  it("accepts a real PvP character's own template", () => {
+    // Until 2026-08-01 this produced two PVE_VERSION_ON_PVP_BUILD errors, telling the
+    // player to use ids the game had deliberately not written. That rule is gone.
+    const report = validateBuild(REAL_PVP_TEMPLATE as never, { forPvp: true } as never);
+    expect(report.valid).toBe(true);
+    expect(report.errors).toEqual([]);
+  });
+
+  it("warns on a PvP-version id, which the game never writes", () => {
+    const report = validateBuild(
+      { ...REAL_PVP_TEMPLATE, skills: [2998, 0, 0, 0, 0, 0, 0, 0] } as never,
       {} as never,
     );
-    expect(r.errors.map((e) => e.code)).toContain("PVP_VERSION_ON_PVE_BUILD");
+    expect(report.warnings.map((w) => w.code)).toContain("PVP_VERSION_IN_TEMPLATE");
+    // A warning, not an error: the id names a real skill.
+    expect(report.errors.map((e) => e.code)).not.toContain("PVP_VERSION_IN_TEMPLATE");
   });
 
-  it("accepts the PvP version once the caller says it is a PvP bar", () => {
-    const r = validateBuild(
-      { ...mesmer, skills: [2734, 0, 0, 0, 0, 0, 0, 0] } as never,
+  it("warns regardless of forPvp, since forPvp cannot legitimise it", () => {
+    const report = validateBuild(
+      { ...REAL_PVP_TEMPLATE, skills: [2998, 0, 0, 0, 0, 0, 0, 0] } as never,
       { forPvp: true } as never,
     );
-    expect(r.errors.map((e) => e.code)).not.toContain("PVP_VERSION_ON_PVE_BUILD");
+    expect(report.warnings.map((w) => w.code)).toContain("PVP_VERSION_IN_TEMPLATE");
   });
 
-  it("raises PVE_VERSION_ON_PVP_BUILD", () => {
-    const r = validateBuild(
-      { ...mesmer, skills: [19, 0, 0, 0, 0, 0, 0, 0] } as never,
+  it("leaves unsplit skills alone", () => {
+    const report = validateBuild(
+      { ...REAL_PVP_TEMPLATE, skills: [23, 0, 0, 0, 0, 0, 0, 0] } as never,
       { forPvp: true } as never,
     );
-    expect(r.errors.map((e) => e.code)).toContain("PVE_VERSION_ON_PVP_BUILD");
-  });
-
-  it("leaves unsplit skills alone on a PvP bar", () => {
-    // Symmetry must not overreach: a skill with no PvP version is the same
-    // skill in both formats.
-    const r = validateBuild(
-      { primary: 10, secondary: 0, attributes: [], skills: [1518, 0, 0, 0, 0, 0, 0, 0] } as never,
-      { forPvp: true } as never,
-    );
-    expect(r.errors.map((e) => e.code)).not.toContain("PVE_VERSION_ON_PVP_BUILD");
+    expect(report.warnings.map((w) => w.code)).not.toContain("PVP_VERSION_IN_TEMPLATE");
   });
 });
 

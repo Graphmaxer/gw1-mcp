@@ -809,12 +809,13 @@ no profession, so they passed every other check, and `encode_template` would pro
 valid code for an illegal PvP bar), and the three-skill PvE cap wrongly excluded
 Signet of Capture.
 
-**Still open, and it matters most of the three partials:** the two split-version
-rules. A 2009 comment by the format's documenter says the game normalises split skills
-to their PvE id when writing a template, in both modes — if true,
-`PVE_VERSION_ON_PVP_BUILD` rejects every genuine PvP template containing any of the
-156 split skills. An in-game test is pending; a forum comment is not enough to remove
-a rule. The protocol is in the provenance doc.
+**Settled in game 2026-08-01, and both split-version rules were wrong.** A PvP-only
+Mesmer's own template (`OQBDAowjCXoyJEhyEaIA`) stores Fragility as id 19 and Empathy as
+26 — the PvE versions. The client normalises when writing, on a PvP character, under
+Reforged. So `PVE_VERSION_ON_PVP_BUILD` rejected the normal case for all 156 split
+skills and is deleted, and `PVP_VERSION_ON_PVE_BUILD` became a warning independent of
+`forPvp`. That template is now a fixture. Primary evidence outranked a 2009 comment and
+a second model that agreed with it.
 
 ## Method note
 

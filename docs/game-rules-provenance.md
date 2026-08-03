@@ -5,7 +5,7 @@ sources, and two of them turned out to be wrong once checked. A build compiler t
 enforces a rule the game does not have is worse than one that misses a rule: it
 rejects legal builds, and the user has no way to tell it is the tool that is wrong.
 
-**Status of the 24 validator codes: 12 verified against primary sources, 3 partial, 0
+**Status: 13 verified against primary sources (one of them in game), 1 partial, 0
 unverified, 9 that are not game rules.** Sources are cited inline at each rule in
 `packages/gw-mcp/src/validate.ts`. Prefer wiki.guildwars.com over Fandom where both
 cover a point.
@@ -27,43 +27,35 @@ cover a point.
 | `PRIMARY_ATTRIBUTE_ON_SECONDARY` | Fandom Skills_and_Attributes_panel — "The listed attributes include all of the ones available to your Primary profession, and **all except the primary attribute of your Secondary profession**"; GWW Primary_attribute confirms the mechanism                                                                                                             |
 | `PROFESSION_MISMATCH`            | GWW Skill — "only characters of the respective profession can use it"; Fandom Profession — "A character has access to all skills of both chosen professions". Common and PvE-only skills are handled separately in the code                                                                                                                                |
 
-## Pending an in-game test: the two split-version rules
+## Settled in game 2026-08-01: the split-version rules were wrong
 
-`PVE_VERSION_ON_PVP_BUILD` may reject the NORMAL case. A 2009 comment by the person
-who documented the template format says:
+A PvP-only Mesmer equipped **Fragility** and **Empathy**, both split skills, and saved a
+skill template. The code `OQBDAowjCXoyJEhyEaIA` decodes to skills
+`[23, 42, 39, 68, 40, 19, 26, 2]` — **ids 19 and 26, the PvE versions.** The PvP ids
+2998 and 3151 are absent. The client normalises when writing, on a PvP character, in
+2026 under Reforged.
 
-> "PvE and PvP versions of skills are different skills and as such have different
-> skill ids ... when generating the skill template code in-game, it treats PvP version
-> skills as PvE version skills. That way PvE skill templates are the same as PvP skill
-> templates ... this makes it impossible to identify if a skill template was meant for
-> PvP or PvE."
-> — poke, gwpvx.fandom.com/wiki/Talk:PvX_wiki/Archive_12
+This is primary evidence and it outranks everything else we found: a 2009 talk-page
+comment said so, a second model agreed at LOW confidence citing that same comment, and
+neither was enough. The game settled it.
 
-If that still holds, every genuine PvP template carries PvE ids for all **156** split
-skills, and this rule rejects any real PvP build containing one. But a 2009 talk-page
-comment is not enough to delete a rule, and Reforged may have changed it. **The rules
-are unchanged pending the test below.**
+Two consequences, both applied:
 
-### The test that settles it
+- **`PVE_VERSION_ON_PVP_BUILD` deleted.** Run against that exact template with
+  `forPvp: true`, it produced two errors telling the player to use ids the game had
+  deliberately not written. It rejected the normal case for all 156 split skills.
+- **`PVP_VERSION_ON_PVE_BUILD` replaced by `PVP_VERSION_IN_TEMPLATE`**, a warning
+  independent of `forPvp`. A PvP-version id means the code was not produced in-game, in
+  either mode — so `forPvp` cannot legitimise it, and the old condition was wrong too.
+  A warning rather than an error because the id names a real skill and nothing says the
+  client refuses it.
 
-1. On a PvP character, equip **Fragility** (Mesmer, Domination Magic), save a skill
-   template, and decode the code. Does it contain id **19** (PvE) or **2998** (PvP)?
-   - `19` → the game normalises, and `PVE_VERSION_ON_PVP_BUILD` must go.
-   - `2998` → the rule is right and the 2009 comment is stale.
-2. Encode a bar containing id **2734** (Mind Wrack (PvP)) and load it in-game on a PvE
-   character. Refuses to load → error is the right severity. Loads as normal Mind
-   Wrack → a warning is enough. Loads as the PvP version in PvE → error, clearly.
-
-Test 1 works on a roleplaying character too: the question is what the game WRITES, not
-what it displays.
+The template is now a test fixture, so the false positive cannot return.
 
 ## Partial: mechanism sourced, exact wording not
 
 - `ATTRIBUTE_NOT_TEMPLATABLE` — title tracks are not attribute-point attributes, which
   follows from GWW Title but is not stated as a template restriction.
-- `PVP_VERSION_ON_PVE_BUILD`, `PVE_VERSION_ON_PVP_BUILD` — GWW Skill describes split
-  versions that "update automatically when in each respective zone". That supports
-  treating them as distinct; the strictness of rejecting the wrong one is inferred.
 
 ## A constraint we cannot check, worth knowing
 

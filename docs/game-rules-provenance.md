@@ -101,7 +101,12 @@ defect was found.
 
 ## Cross-checked by a second model (2026-07-31)
 
-The prompt in `game-rules-verification-prompt.md` was run through ChatGPT. It agreed on
+The rule list above was run through ChatGPT for an independent check. The prompt itself
+is deliberately not kept: generated from `validate.ts`, it would drift as rules change
+and then verify assertions the code no longer makes — the same failure as a pre-push hook
+with its own hardcoded list. Regenerate one from the current source if the exercise is
+worth repeating, and demand a full URL plus a verbatim quote per verdict, with NOT FOUND
+presented as an acceptable answer. It agreed on
 ten rules with HIGH confidence and found one better source than ours — the Hero page
 states the PvE-only restriction directly, which we had been sourcing from the Signet of
 Capture page. That quote was verified by fetching the page.

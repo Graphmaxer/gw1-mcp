@@ -686,138 +686,82 @@ Two consequences worth knowing, because they are not obvious:
 Reopen only if a custom domain is actually acquired, and note that it would mean
 re-submitting to every directory rather than editing a URL.
 
-## DoS bounds on decode_pawned_team (added 2026-07-31)
+## DoS bounds on decode_pawned_team (2026-07-31)
 
-Found by the CodSpeed benchmark suite on the day it was installed, which is the
-best argument for having installed it — 313 tests could not see this, because
-nothing was wrong: something was merely unbounded.
+The blob was capped at 256 KiB and nothing else, but the container turns blob SIZE
+into slot COUNT: 262 000 bytes of filler parses into 29 112 slots, each decoded and
+described. One request cost **409.7 ms of CPU and a 12.9 MB response** against a 10 ms
+cap. Now 1.0 ms.
 
-The blob was capped at 256 KiB and nothing else. But the container turns blob SIZE
-into slot COUNT: 262 000 bytes of filler parses into **29 112 slots**, and the
-handler decoded and described every one. Measured end to end, one request cost
-**409.7 ms of CPU and a 12.9 MB response**, against a 10 ms per-request cap — 41x
-over, and repeatable 100 times a minute per address under the rate limiter.
+- `MAX_PWND_SLOTS = 12` — a team is a player plus seven heroes. Rejecting beats
+  truncating: 29 112 slots is not a team.
+- `MAX_PWND_BLOB_LEN = 16384` — the old cap was **817x** a real blob (321 characters
+  for four slots). Needed separately: the container parse runs before any slot count
+  is known.
+- `MAX_TEMPLATE_CODE_LEN = 128` on the `code` argument only. NOT on pwnd slots — the
+  format encodes each field's length in one base64 character, so 63 is the structural
+  maximum. A guard there was unreachable and removed; a test records why.
 
-Three bounds now, and each covers something the others cannot:
+Found by the benchmark suite, which 313 tests could not do: nothing was wrong,
+something was unbounded.
 
-- `MAX_PWND_SLOTS = 12` — a paw-ned2 team is a player plus seven heroes, so eight
-  is the real maximum. Rejecting beats truncating: 29 112 slots is not a team.
-- `MAX_PWND_BLOB_LEN = 16384` — the old cap was **817x** a real blob, which
-  measures 321 characters for four slots with notes and a source URL. This bound
-  matters separately because the upstream container parse runs BEFORE any slot
-  count is known.
-- `MAX_TEMPLATE_CODE_LEN = 128` on the `code` argument of decode_template. NOT on
-  pwnd slots: the format encodes each field's length in a single base64 character,
-  so a slot code cannot exceed 63 characters. A 128-character guard was added there
-  and removed the same day — Codecov reported it uncovered, and it was uncovered
-  because it was unreachable, not because a test was missing. A test now records the
-  structural limit so the guard is not re-added.
+## get_skill violated its own output schema (fixed 2026-07-31)
 
-Result: 409.7 ms → 1.0 ms on the attack, and the real PvX fixture still decodes to
-its four labelled slots.
+`fullSkill` used `...skill`, leaking six internal join keys into a strict schema, so
+`get_skill` THREW for any client that calls `tools/list` first — which is every real
+client. Three reasons nothing caught it, all worth keeping:
 
-My first diagnosis of this was wrong and the record should say so: I read the
-benchmark's "10k chars of zero padding" as long per-slot codes reaching the decoder,
-and measured 22.5 ms for a 262 144-character decode. That path does not exist — the
-container splits filler into many short slots instead. The cost was in the slot
-count, and it was 18x worse than what I first proposed to fix.
+- **Typecheck cannot**: excess-property checks do not apply to spreads.
+- **The tests could not**: they called tools without listing them first, leaving the
+  SDK's output validators unprimed. The bug was invisible because tests are tidier
+  than clients.
+- **Production could not**: the demo ran `get_skill` through Claude Code successfully,
+  so client-side validation is not universal.
 
-## get_skill was broken for real clients (fixed 2026-07-31)
+So: never `...skill` in `results.ts`, and the conventions test lists tools before
+calling all of them, asserting coverage of `TOOL_NAMES`.
 
-`fullSkill` built its result with `...skill`, which leaked six internal join keys —
-`attributeId`, `campaignId`, `professionId`, `typeId`, `pvpSplit`, `splitId` — into
-`fullSkillShape`, a strict object that declares none of them. Consequence: any client
-that calls `tools/list` before calling a tool, **which is every real client**, primes
-the SDK's output validators, and `get_skill` then **threw** `-32602 ... data must NOT
-have additional properties`. The other seven tools were fine.
+## workerd runs locally, and there are no compatibility flags
 
-Three reasons nothing caught it, all worth remembering:
+`pnpm --filter @gw1-mcp/gw-worker exec wrangler dev --local` starts the REAL workerd.
+Use it: any claim hedged with "measured under Node" can be checked properly, and the
+gap has been material twice — `tools/list` measured ~17 ms under Node against 7.66 ms
+in production, and an async benchmark reported 221 ms for the same call. Bindings are
+the limit: Analytics Engine and the rate limiter are not exercised locally.
 
-- **Typecheck cannot.** Excess-property checks do not apply to spreads, so the raw
-  dataset record widened silently into the declared return type.
-- **The tests could not**, because they call tools without listing them first. The
-  validators stayed unprimed, so the bug was invisible precisely because tests are
-  tidier than clients.
-- **Production could not.** The demo on 2026-07-31 ran `get_skill` through Claude
-  Code and it worked, so client-side validation is evidently not universal — which
-  makes this the kind of contract violation that fails for some users and not others.
+`nodejs_compat` was removed 2026-07-31 after proving it did nothing: the bundle has no
+`node:` specifier, no unenv polyfill and no Node global (the only matches are
+`$ZodPreprocess` and Web-standard `arrayBuffer`), it is byte-identical with and without
+the flag, and every route and tool answers under real workerd without it.
 
-Fixed by listing every field explicitly; the ids stay internal, since `id` is the
-only one callers need (it appears in template codes). Locked by a conventions test
-that lists tools first and then calls all of them, asserting the count matches
-`TOOL_NAMES` so a new tool cannot ship unchecked. Verified failible: restoring the
-spread turns it red with the exact SDK error.
+Removing it is a guardrail, not tidiness: with the flag, a dependency that quietly
+needs a Node API is silently polyfilled by unenv and fails later at the call site.
+Without it, it fails to resolve at build time. If something legitimately needs Node
+APIs, add the flag back deliberately — `nodejs_als` exists if only AsyncLocalStorage
+is wanted.
 
-Found in a comment left by the CodSpeed setup wizard, which had noticed `get_skill`
-could not be benchmarked and worked around it instead of reporting it.
+## createServer() runs on every /mcp request (halved 2026-07-31)
 
-## workerd can be run locally — use it
+Unavoidable: the SDK refuses to reuse a server across transports ("Already connected
+to a transport"), for sequential AND concurrent, and `close()` cannot be called here —
+it empties every response, since the body is lazy (see the B6 note in the worker).
+Tested, not assumed.
 
-`pnpm --filter @gw1-mcp/gw-worker exec wrangler dev --local` starts the REAL
-workerd, not Node. Every claim in this file that was hedged with "measured under
-Node, not workerd" can now be checked properly, and should be: the gap has been
-material twice — `tools/list` measured ~17 ms under Node against 7.66 ms in
-production, and a CodSpeed async benchmark reported 221 ms for the same call.
+|                                          | before       | after       |
+| ---------------------------------------- | ------------ | ----------- |
+| inside `registerTool`/`registerResource` | 2.70 ms      | 1.51 ms     |
+| building the argument literals (zod)     | ~2.02 ms     | ~0 ms       |
+| **`createServer()`**                     | **5.37 ms**  | **1.89 ms** |
+| **full `tools/list` request**            | **18.68 ms** | **6.91 ms** |
 
-Bindings are the limit: Analytics Engine and the rate limiter are not exercised
-locally, so code behind `c.env?.MCP_ANALYTICS` and `RATE_LIMITER` still needs
-production to confirm.
+Two changes, both free of concurrency risk because zod schemas are immutable values:
+per-tool schema literals live at module scope, and the `z.object` wrappers are
+pre-built (the SDK rebuilt all sixteen per request via `objectFromShape`). Zero `z.`
+calls remain inside the function body — keep it that way. Each chained zod method
+CLONES the schema, which is why one `z.string().max(64).describe(...)` costs 0.147 ms.
 
-## No compatibility flags (nodejs_compat removed 2026-07-31)
-
-`nodejs_compat` was carried from the initial setup and did nothing. Proven three
-ways rather than assumed:
-
-- The bundle contains no `node:` specifier, no unenv polyfill and no Node global.
-  The only apparent matches are false: `process.` inside `$ZodPreprocess`, and
-  eleven `Buffer` hits that are all Web-standard `arrayBuffer`/`ArrayBuffer`.
-- The bundle is byte-identical with and without the flag (2051.34 KiB /
-  319.88 KiB gzip), so it was injecting nothing at build time.
-- Under real workerd without it: `/`, `/privacy`, `/terms`, `/robots.txt`,
-  `/.well-known/security.txt` all 200, `GET /mcp` 405, and `get_skill`,
-  `encode_template`, a fuzzy-suggestion miss and the pwnd slot bound all answer
-  correctly.
-
-Removing it is a guardrail, not tidiness. With the flag set, a dependency that
-quietly needs a Node API is silently polyfilled by unenv and fails later at the
-call site with "[unenv] ... is not implemented yet". Without it, that dependency
-fails to resolve at build time. If something legitimately needs Node APIs, add the
-flag back deliberately — and note that `nodejs_als` exists if only
-AsyncLocalStorage is wanted.
-
-## createServer() runs on every /mcp request — half of it removed 2026-07-31
-
-`createApp()` builds the Hono app once, but `createServer({ onToolCall })` sits
-inside the `/mcp` handler, so the server is rebuilt per request. That is not
-fixable: the SDK refuses to reuse a server — "Already connected to a transport.
-Call close() before connecting to a new transport" — for sequential AND concurrent
-transports, and `close()` is exactly what cannot be called here (see the B6 note in
-the worker: it empties every response, because the body is lazy). Tested, not
-assumed.
-
-So the cost was attacked where it could be. Bisected in one process over 150
-iterations:
-
-|                                          | before       | after                                   |
-| ---------------------------------------- | ------------ | --------------------------------------- |
-| inside `registerTool`/`registerResource` | 2.70 ms      | unchanged — the SDK's half, unreachable |
-| building the argument literals (zod)     | ~2.02 ms     | **~0 ms**                               |
-| `new McpServer()`                        | ~0.65 ms     | unchanged                               |
-| **`createServer()` total**               | **5.37 ms**  | **2.30 ms**                             |
-| **full `tools/list` request**            | **18.68 ms** | **6.77 ms**                             |
-
-Every per-tool `inputSchema` and `outputSchema` literal now lives at module scope.
-Zod schemas are immutable value objects, so sharing them across server instances
-carries no concurrency risk — which is why this was the first thing to try and the
-transport lifecycle the last. Zero `z.` calls remain inside the function body.
-
-Verified identical where it matters: `tools/list` is 18 577 characters (was 18 578,
-a one-character formatting difference), still 8 tools, titles present, and
-`get_skill` still validates after `tools/list` primes the SDK.
-
-Why a single `z.string().max(64).describe(...)` costs 0.147 ms is worth knowing:
-each chained method CLONES the schema, so a five-field shape rebuilt per request was
-1.7 ms on its own.
+Verified byte-identical: `tools/list` is 18 577 characters, and strictness survives —
+an extra property in a structured result is still rejected.
 
 ## Workflow: push straight to main
 
@@ -837,98 +781,40 @@ little. What matters is knowing where the real gate is:
 If that changes — a second contributor, or anything with a rollback cost — the
 Cloudflare build command is the thing to widen first, not the branch policy.
 
-## What the production dashboard says (read 2026-07-31)
+## What the production dashboard says (2026-07-31)
 
-Three conclusions, and only the third gave work.
+- **Traffic is entirely automated.** `clientInfo` names 15 callers on `initialize`,
+  none of them human. `glimind-probe` alone is 63% of connections, matching the 65%
+  the user-agents showed independently. The 95% "protocol overhead" is that, not a
+  mystery.
+- **The French alias table (J1 path 3) is closed as NO.** 198 resolved lookups against
+  2 missed, and both misses are most likely our own probes.
+- **`ATTRIBUTE_POINTS_EXCEEDED` was the top validation failure, and the cause was
+  ours**: `RANK_COST` lived only in `validate.ts`, and the costs are non-linear (rank
+  12 costs 97, so 12/12 spends 194 of 200 and three lines at 12 is impossible). The
+  table is now in the error message and the bundled skill. Neither adds fixed context.
 
-**Traffic is entirely automated.** `clientInfo` names 15 distinct callers on
-`initialize` and not one is a human client — no claude-code, no cursor, no ChatGPT.
-`glimind-probe` alone is 358 of ~570 connections (63%), then aisec-registry-probe
-84, glama 36, and a dozen registry, scoring and uptime scanners. Two independent
-measurements agree: user-agents in Workers Logs said 65%, clientInfo says 63%. The
-"Protocol overhead share" panel is therefore accurate and not a mystery.
+Caveat: the skill and hero rankings are dominated by our own testing and say nothing
+about users yet. Their panel descriptions say so.
 
-**The French alias table (J1 path 3) can be closed as NO.** Name lookups measure
-198 resolved against 2 missed — 1% — and both misses are most likely my own French
-probes. This was the evidence that decision was deferred for; there is no demand.
+## Game rules: see docs/game-rules-provenance.md
 
-**`ATTRIBUTE_POINTS_EXCEEDED` is the most frequent validation failure, and the cause
-was ours.** `RANK_COST` — `[0,1,3,6,10,15,21,28,37,48,61,77,97]` — lived only inside
-validate.ts. No model could see it, and the costs are NON-LINEAR: rank 12 is 97
-points, so 12/12 already spends 194 of 200 and three lines at 12 is impossible. A
-model assuming linearity overspends every time, and the validator only said so
-afterwards. Fixed in two places: the table is now IN the error message, so a model
-that overspends can compute a fix instead of guessing again, and it is in the
-bundled skill with a worked example, so the error should not happen. Neither costs
-fixed context — the message appears only on failure, and the skill loads only when
-invoked.
+Every validator rule, where it comes from, and how sure we are: **12 of 24 verified
+against primary sources, 3 partial, 0 unverified, 9 that are not game rules.** Each
+rule cites its source in `validate.ts`.
 
-Caveat on everything else the dashboard shows: the skill and hero rankings are
-dominated by my own testing (Patient Spirit, Word of Healing, Dunkoro — the demo
-bars). Those panels say nothing about users yet and are labelled as curiosity in
-their descriptions.
+Two defects were found on 2026-07-31 by checking sources instead of reading code, and
+both are recorded there: `PVE_ONLY_ON_PVP_BUILD` was missing (54 PvE-only skills carry
+no profession, so they passed every other check, and `encode_template` would produce a
+valid code for an illegal PvP bar), and the three-skill PvE cap wrongly excluded
+Signet of Capture.
 
-## Game-rule audit (2026-07-31): two defects, both sourced
-
-Asked whether I had checked the rules against reliable sources, I had not — I had
-asserted them from memory and shipped code that REJECTS builds on that basis, which
-is worse than the gap it closed. Verifying found the new rule correct and a
-pre-existing one wrong.
-
-**Sources used** (cited in `validate.ts` at each rule): `List_of_PvE-only_skills`,
-`PvP_Access_Kit`, `Signet_of_Capture` and `Talk:Signet_of_Capture` on
-wiki.guildwars.com, plus the Fandom `Signet_of_Capture` page and `Elite_skill` for
-the August 23 2007 update that introduced the cap.
-
-**Confirmed: `PVE_ONLY_ON_PVP_BUILD` was genuinely missing.** "It is not possible for
-PvP characters to learn or use these skills" (PvP_Access_Kit). `forPvp` only checked
-the PvE/PvP split VERSIONS of ordinary skills, a different rule, and 54 PvE-only
-skills carry no profession so they passed every other check — `encode_template` would
-have produced a valid code for an illegal PvP bar.
-
-One nuance the sources added that memory had not: a ROLEPLAYING character may equip a
-PvE-only skill and enter a PvP area, where it merely shows as locked. Only PvP-only
-characters cannot have it at all. `forPvp` means a PvP character's bar here, so a hard
-error is right — but the distinction is recorded at the rule in case that changes.
-
-**Corrected: Signet of Capture COUNTS toward the three-skill cap.** The code excluded
-it. "Signet of Capture is a PvE-only skill. Therefore it cannot be equipped by heroes
-and is subject to the limit of 3 PvE-only skills at a time." Contemporary player
-reports name the exact combination the validator used to accept — three PvE-only
-skills plus a capture signet, which is four and gets one kicked off the bar. Three
-copies of the signet alone remain legal, which the tests also pin.
-
-## Rule provenance: 12 of 24 verified, 3 partial, 0 unverified
-
-`docs/game-rules-provenance.md` records where every validator rule comes from, and
-each rule cites its source in `validate.ts`. The three that were unverified are now
-sourced:
-
-- **`SAME_PROFESSIONS`** — by arithmetic, which beats a sentence. The wiki counts
-  "30 possible core-profession combinations, 56 if you own Factions or Nightfall, and
-  90 if you own both". Six professions give 30 = 6x5, eight give 56 = 8x7, ten give
-  90 = 10x9. Those counts hold only if secondary differs from primary; otherwise they
-  would be 36, 64 and 100.
-- **`DUPLICATE_SKILL`** — the exception states the rule: "**Unlike other skills**, it
-  is possible to obtain multiple copies of Signet of Capture."
-- **`ATTRIBUTE_PROFESSION_MISMATCH`** — "Attribute points are used to improve
-  attributes in either your primary or secondary profession." The same search
-  upgraded `PRIMARY_ATTRIBUTE_ON_SECONDARY` and `PROFESSION_MISMATCH` from partial:
-  the panel lists "all except the primary attribute of your Secondary profession".
-
-Three remain partial — `ATTRIBUTE_NOT_TEMPLATABLE` and the two split-version rules.
-Their mechanism is sourced; the strictness of rejecting is inferred.
-
-Also found, and not checkable by us: a template will not load if the character lacks
-one of its professions. Nothing to validate, but it is the right answer when someone
-reports that a legal code will not load.
-
-The `RANK_COST` table published in the error message and the bundled skill IS
-verified, cross-checked on five independent figures (rank 7 = 28, rank 9 = 48, rank
-12 = 97, 11→12 = 20, 6→7 = 7) plus the 200 total. Its worked example turned out
-corroborated verbatim: 12/10/8 is listed among veterans' common allocations, and "six
-unassigned points after two attributes at 12" appears in the wiki almost word for
-word.
+**Still open, and it matters most of the three partials:** the two split-version
+rules. A 2009 comment by the format's documenter says the game normalises split skills
+to their PvE id when writing a template, in both modes — if true,
+`PVE_VERSION_ON_PVP_BUILD` rejects every genuine PvP template containing any of the
+156 split skills. An in-game test is pending; a forum comment is not enough to remove
+a rule. The protocol is in the provenance doc.
 
 ## Method note
 

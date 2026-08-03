@@ -27,6 +27,36 @@ cover a point.
 | `PRIMARY_ATTRIBUTE_ON_SECONDARY` | Fandom Skills_and_Attributes_panel — "The listed attributes include all of the ones available to your Primary profession, and **all except the primary attribute of your Secondary profession**"; GWW Primary_attribute confirms the mechanism                                                                                                             |
 | `PROFESSION_MISMATCH`            | GWW Skill — "only characters of the respective profession can use it"; Fandom Profession — "A character has access to all skills of both chosen professions". Common and PvE-only skills are handled separately in the code                                                                                                                                |
 
+## Pending an in-game test: the two split-version rules
+
+`PVE_VERSION_ON_PVP_BUILD` may reject the NORMAL case. A 2009 comment by the person
+who documented the template format says:
+
+> "PvE and PvP versions of skills are different skills and as such have different
+> skill ids ... when generating the skill template code in-game, it treats PvP version
+> skills as PvE version skills. That way PvE skill templates are the same as PvP skill
+> templates ... this makes it impossible to identify if a skill template was meant for
+> PvP or PvE."
+> — poke, gwpvx.fandom.com/wiki/Talk:PvX_wiki/Archive_12
+
+If that still holds, every genuine PvP template carries PvE ids for all **156** split
+skills, and this rule rejects any real PvP build containing one. But a 2009 talk-page
+comment is not enough to delete a rule, and Reforged may have changed it. **The rules
+are unchanged pending the test below.**
+
+### The test that settles it
+
+1. On a PvP character, equip **Fragility** (Mesmer, Domination Magic), save a skill
+   template, and decode the code. Does it contain id **19** (PvE) or **2998** (PvP)?
+   - `19` → the game normalises, and `PVE_VERSION_ON_PVP_BUILD` must go.
+   - `2998` → the rule is right and the 2009 comment is stale.
+2. Encode a bar containing id **2734** (Mind Wrack (PvP)) and load it in-game on a PvE
+   character. Refuses to load → error is the right severity. Loads as normal Mind
+   Wrack → a warning is enough. Loads as the PvP version in PvE → error, clearly.
+
+Test 1 works on a roleplaying character too: the question is what the game WRITES, not
+what it displays.
+
 ## Partial: mechanism sourced, exact wording not
 
 - `ATTRIBUTE_NOT_TEMPLATABLE` — title tracks are not attribute-point attributes, which

@@ -16,12 +16,12 @@
   "dependencies": {
     "@gw1-mcp/gw-mcp": "workspace:*",
     "@hono/mcp": "^0.3.1",
-    "hono": "^4.12.32"
+    "hono": "^4.12.33"
   },
   "devDependencies": {
     "@codspeed/vitest-plugin": "^5.7.1",
     "@hono/node-server": "^2.0.12",
-    "@types/node": "^26.1.1",
-    "wrangler": "^4.114.0"
+    "@types/node": "^26.1.2",
+    "wrangler": "^4.118.0"
   }
 }

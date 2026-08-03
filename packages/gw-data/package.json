@@ -21,7 +21,7 @@
   "devDependencies": {
     "@buildwars/gw-skilldata": "^1.1.0",
     "@codspeed/vitest-plugin": "^5.7.1",
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.1.2",
     "ajv": "^8.20.0"
   }
 }

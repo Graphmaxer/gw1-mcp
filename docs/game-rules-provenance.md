@@ -5,9 +5,9 @@ sources, and two of them turned out to be wrong once checked. A build compiler t
 enforces a rule the game does not have is worse than one that misses a rule: it
 rejects legal builds, and the user has no way to tell it is the tool that is wrong.
 
-**Status: 15 verified, 0 partial, 0 unverified, 9 that are not game rules.** Seven were
-settled by testing in game, which outranks the wiki wherever the question is about what
-the client does rather than what a character may have. Sources are cited inline at each rule in
+**Status: 15 verified, 0 partial, 0 unverified, 9 that are not game rules.** Nine were
+settled by testing in game, which outranks the wiki wherever the question is about what the
+client does rather than what a character may have. Sources are cited inline at each rule in
 `packages/gw-mcp/src/validate.ts`. Prefer wiki.guildwars.com over Fandom where both
 cover a point.
 
@@ -201,10 +201,20 @@ That is the most dangerous case in the whole series. An emptied skill slot is vi
 quietly different attribute spread is not, and it changes the numbers on **every** skill in
 the bar. The message now says so.
 
-Still predicted and untested: `TOO_MANY_PVE_SKILLS`, also a limit, should load and drop the
-fourth PvE-only skill. It needs a roleplaying character, since a PvP one cannot hold
-PvE-only skills at all. If it were refused instead, the pattern would be wrong and worth
-revisiting.
+**Tested 2026-08-01 on a roleplaying Dervish, and the prediction held again.**
+`TOO_MANY_PVE_SKILLS` is a limit, and a template with four PvE-only skills loads with one
+silently dropped. A control with exactly three loads intact, which also confirms the
+character owned all three — without that control the result would have been ambiguous.
+
+**The same test confirmed this morning's Signet of Capture fix.** Three PvE-only skills plus
+a capture signet is four, and the client drops one, so the signet does consume the
+allowance. That correction had been made on a Fandom quote alone; the game agreed with it.
+Worth noting because the change was to REMOVE an exemption, i.e. to make the validator
+stricter — the direction where being wrong rejects legal builds.
+
+So every limit rule now behaves the same way, and the pattern has made three correct
+predictions: elites, duplicates, the attribute budget, and the PvE cap all load and trim
+silently, while every impossibility is refused outright.
 
 Consequence for messages: the trimming rules must say so, because a caller cannot see it.
 `MULTIPLE_ELITES` and `DUPLICATE_SKILL` now do. The refusal rules say the whole code will

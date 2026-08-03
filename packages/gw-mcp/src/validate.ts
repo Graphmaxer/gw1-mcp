@@ -322,9 +322,13 @@ export function validateBuild(
   //   "the August 23, 2007 update that limited a skill bar to having only 3
   //    PvE-only skills" — wiki.guildwars.com/wiki/Elite_skill
   //
-  // The case this used to accept and the game rejects: three PvE-only skills plus
-  // a Signet of Capture, which is four. Contemporary player reports name exactly
-  // that combination as the update's consequence.
+  // The case this used to accept: three PvE-only skills plus a Signet of Capture,
+  // which is four. CONFIRMED IN GAME 2026-08-01 — that exact template loads and the
+  // client drops one, so the signet does consume the allowance. The fix had been made
+  // on a Fandom quote alone; the game agreed.
+  //
+  // Note the failure mode: this is a LIMIT, so the client trims silently rather than
+  // refusing. A control template with exactly three PvE-only skills loads intact.
   if (!options.forHero) {
     const pveOnly = resolved.filter(({ skill }) => skill.isRoleplay);
     if (pveOnly.length > 3) {
@@ -332,7 +336,9 @@ export function validateBuild(
         code: "TOO_MANY_PVE_SKILLS",
         message: `At most 3 PvE-only skills per bar, found ${pveOnly.length}: ${pveOnly
           .map((e) => e.skill.name)
-          .join(", ")}`,
+          .join(
+            ", ",
+          )}. The game will load this template anyway and silently drop the excess, so the bar in game will not match this code.`,
       });
     }
   }

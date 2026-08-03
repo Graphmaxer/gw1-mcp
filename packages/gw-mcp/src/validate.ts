@@ -54,6 +54,9 @@ export function validateBuild(
   const spentPoints = budgeted.reduce((total, { rank }) => total + (RANK_COST[rank] ?? 0), 0);
   if (!hasOutOfRangeRank && spentPoints > MAX_ATTRIBUTE_POINTS) {
     errors.push({
+      // wiki.guildwars.com/wiki/Attribute_point: "The maximum is a total of 200 after
+      // reaching level 20 and completing both of the quests that reward 15 attribute
+      // points each." RANK_COST cross-checked on five independent figures there.
       code: "ATTRIBUTE_POINTS_EXCEEDED",
       // The cost table goes IN the message. It is non-linear and lived only in
       // this file, so a model overspending had no way to compute a fix and would
@@ -101,6 +104,9 @@ export function validateBuild(
     });
   }
 
+  // wiki.guildwars.com/wiki/Skill: "to a maximum of 8 skills (including at most one
+  // elite skill) at a time". Eight SLOTS, not eight skills — id 0 is "No Skill" and an
+  // eight-empty-slot template is legitimate; a real one was produced in game 2026-08-01.
   if (template.skills.length !== 8) {
     errors.push({
       code: "INVALID_SKILL_COUNT",
@@ -244,6 +250,9 @@ export function validateBuild(
       // Heroes cannot equip PvE-only skills at all — this is a hard error, the
       // message claimed impossibility while the code only warned (POC3).
       errors.push({
+        // wiki.guildwars.com/wiki/Hero: "similar to PvP-only characters, heroes only
+        // have access to skills that you have unlocked on your account, including elite
+        // skills. Similarly, they cannot use PvE-only skills." Quote checked by fetching.
         code: "PVE_ONLY_ON_HERO",
         message: `Slot ${slot + 1}: "${skill.name}" is a PvE-only skill; heroes cannot equip it`,
       });
@@ -364,6 +373,9 @@ export function validateBuild(
 
     if (attributeId > MAX_TEMPLATE_ATTRIBUTE_ID) {
       errors.push({
+        // Verified in game 2026-08-01: a template allocating points to a title track
+        // (Sunspear, attribute id 102) is REFUSED outright — Load greyed, header "...".
+        // No wiki sentence states this; observation settled it.
         code: "ATTRIBUTE_NOT_TEMPLATABLE",
         message: `"${attribute.name}" is a ${attributeId === NO_ATTRIBUTE_ID ? "non-attribute" : "PvE title track"}; title ranks come from account progress and cannot be allocated in a skill template`,
       });
@@ -372,6 +384,10 @@ export function validateBuild(
 
     if (rank < 0 || rank > 12) {
       errors.push({
+        // wiki.guildwars.com/wiki/Skills_and_Attributes_Panel: "Unmodified attribute
+        // ranks cannot be raised above twelve or lowered below zero." Verified in game
+        // 2026-08-01: a template with rank 15 is refused outright, so the bound holds at
+        // the loader and not only in the panel.
         code: "RANK_OUT_OF_RANGE",
         message: `"${attribute.name}" rank ${rank} out of range (base ranks are 0-12)`,
       });
@@ -379,6 +395,10 @@ export function validateBuild(
 
     if (attributeId <= MAX_TEMPLATE_ATTRIBUTE_ID) {
       // Regular profession attribute: must belong to primary or secondary.
+      // wiki.guildwars.com/wiki/Attribute_point: "Attribute points are used to improve
+      // attributes in either your primary or secondary profession." Verified in game
+      // 2026-08-01: a template carrying Fire Magic on a Mesmer is REFUSED outright —
+      // Load greyed, header "...". Same group as an out-of-profession skill.
       if (
         attribute.professionId !== template.primary &&
         attribute.professionId !== template.secondary
@@ -387,6 +407,10 @@ export function validateBuild(
           code: "ATTRIBUTE_PROFESSION_MISMATCH",
           message: `"${attribute.name}" does not belong to ${primary?.abbr ?? "?"}/${secondary?.abbr ?? "?"}`,
         });
+        // guildwars.fandom.com/wiki/Skills_and_Attributes_panel: the panel lists "all of
+        // the ones available to your Primary profession, and all except the primary
+        // attribute of your Secondary profession"; wiki.guildwars.com/wiki/Primary_attribute
+        // confirms the mechanism — skills from that line still work, at reduced effect.
       } else if (attribute.isPrimary && attribute.professionId !== template.primary) {
         errors.push({
           code: "PRIMARY_ATTRIBUTE_ON_SECONDARY",

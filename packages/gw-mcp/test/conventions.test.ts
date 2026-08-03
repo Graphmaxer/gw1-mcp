@@ -174,6 +174,47 @@ describe("isError policy (mechanical lock)", () => {
   });
 });
 
+describe("every game rule cites its source (mechanical lock)", () => {
+  // Added because four citations had silently failed to land: an audit found rules with
+  // real, known sources carrying no reference in the code. Comments rot quietly, and a
+  // provenance document that disagrees with the source is worse than none — this makes
+  // the omission a build failure instead.
+  //
+  // Rules about request coherence or name resolution are exempt: they are not claims
+  // about the game.
+  const NOT_GAME_RULES = new Set([
+    "UNKNOWN_PRIMARY",
+    "UNKNOWN_SECONDARY",
+    "UNKNOWN_SKILL",
+    "UNKNOWN_ATTRIBUTE",
+    "DUPLICATE_ATTRIBUTE",
+    "SKILL_NOT_UNLOCKED",
+    "UNALLOCATED_ATTRIBUTE",
+    "UNUSED_ATTRIBUTE",
+    "NO_PRIMARY",
+  ]);
+
+  it("has a wiki URL or an in-game observation near every game rule", () => {
+    const source = readFileSync(new URL("../src/validate.ts", import.meta.url), "utf8");
+    const codes = [...new Set([...source.matchAll(/code: "([A-Z_]+)"/g)].map((m) => m[1]!))];
+    const gameRules = codes.filter((c) => !NOT_GAME_RULES.has(c));
+    // Non-vacuity: if the extraction breaks, fail here rather than pass emptily.
+    expect(gameRules.length).toBeGreaterThan(10);
+
+    // Look only at each rule's OWN territory: the span between the previous `code:`
+    // and this one. A fixed-size window fails vacuously here — a 1500-character look
+    // back catches the NEIGHBOURING rule's citation, so removing a citation left the
+    // test green. Found by trying it.
+    const uncited = gameRules.filter((code) => {
+      const at = source.indexOf(`code: "${code}"`);
+      const previous = source.lastIndexOf('code: "', at - 1);
+      const own = source.slice(previous === -1 ? 0 : previous, at);
+      return !/wiki\.|fandom\.|in game|IN GAME/.test(own);
+    });
+    expect(uncited).toEqual([]);
+  });
+});
+
 describe("output schemas match reality (mechanical lock)", () => {
   // Every real client calls tools/list before calling a tool, and the SDK then
   // validates every structured result against the declared outputSchema from that

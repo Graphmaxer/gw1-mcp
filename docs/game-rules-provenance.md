@@ -226,3 +226,36 @@ Reported by the maintainer from earlier testing: codes produced by this project 
 correctly onto heroes. That closes the widest verification gap before 1.0 — hero bar
 construction is the project's primary use case, and until then it had only unit tests
 behind it.
+
+## The citations are now locked, because seven were missing
+
+Asked whether the links were properly noted, I audited instead of answering. **They were
+not.** Four citations had silently failed to land — the scripted edits that were supposed
+to add them had aborted mid-run — so rules with real, known sources carried no reference
+in the code.
+
+Worse, the first version of the lock I wrote to prevent this was **vacuous**: it looked
+1500 characters back from each rule, which catches the NEIGHBOURING rule's citation.
+Removing a citation left it green. Found by trying it, which is the only way to find that.
+
+The strict version looks only at each rule's own territory — the span between the previous
+`code:` and this one — and it immediately found **three more** omissions the loose window
+had masked: `PVE_ONLY_ON_HERO`, `ATTRIBUTE_NOT_TEMPLATABLE`, `RANK_OUT_OF_RANGE`.
+
+All fifteen game rules now carry a wiki URL or an in-game observation in their own span,
+enforced by `conventions.test.ts` and verified failible by removing one.
+
+## Did the sources turn out right?
+
+**About the rules, yes — every one of them.** Nothing the wiki stated was contradicted in
+game, including the arithmetic inference for `SAME_PROFESSIONS` and a **2009 talk-page
+comment** about template normalisation that held up seventeen years later.
+
+**About the consequences, they were silent.** No source anywhere says what the client does
+with an invalid template, and that turned out to be the most useful thing learned:
+impossibilities are refused visibly, limits are trimmed in silence. Four rules had their
+messages rewritten because of it — a caller needs to know it will lose a skill or a rank
+without being told, not merely that a rule exists.
+
+**One source actively misled**: a GWW talk page saying a duplicate-skill template "does
+load". True, and useless — it loads and drops the duplicates.

@@ -223,6 +223,23 @@ Set it dash-side as a plain variable rather than a secret: the token is meant to
 publicly, and a secret cannot be read back to check. Challenge Base URL is the origin;
 paths are ignored.
 
+**Skills** — the form accepts a skill ZIP, and the existing `skills/gw1-build-assistant`
+qualifies unchanged. It follows the Agent Skills open standard, which both Codex and Claude
+Code implement, so the same folder serves both plugins. Checked against the spec rather than
+assumed: `name` is lowercase-hyphenated and **matches the folder exactly** (the skill will
+not load otherwise), the description is well under the 1024-character cap, the body is far
+under the 5000-token guidance, and there are **no angle brackets in the frontmatter** — the
+spec flags those as a prompt-injection risk.
+
+Added `agents/openai.yaml`, which openai/skills lists as recommended for skill lists and
+chips. Without it the display name is derived from the folder and reads "Gw1 Build
+Assistant". Additive only: spec-compliant runtimes ignore directories they do not
+recognise, so the Claude plugin is unaffected.
+
+Package it with the folder at the archive root — `cd skills && zip -r
+gw1-build-assistant.zip gw1-build-assistant` — not the files loose, since the folder name
+is what must match `name`.
+
 **Remaining after those**: host the video somewhere a reviewer can open with no login,
 then submit. Verify the URL in a private window first — a reviewer hitting an access
 request marks the submission incomplete, which would be a silly way to lose the round.

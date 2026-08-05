@@ -1,0 +1,11 @@
+# UI metadata for OpenAI skill lists and chips. Recommended by openai/skills, and
+# ignored by every other spec-compliant runtime — the Agent Skills open standard says
+# runtimes ignore frontmatter and directories they do not recognise, so this file is
+# additive and does not affect the Claude Code plugin that ships the same skill.
+#
+# Without it the display name is derived from the folder name, which would read
+# "Gw1 Build Assistant".
+display_name: Guild Wars 1 build assistant
+description: >-
+  Design, review and compile Guild Wars 1 skill bars using the gw1-mcp tools as the
+  source of truth for game data.

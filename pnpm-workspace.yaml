@@ -17,7 +17,9 @@ overrides:
   # vulnerable fast-uri (GHSA-v2hh-gcrm-f6hx, host confusion via a literal
   # backslash authority delimiter — a URI-parsing/SSRF-adjacent bug). Same
   # not-ours-to-bump situation as @hono/node-server above.
-  "fast-uri": "^3.1.4"
+  # Bumped 2026-08-02: 3.1.4 is itself vulnerable now (High), fixed in 3.1.5. An
+  # override is a floor, not a fix — it needs raising when the floor moves.
+  "fast-uri": "^3.1.5"
   # sharp is pulled in by miniflare (wrangler's local Workers simulator,
   # dev-only — never runs in the deployed Cloudflare Worker) and inherits
   # several libvips CVEs below 0.35.0 (GHSA-f88m-g3jw-g9cj). Production
@@ -27,4 +29,27 @@ overrides:
   # GHSA-r28c-9q8g-f849, path traversal via a crafted previous source map).
   # Dev-only, zero production exposure — same reasoning as the three above, and
   # the same conclusion: no reason to keep a vulnerable copy in the tree.
-  "postcss": "^8.5.18"
+  # Bumped 2026-08-02 for the same reason: 8.5.18 fell behind, fixed in 8.5.23.
+  "postcss": "^8.5.23"
+  # hono < 4.12.34 has GHSA / Dependabot #9: ReDoS in the CORS middleware via
+  # Access-Control-Request-Headers. Unlike the four above, this one is REACHABLE IN
+  # PRODUCTION: hono is a direct runtime dependency, app.ts calls cors() on /mcp, and
+  # that request header is attacker-controlled on a public endpoint — catastrophic
+  # backtracking there burns the 10 ms CPU budget, the same shape as the pwnd DoS.
+  # gw-worker's own dependency is bumped to ^4.12.34; this override also collapses the
+  # older copy that @modelcontextprotocol/sdk pulls in through @hono/node-server.
+  "hono": "^4.12.34"
+  # undici < 7.29.0 carries five advisories (Dependabot #4-#8, one High: cross-user
+  # information disclosure and a parse-time crash via degenerate private cache
+  # directives). It reaches us ONLY through miniflare -> wrangler, which is a
+  # devDependency, and `grep undici dist/index.js` finds nothing — so production
+  # exposure is nil. GitHub labels the scope "runtime", which is wrong here; the graph
+  # and the bundle both say dev. Overridden anyway, same reasoning as sharp and postcss.
+  "undici": "^7.29.0"
+  # ip-address <= 10.3.0 has three advisories (one High) and arrives through
+  # @modelcontextprotocol/sdk -> express-rate-limit. The SDK ships Express-based
+  # transports we never use — the worker serves MCP through @hono/mcp — and
+  # `grep -c ip-address dist/index.js` is 0, so production exposure is nil. Floored
+  # anyway, because a dev-only vulnerability is still a vulnerability on the machine
+  # that builds and publishes.
+  "ip-address": "^10.3.1"

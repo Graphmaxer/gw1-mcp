@@ -649,7 +649,7 @@ Tool design rules:
 - Tools are pure/deterministic: same input → same output, no hidden state.
 - When a skill name is not found, always return the 3 closest matches (Levenshtein or similar) — LLMs make small spelling errors and must be able to self-correct in one round-trip.
 
-## Where this server is listed (2026-07-29)
+## Where this server is listed (updated 2026-08-05)
 
 | Directory                    | Status                                   | Notes                                                                                                                                                                                                                                                                    |
 | ---------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -658,7 +658,7 @@ Tool design rules:
 | Glama                        | indexed, unclaimed, quality A            | https://glama.ai/mcp/connectors/io.github.Graphmaxer/gw1-mcp — claiming needs an email at a public URL, declined, see debt #1                                                                                                                                            |
 | LobeHub                      | listed                                   | badge in README                                                                                                                                                                                                                                                          |
 | Forge                        | `/.well-known/forge.json` served         | per-directory verification file                                                                                                                                                                                                                                          |
-| ChatGPT Plugins              | not submitted                            | kit + generated JSON ready; blocked on identity verification and the demo recording                                                                                                                                                                                      |
+| ChatGPT Plugins              | ready to submit                          | kit, generated JSON, identity verification and icons all done. Demo recorded and assembled 2026-08-05 (web + Android, one 2 min 51 file). Remaining: host the video at a login-free URL and press submit                                                                 |
 | Claude community marketplace | **submitted 2026-07-31, pending review** | validated locally (passed with the expected CLAUDE.md-at-root warning). On approval the plugin is pinned to a commit SHA in anthropics/claude-plugins-community, CI bumps the pin as commits land, and the public catalog syncs nightly, so installability lags approval |
 
 Worth watching rather than assuming: the client-attribution dimension added the

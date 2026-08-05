@@ -196,3 +196,27 @@ Two things the generator cannot know, and which a blind upload would get wrong:
 - Category is `ENTERTAINMENT`, not `DEVELOPER_TOOLS`. The enum has no games
   category, and the audience is Guild Wars players rather than developers, even
   though the artefact is a compiler.
+
+## Status 2026-08-05: ready to submit
+
+Everything the form asks for exists:
+
+- **Icons** — `assets/brand/icon-*.png`, full-bleed, up to 1024. One file per slot; see
+  `assets/brand/README.md` for why there is no light/dark pair.
+- **Generated JSON** — `chatgpt-app-submission.json`, uploaded and accepted by the form.
+  Verified against the live server: 8 tools declared, 8 exposed, hints matching,
+  `outputSchema` on all, titles present at `t.title`.
+- **Developer identity** — verified.
+- **Demo recording** — done. One file, 2 min 51, web plus Android; see
+  `chatgpt-demo-recording.md` for the shot list, what each shot proves, and the note to
+  paste about platform coverage.
+- **Terms and privacy URLs** — `/terms` and `/privacy` are served.
+
+**Remaining, and only this**: host the video somewhere a reviewer can open with no login,
+then submit. Verify the URL in a private window first — a reviewer hitting an access
+request marks the submission incomplete, which would be a silly way to lose the round.
+
+One thing to fix in the same pass if the form allows editing: the Claude directory
+description says "decode any in-game **template** code" where it should say "skill template
+code". The same phrasing may have gone into this form; the codec accepts skill templates
+only. See `claude-plugin-submission.md`.

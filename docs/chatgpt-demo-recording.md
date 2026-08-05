@@ -299,3 +299,58 @@ loses the composer and the top of the answer, which is the part a reviewer needs
 > the flows are identical text exchanges there is no iOS-specific behaviour that web and
 > Android footage would not already show. Happy to supply iOS footage if a reviewer
 > considers it blocking.
+
+## YouTube: title, description, thumbnail
+
+Unlisted, so none of this is for discovery — the only audience is a reviewer. What earns
+its place is the **chapters**: the form asks for "all main use cases and tools", and
+timestamps let a reviewer confirm that in fifteen seconds instead of scrubbing three
+minutes.
+
+**Title**
+
+```
+Guild Wars 1 Build Compiler — ChatGPT plugin demo (web + Android)
+```
+
+**Description** (chapter marks read off the assembled file, not guessed)
+
+```
+Demo recording for the OpenAI plugin directory submission.
+
+gw1-mcp is a deterministic build compiler for the original Guild Wars: it looks up
+skills with current Guild Wars Reforged stats, decodes in-game template codes and
+paw-ned2 team blobs, and compiles skill bars into official template codes that are
+validated against the real game rules before a code is produced.
+
+Repository: https://github.com/Graphmaxer/gw1-mcp
+MCP server: https://gw1-mcp.graphmaxer.workers.dev/mcp
+
+Chapters
+00:00 Web — ChatGPT developer mode
+00:02 decode_template — a shared code becomes professions, attributes, 8 skills
+00:22 get_skill — current Reforged stats for one skill
+00:42 search_skills + validate_build + encode_template — a hero bar, compiled to a code
+01:02 get_hero — one hero, with its unlock condition
+01:20 list_heroes — the Nightfall roster
+01:42 decode_pawned_team — a full paw-ned2 team blob
+02:02 Refusal — declining to hand-write a template code, and why
+02:30 Android — the ChatGPT Android app, same flows
+
+Platform coverage: web and Android are recorded. The plugin is a text-only MCP server
+with no widgets or platform-specific surface, so the flows are identical across surfaces.
+iOS is not covered — no iOS device available — and since the flows are the same text
+exchanges, web and Android already show the whole behaviour.
+
+Unofficial fan-made tool. Guild Wars is a registered trademark of NCSoft Corporation;
+not affiliated with or endorsed by NCSoft or ArenaNet.
+```
+
+**Thumbnail** — `assets/brand/demo-thumbnail-1280x720.png`, generated from the brand
+assets at YouTube's expected 1280x720. It reuses the measured tile gradient rather than a
+flat colour, so it matches the icon it sits beside.
+
+Two things to check before saving: the chapters only render if the first is exactly
+`00:00` and there are at least three, and the video must be **Unlisted** rather than
+Private — Private means only the account owner can open it, which is the same dead end as
+a login wall.

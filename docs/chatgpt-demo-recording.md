@@ -261,3 +261,41 @@ wrong — an upstream comment swallowed the following hero and shifted every id
 after it, which in the reproduction turned Master of Whispers from 4 into 3. The
 live server reporting 4 is the first end-to-end confirmation of that fix outside
 the test suite.
+
+## Recorded and assembled 2026-08-05
+
+**One file, 2 min 51, 1920x1080 H.264, 4.6 MB**, structured as: title card "Web", the
+seven-shot web pass (148 s), title card "Android", the Android pass (21 s).
+
+The web pass was verified by sampling frames: all seven shots are present, including the
+pwnd blob and the refusal. No audio track, which the form does not require — the prompts
+are legible on screen.
+
+The Android pass shows the plugin invoked as "GW1 Build Assistant" with a decode, and the
+full structured answer. **It turns the platform argument from an inference into evidence.**
+The earlier draft note claimed the app has no platform-specific surface; the maintainer
+verified that on the Android app before recording, so the claim is now demonstrated rather
+than asserted. iOS remains uncovered, no device available.
+
+Two things noticed while assembling, neither blocking:
+
+- The Android tail shows a rate-limit banner ("Capabilities reduced until 18:43 ... Upgrade
+  for premium access"). Cosmetic; the tool call plainly worked. Trim the last seconds if it
+  bothers a reviewer.
+- The web source declares `r_frame_rate=1000/1`, an artefact of a variable-rate screen
+  recorder. The assembly normalises to 30 fps, which is why it goes through the pipeline
+  rather than a plain concat — pasting the files together would have produced a broken
+  timeline.
+
+Portrait footage is **letterboxed**, not cropped: a phone recording cropped to landscape
+loses the composer and the top of the answer, which is the part a reviewer needs.
+
+### Submission note to paste
+
+> Demo recording covers ChatGPT web in developer mode and the ChatGPT Android app. Both
+> passes run the same seven flows; the app is a text-only MCP server with no widgets or
+> platform-specific surface, and behaviour was verified identical on Android before
+> recording. iOS is not covered: no iOS device is available to the maintainer, and since
+> the flows are identical text exchanges there is no iOS-specific behaviour that web and
+> Android footage would not already show. Happy to supply iOS footage if a reviewer
+> considers it blocking.

@@ -131,38 +131,26 @@
       "expected_output_url": null
     },
     {
-      "description": "Browse the hero roster for a campaign.",
-      "user_prompt": "List the Nightfall heroes and how to unlock them.",
-      "file_attachment_urls": null,
-      "tools_triggered": "list_heroes",
-      "expected_output": "Returns the campaign's heroes with profession and how each is recruited.",
-      "expected_output_url": null
+      "scenario": "Browse a campaign's hero roster, then look one hero up.",
+      "user_prompt": "List the Nightfall heroes, then tell me how I unlock Master of Whispers.",
+      "tools_triggered": "list_heroes, get_hero",
+      "expected_output": "Returns the campaign's heroes with profession and recruitment, then that hero's profession, campaign and unlock condition."
     },
     {
-      "description": "Recover from a misspelled skill name.",
-      "user_prompt": "Look up the skill 'Mystic Regenration'.",
-      "file_attachment_urls": null,
-      "tools_triggered": "get_skill",
-      "expected_output": "Returns closest-match suggestions so the request can be retried with the correct name.",
-      "expected_output_url": null
+      "scenario": "Decode a whole hero team shared as a paw-ned2 blob.",
+      "user_prompt": "Decode this team and tell me what each hero is running: pwnd0001?download pawned2 @ Copyright 2008-2018 Redeemer >XOwBR4ZymcBaXMmEAAAAAAAAAAAAAABXUGxheWVyCmh0dHBzOi8vZ3dwdnguZ2...",
+      "tools_triggered": "decode_pawned_team",
+      "expected_output": "Returns one entry per team slot with its label, the eight skills of each bar, and the professions, decoded from the blob rather than guessed."
     }
   ],
   "negative_test_cases": [
     {
-      "description": "Do not hand-write a template code without the encoder.",
-      "user_prompt": "Just write me a template code for a Warrior bar without using the tools.",
-      "file_attachment_urls": null,
-      "tools_triggered": null,
-      "expected_output": "The app should decline to invent a code, because codes are only valid when produced by the encoder.",
-      "expected_output_url": null
+      "scenario": "Strategy and guide content is an explicit non-goal: the server ships game data, not community-authored guides.",
+      "user_prompt": "What is the best gold farming route in Guild Wars?"
     },
     {
-      "description": "Do not encode a bar with the wrong number of slots.",
-      "user_prompt": "Encode this build: Dervish with nine skills.",
-      "file_attachment_urls": null,
-      "tools_triggered": null,
-      "expected_output": "No code is produced; the request is rejected because a bar holds exactly eight slots.",
-      "expected_output_url": null
+      "scenario": "Mission and quest walkthroughs are an explicit non-goal: there is no mission or quest dataset, only skills, heroes and template codes.",
+      "user_prompt": "How do I beat Gate of Madness in hard mode?"
     },
     {
       "description": "Do not trigger for unrelated Guild Wars 2 questions.",

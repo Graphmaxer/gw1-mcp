@@ -212,7 +212,18 @@ Everything the form asks for exists:
   paste about platform coverage.
 - **Terms and privacy URLs** — `/terms` and `/privacy` are served.
 
-**Remaining, and only this**: host the video somewhere a reviewer can open with no login,
+**Tool justifications** — the form requires one per annotation, 24 in all. Drafted in
+`chatgpt-tool-justifications.md`, each stating the mechanism rather than repeating the
+claim, and each factual assertion checked against the source (no `fetch(` in the tool
+packages, the 16 KiB and 12-slot bounds, 1485 skills, 31 heroes).
+
+**Domain verification** — the route `/.well-known/openai-apps-challenge` already exists
+and serves `c.env.OPENAI_APPS_CHALLENGE`, returning 404 while that variable is unset.
+Set it dash-side as a plain variable rather than a secret: the token is meant to be served
+publicly, and a secret cannot be read back to check. Challenge Base URL is the origin;
+paths are ignored.
+
+**Remaining after those**: host the video somewhere a reviewer can open with no login,
 then submit. Verify the URL in a private window first — a reviewer hitting an access
 request marks the submission incomplete, which would be a silly way to lose the round.
 

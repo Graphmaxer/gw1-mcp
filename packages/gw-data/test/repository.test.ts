@@ -185,9 +185,16 @@ describe("documented counts stay true (mechanical lock)", () => {
   // the kits must not quote a count at all — the fix is to make the drift
   // impossible, not merely detectable. Tool and resource counts are fine and
   // stay: those change only deliberately, and already require a new review.
+  // Every document whose text can end up in a public listing, not just the two that
+  // existed when this lock was written. chatgpt-tool-justifications.md was added on
+  // 2026-08-05 carrying "1485 skills" straight into text destined for the OpenAI
+  // directory — the lock caught the kit but not the new file, so the list is the part
+  // that rots. Add a document here the moment its prose is written to be pasted.
   for (const kit of [
     "../../../docs/claude-plugin-submission.md",
     "../../../docs/chatgpt-plugin-submission.md",
+    "../../../docs/chatgpt-tool-justifications.md",
+    "../../../docs/chatgpt-demo-recording.md",
   ] as const) {
     it(`${kit} quotes no skill count that could go stale`, () => {
       const offenders = [...read(kit).matchAll(/\b\d{3,5} (?:real )?skills\b/g)].map((m) => m[0]);

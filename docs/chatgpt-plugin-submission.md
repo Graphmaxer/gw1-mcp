@@ -214,8 +214,8 @@ Everything the form asks for exists:
 
 **Tool justifications** — the form requires one per annotation, 24 in all. Drafted in
 `chatgpt-tool-justifications.md`, each stating the mechanism rather than repeating the
-claim, and each factual assertion checked against the source (no `fetch(` in the tool
-packages, the 16 KiB and 12-slot bounds, 1485 skills, 31 heroes).
+claim, and each factual assertion checked against the source: no `fetch(` anywhere in the
+tool packages, and the blob and slot bounds are real constants.
 
 **Domain verification** — the route `/.well-known/openai-apps-challenge` already exists
 and serves `c.env.OPENAI_APPS_CHALLENGE`, returning 404 while that variable is unset.

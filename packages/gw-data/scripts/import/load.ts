@@ -147,13 +147,124 @@ export async function loadUpstream(source: string | undefined): Promise<Upstream
     skilldata: Record<string, unknown>;
     skilldesc: Record<string, unknown>;
   };
+  const { ATTRIBUTES, CAMPAIGNS, PROFESSIONS, SKILLTYPES } = normaliseConstantTables(
+    module_ as unknown as Record<string, unknown>,
+  );
   return {
-    ATTRIBUTES: module_.ATTRIBUTES,
-    CAMPAIGNS: module_.CAMPAIGNS,
-    PROFESSIONS: module_.PROFESSIONS,
-    SKILLTYPES: module_.SKILLTYPES,
+    ATTRIBUTES,
+    CAMPAIGNS,
+    PROFESSIONS,
+    SKILLTYPES,
     skilldata: english.skilldata,
     skilldesc: english.skilldesc,
     version: `npm:${pkg.version}`,
   } as Upstream;
+}
+
+/** One entry of a `{ de, en }` localised name table. */
+type Localised = { de: string; en: string };
+
+/**
+ * Accept both upstream shapes for the four constant tables.
+ *
+ * @buildwars/gw-skilldata 2.0.0 replaced the flat `ATTRIBUTES`/`CAMPAIGNS`/
+ * `PROFESSIONS`/`SKILLTYPES` tables with classes carrying id-keyed statics:
+ *
+ *   PROFESSIONS[id].name  -> Profession.NAME[id]
+ *   PROFESSIONS[id].abbr  -> Profession.NAME_ABBR[id]
+ *   CAMPAIGNS[id].name    -> Campaign.NAME[id]
+ *   ATTRIBUTES[id].name   -> Attribute.NAME[id]
+ *   ATTRIBUTES[id].prof   -> Attribute.PROFESSION[id]
+ *   ATTRIBUTES[id].max    -> Attribute.MAX_VALUE[id]
+ *   ATTRIBUTES[id].pri    -> derived by inverting Profession.PRIMARY_ATTRIBUTE
+ *   SKILLTYPES[id].name   -> Type.NAME[id]
+ *
+ * Normalising here rather than in the transforms is deliberate: `loadUpstream` is
+ * already the boundary that hides where the data came from, and the transforms are
+ * covered by tests that compare against committed data. Adapting at the boundary
+ * means the bump changes no transform and no output.
+ *
+ * Why accept BOTH: the Pages path fetches the upstream bundle from a URL, so which
+ * shape arrives depends on what upstream has deployed, not on our lockfile. The two
+ * paths can legitimately disagree for a while.
+ *
+ * The failure this replaces was not loud enough. Under 2.0.0 the old code returned
+ * four `undefined` tables and `loadUpstream` SUCCEEDED; the import then died on
+ * "Cannot read properties of undefined (reading 'map')", which says nothing about
+ * the cause. Now an unrecognised shape is named as such.
+ */
+export function normaliseConstantTables(module_: Record<string, unknown>): {
+  ATTRIBUTES: unknown;
+  CAMPAIGNS: unknown;
+  PROFESSIONS: unknown;
+  SKILLTYPES: unknown;
+} {
+  if (module_["ATTRIBUTES"] !== undefined) {
+    return {
+      ATTRIBUTES: module_["ATTRIBUTES"],
+      CAMPAIGNS: module_["CAMPAIGNS"],
+      PROFESSIONS: module_["PROFESSIONS"],
+      SKILLTYPES: module_["SKILLTYPES"],
+    };
+  }
+
+  const Profession = module_["Profession"] as
+    | {
+        NAME: Record<string, Localised>;
+        NAME_ABBR: Record<string, Localised>;
+        PRIMARY_ATTRIBUTE: Record<string, number>;
+      }
+    | undefined;
+  const Campaign = module_["Campaign"] as { NAME: Record<string, Localised> } | undefined;
+  const Attribute = module_["Attribute"] as
+    | {
+        NAME: Record<string, Localised>;
+        PROFESSION: Record<string, number>;
+        MAX_VALUE: Record<string, number>;
+      }
+    | undefined;
+  const Type = module_["Type"] as { NAME: Record<string, Localised> } | undefined;
+
+  if (!Profession || !Campaign || !Attribute || !Type) {
+    throw new Error(
+      "upstream constant tables are in an unrecognised shape: expected either ATTRIBUTES/CAMPAIGNS/PROFESSIONS/SKILLTYPES (gw-skilldata 1.x) or Attribute/Campaign/Profession/Type (2.x). Neither was found — the upstream API changed again and scripts/import/load.ts needs a new branch.",
+    );
+  }
+
+  // 2.x records profession -> its primary attribute; the transforms want the inverse
+  // flag on each attribute. Profession 0 ("none") is EXCLUDED: it maps to attribute 101
+  // ("No Attribute"), and including it marked that placeholder as a primary attribute —
+  // caught by diffing the import output against the committed data, not by any test,
+  // because no test asserts what No Attribute is.
+  const primaryAttributeIds = new Set(
+    Object.entries(Profession.PRIMARY_ATTRIBUTE)
+      .filter(([professionId]) => Number(professionId) !== 0)
+      .map(([, attributeId]) => attributeId),
+  );
+
+  const byId = <T>(table: Record<string, T>): [string, T][] =>
+    Object.entries(table).sort(([a], [b]) => Number(a) - Number(b));
+
+  return {
+    // The transforms index CAMPAIGNS and PROFESSIONS positionally (`.map((c, id) =>`),
+    // so these must be dense arrays ordered by id, not objects.
+    CAMPAIGNS: byId(Campaign.NAME).map(([, name]) => ({ name })),
+    PROFESSIONS: byId(Profession.NAME).map(([id, name]) => ({
+      name,
+      abbr: Profession.NAME_ABBR[id] ?? name,
+    })),
+    // ATTRIBUTES and SKILLTYPES are read with Object.entries, so id-keyed objects.
+    ATTRIBUTES: Object.fromEntries(
+      byId(Attribute.NAME).map(([id, name]) => [
+        id,
+        {
+          name,
+          prof: Attribute.PROFESSION[id],
+          pri: primaryAttributeIds.has(Number(id)),
+          max: Attribute.MAX_VALUE[id],
+        },
+      ]),
+    ),
+    SKILLTYPES: Object.fromEntries(byId(Type.NAME).map(([id, name]) => [id, { name }])),
+  };
 }

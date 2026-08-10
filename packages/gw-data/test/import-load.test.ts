@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { loadUpstream } from "../scripts/import/load.js";
+import { loadUpstream, normaliseConstantTables } from "../scripts/import/load.js";
 import { assertPlausibleDescription } from "../scripts/import/transform.js";
 import skills from "../data/skills.json";
 
@@ -153,5 +153,70 @@ describe("upstream description plausibility gate (audit C1)", () => {
 
   it("rejects an implausibly long description", () => {
     expect(ok("a".repeat(601))).toThrow(/over the 600/);
+  });
+});
+
+describe("normaliseConstantTables (upstream 1.x and 2.x)", () => {
+  // @buildwars/gw-skilldata 2.0.0 replaced the flat constant tables with classes
+  // carrying id-keyed statics. The old code returned four `undefined` tables and
+  // loadUpstream SUCCEEDED, so the import died later on "Cannot read properties of
+  // undefined (reading 'map')" — a message that says nothing about the cause.
+  it("passes 1.x tables through untouched", () => {
+    const tables = normaliseConstantTables({
+      ATTRIBUTES: { 1: { name: { en: "Illusion Magic" }, prof: 5, pri: false, max: 21 } },
+      CAMPAIGNS: [{ name: { en: "Core" } }],
+      PROFESSIONS: [{ name: { en: "none" }, abbr: { en: "X" } }],
+      SKILLTYPES: { 1: { name: { en: "Skill" } } },
+    });
+    expect(tables.CAMPAIGNS).toEqual([{ name: { en: "Core" } }]);
+  });
+
+  it("rebuilds the 1.x shape from 2.x classes", () => {
+    const tables = normaliseConstantTables({
+      Profession: {
+        NAME: { 0: { en: "none" }, 1: { en: "Warrior" } },
+        NAME_ABBR: { 0: { en: "X" }, 1: { en: "W" } },
+        PRIMARY_ATTRIBUTE: [101, 17],
+      },
+      Campaign: { NAME: { 0: { en: "Core" }, 1: { en: "Prophecies" } } },
+      Attribute: {
+        NAME: { 17: { en: "Strength" }, 101: { en: "No Attribute" } },
+        PROFESSION: { 17: 1, 101: 0 },
+        MAX_VALUE: { 17: 21, 101: 0 },
+      },
+      Type: { NAME: { 1: { en: "Skill" } } },
+    });
+    // Positional arrays for the transforms that index with `.map((c, id) =>`.
+    expect(tables.CAMPAIGNS).toEqual([{ name: { en: "Core" } }, { name: { en: "Prophecies" } }]);
+    expect(tables.PROFESSIONS).toEqual([
+      { name: { en: "none" }, abbr: { en: "X" } },
+      { name: { en: "Warrior" }, abbr: { en: "W" } },
+    ]);
+    const attributes = tables.ATTRIBUTES as Record<string, { pri: boolean; max: number }>;
+    expect(attributes["17"]).toEqual({ name: { en: "Strength" }, prof: 1, pri: true, max: 21 });
+  });
+
+  it("does not mark No Attribute as primary", () => {
+    // Profession 0 ("none") maps to attribute 101 ("No Attribute"). Inverting the whole
+    // table marked that placeholder primary — found by diffing the import output against
+    // the committed data, not by a test, since nothing asserts what No Attribute is.
+    const tables = normaliseConstantTables({
+      Profession: { NAME: { 0: { en: "none" } }, NAME_ABBR: {}, PRIMARY_ATTRIBUTE: [101] },
+      Campaign: { NAME: {} },
+      Attribute: {
+        NAME: { 101: { en: "No Attribute" } },
+        PROFESSION: { 101: 0 },
+        MAX_VALUE: { 101: 0 },
+      },
+      Type: { NAME: {} },
+    });
+    const attributes = tables.ATTRIBUTES as Record<string, { pri: boolean }>;
+    expect(attributes["101"]?.pri).toBe(false);
+  });
+
+  it("names the problem when the shape is neither", () => {
+    // The whole point: an unrecognised upstream API must say so, not return undefined
+    // tables and let the failure surface three call frames later.
+    expect(() => normaliseConstantTables({ SomethingNew: {} })).toThrow(/unrecognised shape/);
   });
 });

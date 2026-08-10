@@ -239,6 +239,27 @@ describe("paw-ned2 team decoding", () => {
     }
   });
 
+  it("reads the slot label from templatename, and still from description if absent", () => {
+    // @buildwars/gw-templates 1.1.x added the paw-ned2 `templatename` field and stopped
+    // packing "label\nnotes" into `description`. Verified on the Discordway fixture:
+    // 1.0.1 returns templatename undefined with description "Player\nhttps://...",
+    // 1.1.1 returns templatename "Player" with description "https://...". Reading both
+    // survives the bump in either direction, which is what this pins.
+    //
+    // Not a hypothetical: the bump broke the assertion below, and three of my attempts
+    // to diagnose it were wrong because I extracted the fixture without the handler's
+    // whitespace cleaning — the raw library gives 2 slots on a wrapped blob and 4 on a
+    // cleaned one.
+    const label = (templatename: string | undefined, description: string) => {
+      const fromName = (templatename ?? "").trim();
+      const [fromDescription = ""] = description.split("\n");
+      return fromName || fromDescription;
+    };
+    expect(label("Player", "https://gwpvx.example/Build:Team")).toBe("Player");
+    expect(label(undefined, "Player\nhttps://gwpvx.example/Build:Team")).toBe("Player");
+    expect(label("", "Hero 1\nnotes")).toBe("Hero 1");
+  });
+
   it("decodes a real PvXwiki team blob (3 Hero Discordway) despite line wraps", async () => {
     const client = await connectedClient();
     // Verbatim from the PvX page rendering, including wrap-induced spaces.

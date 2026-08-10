@@ -339,9 +339,23 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
               message: error instanceof Error ? error.message : String(error),
             };
           }
-          // The description field holds "label\nnotes"; label is the slot
-          // name shown in paw-ned2 ("Player", "Hero 1", ...).
-          const [label = "", ...notes] = entry.description.split("\n");
+          // The slot label lives in `templatename` — the paw-ned2 field for it —
+          // with `description` carrying only the notes. That is @buildwars/gw-templates
+          // 1.1.x; 1.0.x had no templatename and packed "label\nnotes" into
+          // description, which is why the fallback below exists. Reading both keeps
+          // this working across the bump either way, and the fallback is cheap.
+          //
+          // Verified against the 3 Hero Discordway fixture on both versions: 1.0.1
+          // gives templatename undefined and description "Player\nhttps://...", 1.1.1
+          // gives templatename "Player" and description "https://...".
+          // Cast because the shipped TYPES lag the implementation: 1.1.1 returns
+          // templatename at runtime — verified on the fixture — but its declaration
+          // still lists only skills, equipment, weaponsets, player, description and
+          // flags. Reported upstream; remove the cast once the types catch up.
+          const fromName = ((entry as { templatename?: string }).templatename ?? "").trim();
+          const [fromDescription = "", ...rest] = entry.description.split("\n");
+          const label = fromName || fromDescription;
+          const notes = fromName ? entry.description.split("\n") : rest;
           return {
             slot: index + 1,
             label,

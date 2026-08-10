@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { TOOL_NAMES, type ToolName } from "../src/tool-names.js";
+import { pwndSlotLabel } from "../src/results.js";
 import { createServer } from "../src/server.js";
 
 async function connectedClient() {
@@ -239,25 +240,22 @@ describe("paw-ned2 team decoding", () => {
     }
   });
 
-  it("reads the slot label from templatename, and still from description if absent", () => {
-    // @buildwars/gw-templates 1.1.x added the paw-ned2 `templatename` field and stopped
-    // packing "label\nnotes" into `description`. Verified on the Discordway fixture:
-    // 1.0.1 returns templatename undefined with description "Player\nhttps://...",
-    // 1.1.1 returns templatename "Player" with description "https://...". Reading both
-    // survives the bump in either direction, which is what this pins.
+  it("reads the slot label from templatename, and from description when absent", () => {
+    // Calls the real helper rather than re-implementing it, which is what the previous
+    // version of this test did — leaving the 1.0.x branch uncovered while looking like
+    // it tested both. The coverage gate caught the duplication, not a missing case.
     //
-    // Not a hypothetical: the bump broke the assertion below, and three of my attempts
-    // to diagnose it were wrong because I extracted the fixture without the handler's
-    // whitespace cleaning — the raw library gives 2 slots on a wrapped blob and 4 on a
-    // cleaned one.
-    const label = (templatename: string | undefined, description: string) => {
-      const fromName = (templatename ?? "").trim();
-      const [fromDescription = ""] = description.split("\n");
-      return fromName || fromDescription;
-    };
-    expect(label("Player", "https://gwpvx.example/Build:Team")).toBe("Player");
-    expect(label(undefined, "Player\nhttps://gwpvx.example/Build:Team")).toBe("Player");
-    expect(label("", "Hero 1\nnotes")).toBe("Hero 1");
+    // 1.1.x supplies templatename; 1.0.x packed "label\nnotes" into description.
+    expect(pwndSlotLabel("Player", "https://gwpvx.example/Build:Team")).toEqual({
+      label: "Player",
+      notes: "https://gwpvx.example/Build:Team",
+    });
+    expect(pwndSlotLabel(undefined, "Player\nhttps://gwpvx.example/Build:Team")).toEqual({
+      label: "Player",
+      notes: "https://gwpvx.example/Build:Team",
+    });
+    expect(pwndSlotLabel("", "Hero 1\nnotes")).toEqual({ label: "Hero 1", notes: "notes" });
+    expect(pwndSlotLabel("  Hero 2  ", "")).toEqual({ label: "Hero 2", notes: null });
   });
 
   it("decodes a real PvXwiki team blob (3 Hero Discordway) despite line wraps", async () => {

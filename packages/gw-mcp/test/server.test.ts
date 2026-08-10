@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { TOOL_NAMES, type ToolName } from "../src/tool-names.js";
+import { pwndSlotLabel } from "../src/results.js";
 import { createServer } from "../src/server.js";
 
 async function connectedClient() {
@@ -237,6 +238,24 @@ describe("paw-ned2 team decoding", () => {
     for (const match of text.matchAll(/"skillsCode":"([^"]*)"/g)) {
       expect((match[1] ?? "").length).toBeLessThanOrEqual(63);
     }
+  });
+
+  it("reads the slot label from templatename, and from description when absent", () => {
+    // Calls the real helper rather than re-implementing it, which is what the previous
+    // version of this test did — leaving the 1.0.x branch uncovered while looking like
+    // it tested both. The coverage gate caught the duplication, not a missing case.
+    //
+    // 1.1.x supplies templatename; 1.0.x packed "label\nnotes" into description.
+    expect(pwndSlotLabel("Player", "https://gwpvx.example/Build:Team")).toEqual({
+      label: "Player",
+      notes: "https://gwpvx.example/Build:Team",
+    });
+    expect(pwndSlotLabel(undefined, "Player\nhttps://gwpvx.example/Build:Team")).toEqual({
+      label: "Player",
+      notes: "https://gwpvx.example/Build:Team",
+    });
+    expect(pwndSlotLabel("", "Hero 1\nnotes")).toEqual({ label: "Hero 1", notes: "notes" });
+    expect(pwndSlotLabel("  Hero 2  ", "")).toEqual({ label: "Hero 2", notes: null });
   });
 
   it("decodes a real PvXwiki team blob (3 Hero Discordway) despite line wraps", async () => {

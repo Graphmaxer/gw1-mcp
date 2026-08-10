@@ -43,7 +43,7 @@ import { PwndTemplate } from "@buildwars/gw-templates";
 import dataMeta from "@gw1-mcp/gw-data/data/_meta.json" with { type: "json" };
 import { describeTemplate, resolveNamedBuild } from "./build-io.js";
 import { validateBuild } from "./validate.js";
-import { fullHero, fullSkill, jsonError, jsonStructured } from "./results.js";
+import { fullHero, fullSkill, jsonError, jsonStructured, pwndSlotLabel } from "./results.js";
 
 /**
  * A domain event about one tool call. Deliberately transport-agnostic: this
@@ -339,13 +339,18 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
               message: error instanceof Error ? error.message : String(error),
             };
           }
-          // The description field holds "label\nnotes"; label is the slot
-          // name shown in paw-ned2 ("Player", "Hero 1", ...).
-          const [label = "", ...notes] = entry.description.split("\n");
+          // Both upstream shapes handled in one pure helper; see pwndSlotLabel.
+          const { label, notes } = pwndSlotLabel(
+            // Cast because the shipped TYPES lag the implementation: 1.1.1 returns
+            // templatename at runtime but declares only skills, equipment, weaponsets,
+            // player, description and flags. Reported upstream; remove when they catch up.
+            (entry as { templatename?: string }).templatename,
+            entry.description,
+          );
           return {
             slot: index + 1,
             label,
-            notes: notes.join("\n").trim() || null,
+            notes,
             inGamePlayerName: entry.player || null,
             skillsCode: entry.skills,
             equipmentCode: entry.equipment || null,

@@ -88,3 +88,30 @@ export function fullSkill(id: number): FullSkillOut | null {
     type: getSkillType(skill.typeId)?.name ?? null,
   };
 }
+
+/**
+ * Slot label and notes for one paw-ned2 entry, across both upstream shapes.
+ *
+ * @buildwars/gw-templates 1.1.x supplies the paw-ned2 `templatename` field and leaves
+ * `description` to the notes. 1.0.x had no templatename and packed "label\nnotes" into
+ * description. Verified on the 3 Hero Discordway fixture: 1.0.1 gives templatename
+ * undefined with description "Player\nhttps://...", 1.1.1 gives "Player" and
+ * "https://...".
+ *
+ * Extracted as a pure function so both shapes are actually exercised. The first version
+ * of this lived inline and its test re-implemented the logic instead of calling it,
+ * which left the 1.0.x branch uncovered — the coverage gate caught the duplication, not
+ * a missing test.
+ */
+export function pwndSlotLabel(
+  templatename: string | undefined,
+  description: string,
+): { label: string; notes: string | null } {
+  const fromName = (templatename ?? "").trim();
+  const lines = description.split("\n");
+  if (fromName) {
+    return { label: fromName, notes: lines.join("\n").trim() || null };
+  }
+  const [fromDescription = "", ...rest] = lines;
+  return { label: fromDescription, notes: rest.join("\n").trim() || null };
+}

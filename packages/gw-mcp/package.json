@@ -14,7 +14,7 @@
     "bench": "vitest bench --run"
   },
   "dependencies": {
-    "@buildwars/gw-templates": "^1.0.1",
+    "@buildwars/gw-templates": "^1.1.1",
     "@gw1-mcp/gw-data": "workspace:*",
     "@gw1-mcp/gw-template": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.30.0",
@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@codspeed/vitest-plugin": "^5.7.1",
-    "@types/node": "^26.1.2",
+    "@types/node": "^26.2.0",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1"
   }

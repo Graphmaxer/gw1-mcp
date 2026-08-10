@@ -53,3 +53,13 @@ overrides:
   # anyway, because a dev-only vulnerability is still a vulnerability on the machine
   # that builds and publishes.
   "ip-address": "^10.3.1"
+  # nanoid < 3.3.17 (High): custom generators loop indefinitely when size is zero. It
+  # reaches us only through @vitest/coverage-v8 -> vitest -> vite -> postcss, so it is
+  # dev-only. Floored on the same reasoning as the entries above: a dev-only
+  # vulnerability is still a vulnerability on the machine that builds and publishes.
+  #
+  # Note for the next person grepping the bundle: `grep -c nanoid dist/index.js` returns
+  # 131, and every one of them is ZOD. `z.nanoid()` is a string-format validator — a
+  # regex /^[a-zA-Z0-9_-]{21}$/ plus a label — so the NAME appears while the package does
+  # not. Checking presence by name alone would have concluded the opposite.
+  "nanoid": "^3.3.17"

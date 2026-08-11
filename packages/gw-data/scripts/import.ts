@@ -25,7 +25,7 @@ import {
   transformSkills,
   transformSkillTypes,
 } from "./import/transform.js";
-import { mergeProvenance, writeData } from "./import/write.js";
+import { mergeProvenance, syncReadmeSkillCount, writeData } from "./import/write.js";
 
 /**
  * `pnpm run import:data -- <url>` forwards the literal "--" token into this
@@ -63,6 +63,14 @@ async function main(): Promise<void> {
     skills,
     `${skills.length} (${skills.filter((s) => s.isPvpVersion).length} PvP versions)`,
   );
+  // README advertises the count and repository.test.ts asserts it exactly, so the
+  // generator owns it — otherwise an upstream count change reds the weekly job
+  // until a human edits prose (which is what happened on 2026-08-10).
+  const readmePath = join(outDir, "..", "..", "..", "README.md");
+  const rewritten = syncReadmeSkillCount(readmePath, skills.length);
+  if (rewritten > 0)
+    console.log(`README.md: ${rewritten} skill-count mention(s) -> ${skills.length}`);
+
   mergeProvenance(outDir, "skills", {
     source: "https://github.com/build-wars/gw-skilldata (npm: @buildwars/gw-skilldata)",
     sourceVersion: upstream.version,

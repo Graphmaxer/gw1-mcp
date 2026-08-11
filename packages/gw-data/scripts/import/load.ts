@@ -16,6 +16,47 @@ export interface Upstream {
 }
 
 /**
+ * Do the two data files describe the SAME snapshot?
+ *
+ * The provenance comment below already knew the risk — "a Pages redeploy between
+ * requests could even mix versions" — and answered it by hashing what was
+ * fetched, which makes an incoherent import reproducible rather than impossible.
+ * On 2026-08-10 it happened: the weekly run imported a snapshot with 1484 skills
+ * while upstream serves 1485 before and after, so the importer read a Pages
+ * deploy mid-rebuild. Nothing noticed. The failing check was a README count
+ * assertion three packages away, which named the wrong culprit and would have
+ * fired identically on a legitimate change.
+ *
+ * A count-delta bound would NOT have caught it — the count moved by one, which is
+ * exactly what a real balance patch looks like. Cross-file id equality does: the
+ * two files are generated together and always agree (verified against upstream,
+ * 1486 ids each including the id-0 sentinel), so any disagreement means we are
+ * looking at two different builds.
+ *
+ * Hard failure, not a warning: a mixed snapshot must never reach the golden tests,
+ * because the tests would mostly pass.
+ */
+export function assertCoherentSnapshot(
+  skilldata: Record<string, unknown>,
+  skilldesc: Record<string, unknown>,
+): void {
+  const dataIds = new Set(Object.keys(skilldata));
+  const descIds = new Set(Object.keys(skilldesc));
+  const onlyData = [...dataIds].filter((id) => !descIds.has(id));
+  const onlyDesc = [...descIds].filter((id) => !dataIds.has(id));
+  if (onlyData.length > 0 || onlyDesc.length > 0) {
+    const show = (ids: string[]) => ids.slice(0, 10).join(", ") + (ids.length > 10 ? ", …" : "");
+    throw new Error(
+      `Incoherent upstream snapshot: skilldata has ${dataIds.size} ids, skilldesc has ${descIds.size}. ` +
+        `${onlyData.length} only in skilldata (${show(onlyData)}); ` +
+        `${onlyDesc.length} only in skilldesc (${show(onlyDesc)}). ` +
+        `The two files are generated together, so this is two different builds — most likely a ` +
+        `GitHub Pages deploy caught mid-rebuild. Re-run the import; if it persists, upstream is broken.`,
+    );
+  }
+}
+
+/**
  * Data source resolution (see the entry-point doc): no argument = the npm
  * package; an http(s) URL = the upstream's GitHub Pages release files; a
  * filesystem path = a local git clone.
@@ -44,6 +85,9 @@ export async function loadUpstream(source: string | undefined): Promise<Upstream
     const ajv = new Ajv2020({ strict: false, allErrors: true });
     validateAgainstSchema(ajv, "skilldata.json", skilldataSchema, skilldata);
     validateAgainstSchema(ajv, "skilldesc-en.json", descSchema, desc);
+    // The schemas validate each file's SHAPE; this checks the two agree with each
+    // other, which is the only thing that catches a half-deployed source.
+    assertCoherentSnapshot(skilldata.skilldata, desc.skilldesc);
 
     // Constants (PROFESSIONS/ATTRIBUTES/CAMPAIGNS/SKILLTYPES) must come from
     // the same channel as the data (SKILLTYPES evolves): the Pages-served
@@ -123,6 +167,7 @@ export async function loadUpstream(source: string | undefined): Promise<Upstream
       readFileSync(join(cloneRoot, "data", "schemas", "skilldesc.schema.json"), "utf8"),
       desc,
     );
+    assertCoherentSnapshot(skilldata.skilldata, desc.skilldesc);
 
     const version = `git:${JSON.parse(readFileSync(join(cloneRoot, "package.json"), "utf8")).version}`;
     return {

@@ -568,7 +568,41 @@ describe("LLM-client hardening (from the first production transcript)", () => {
       arguments: { attributeName: "Motivations" },
     });
     expect(res.isError).toBe(true);
-    expect(JSON.stringify(res.content)).toContain("Motivation");
+    // In the FIELD issueSchema documents, not inside the prose: get_skill has
+    // always used the field, and one idea in two shapes makes a caller parse
+    // text to recover data it was handed (self-audit L1, 2026-08-11).
+    expect(payload(res).error.suggestions).toContain("Motivation");
+  });
+
+  it("every search_skills / list_heroes filter miss carries suggestions", async () => {
+    const client = await connectedClient();
+    const cases: [string, Record<string, unknown>, string, string][] = [
+      ["search_skills", { professionName: "Necromancr" }, "UNKNOWN_PROFESSION", "Necromancer"],
+      ["search_skills", { campaignName: "EotN" }, "UNKNOWN_CAMPAIGN", "Eye of the North"],
+      ["list_heroes", { professionName: "Paragorn" }, "UNKNOWN_PROFESSION", "Paragon"],
+      ["list_heroes", { campaignName: "Prophecy" }, "UNKNOWN_CAMPAIGN", "Prophecies"],
+    ];
+    for (const [name, args, code, expected] of cases) {
+      const res = await client.callTool({ name, arguments: args });
+      const label = `${name} ${JSON.stringify(args)}`;
+      expect(res.isError, label).toBe(true);
+      expect(payload(res).error.code, label).toBe(code);
+      expect(payload(res).error.suggestions, label).toContain(expected);
+    }
+  });
+
+  it("tells the model that campaign and attribute filters do not combine", async () => {
+    // The caveat used to live only in the server `instructions`, which many
+    // clients never forward. Measured: 0 of 42 attribute lines sit in one
+    // campaign, so combining the two filters hides most of a line.
+    const client = await connectedClient();
+    const { tools } = await client.listTools();
+    const search = tools.find((t) => t.name === "search_skills");
+    expect(search).toBeDefined();
+    const schema = search!.inputSchema as {
+      properties?: Record<string, { description?: string }>;
+    };
+    expect(schema.properties?.["campaignName"]?.description).toMatch(/attributeName/);
   });
 });
 

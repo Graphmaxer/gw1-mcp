@@ -21,16 +21,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # The version and the two digests live in .github/pins.env so the weekly
+      # tripwire can open the PR that bumps them (see that file's header).
+      - name: Load upstream pins
+        run: grep -E '^[A-Z0-9_]+=' .github/pins.env >> "$GITHUB_ENV"
       - name: Install mcp-publisher (pinned + digest-verified)
         # Pinned to a specific version with a checked SHA-256 instead of piping
         # `releases/latest` straight into tar in an OIDC job (GW1-05): a
         # compromised `latest` would otherwise run in our id-token context.
-        # Bump VERSION + the two digests together when upgrading. Digests from
-        # the v1.8.0 release assets (also Sigstore-signed upstream).
+        # Bump the version + the two digests together when upgrading. Digests
+        # come from the release assets (also Sigstore-signed upstream).
+        #
+        # Re-bound to the short names the script below uses, rather than exporting
+        # `VERSION` job-wide: a name that generic in a shared environment is an
+        # accident waiting for a second step.
         env:
-          VERSION: v1.8.0
-          SHA256_amd64: 1370446bbe74d562608e8005a6ccce02d146a661fbd78674e11cc70b9618d6cf
-          SHA256_arm64: c978982c60e1b4903a976de090f04dc4fac4a320daa50704fcad2dbc93433d62
+          VERSION: ${{ env.MCP_PUBLISHER_VERSION }}
+          SHA256_amd64: ${{ env.MCP_PUBLISHER_SHA256_AMD64 }}
+          SHA256_arm64: ${{ env.MCP_PUBLISHER_SHA256_ARM64 }}
         run: |
           set -euo pipefail
           arch=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')

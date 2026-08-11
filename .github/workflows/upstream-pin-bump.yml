@@ -1,10 +1,15 @@
 name: Upstream pin bump
 
-# The manual pins Dependabot cannot see (they live in workflow env:/run:, not
-# a manifest) drift silently. This weekly job checks GWToolboxpp and
+# The manual pins Dependabot cannot see (they live in .github/pins.env, not a
+# manifest it understands) drift silently. This weekly job checks GWToolboxpp and
 # mcp-publisher against upstream latest and, on drift, opens ONE pull request
 # that actually edits the pins — same actionable pattern as update-data.yml,
 # not a passive issue.
+#
+# The pins were in workflow YAML until 2026-08-11, which made this job unable to
+# do the one thing it exists for: an App token cannot push a change under
+# .github/workflows/**, so it failed at "Open pull request" twice and looked
+# green the two times it had nothing to say. Keep them in pins.env.
 #
 # VCPKG_COMMIT is intentionally NOT watched here: vcpkg master moves dozens of
 # times a day and is a frozen build toolchain, not a feature source — tracking
@@ -40,12 +45,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          build_wf=.github/workflows/build-gwtoolbox-plugin.yml
-          pub_wf=.github/workflows/publish-registry.yml
+          # ONE file, and not a workflow file. Until 2026-08-11 these pins lived
+          # in the two workflows below and this job patched them there — which
+          # meant it could never deliver: GitHub refuses an App push touching
+          # .github/workflows/** without `Workflows: write`, so the push failed on
+          # 2026-08-03 and 2026-08-10 while the earlier runs only looked green for
+          # want of drift. See .github/pins.env for the full reasoning.
+          pins=.github/pins.env
           body=$'Automated upstream-pin check found drift. Review carefully — this is a supply-chain bump, no auto-merge.\n\n'
           changed=false
 
-          pinned_gwtb=$(grep -oP 'GWTOOLBOX_COMMIT:\s*\K[0-9a-f]+' "$build_wf")
+          pinned_gwtb=$(grep -oP '^GWTOOLBOX_COMMIT=\K[0-9a-f]+' "$pins")
           latest_gwtb=$(gh api repos/gwdevhub/GWToolboxpp/commits/master --jq '.sha')
           # Both upstream values are interpolated into sed patterns and into the
           # PR body, so constrain their shape before use: a value carrying a
@@ -56,13 +66,13 @@ jobs:
             exit 1
           fi
           if [ "$pinned_gwtb" != "$latest_gwtb" ]; then
-            sed -i "s/${pinned_gwtb}/${latest_gwtb}/" "$build_wf"
+            sed -i "s/${pinned_gwtb}/${latest_gwtb}/" "$pins"
             compare="https://github.com/gwdevhub/GWToolboxpp/compare/${pinned_gwtb}...${latest_gwtb}"
             body="${body}### GWToolboxpp"$'\n'"\`${pinned_gwtb:0:12}\` -> \`${latest_gwtb:0:12}\`"$'\n'"Review upstream changes: ${compare}"$'\n'"The plugin build job compiles against this commit, so CI proves it still builds."$'\n\n'
             changed=true
           fi
 
-          pinned_pub=$(grep -oP 'VERSION:\s*\Kv[0-9.]+' "$pub_wf")
+          pinned_pub=$(grep -oP '^MCP_PUBLISHER_VERSION=\Kv[0-9.]+' "$pins")
           latest_pub=$(gh api repos/modelcontextprotocol/registry/releases/latest --jq '.tag_name')
           if ! printf '%s' "$latest_pub" | grep -qE '^v[0-9]+(\.[0-9]+)*$'; then
             echo "unexpected upstream release tag: $latest_pub" >&2
@@ -74,9 +84,9 @@ jobs:
             curl --fail --show-error --location "${base}/mcp-publisher_linux_arm64.tar.gz" -o arm64.tgz
             sha_amd64=$(sha256sum amd64.tgz | cut -d' ' -f1)
             sha_arm64=$(sha256sum arm64.tgz | cut -d' ' -f1)
-            old_amd64=$(grep -oP 'SHA256_amd64:\s*\K[0-9a-f]+' "$pub_wf")
-            old_arm64=$(grep -oP 'SHA256_arm64:\s*\K[0-9a-f]+' "$pub_wf")
-            sed -i "s/${pinned_pub}/${latest_pub}/;s/${old_amd64}/${sha_amd64}/;s/${old_arm64}/${sha_arm64}/" "$pub_wf"
+            old_amd64=$(grep -oP '^MCP_PUBLISHER_SHA256_AMD64=\K[0-9a-f]+' "$pins")
+            old_arm64=$(grep -oP '^MCP_PUBLISHER_SHA256_ARM64=\K[0-9a-f]+' "$pins")
+            sed -i "s/${pinned_pub}/${latest_pub}/;s/${old_amd64}/${sha_amd64}/;s/${old_arm64}/${sha_arm64}/" "$pins"
             rm -f amd64.tgz arm64.tgz
             body="${body}### mcp-publisher"$'\n'"\`${pinned_pub}\` -> \`${latest_pub}\`"$'\n\n'"**Verify these digests by eye against the upstream Sigstore attestation** (\`${base}/mcp-publisher_linux_amd64.tar.gz.sigstore.json\`):"$'\n'"- amd64: \`${sha_amd64}\`"$'\n'"- arm64: \`${sha_arm64}\`"$'\n\n'
             changed=true
@@ -97,7 +107,7 @@ jobs:
 
       - name: Upload the pin patch
         if: steps.bump.outputs.changed == 'true'
-        run: git diff -- .github/workflows > /tmp/pin-bump.patch
+        run: git diff -- .github/pins.env > /tmp/pin-bump.patch
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: steps.bump.outputs.changed == 'true'
         with:

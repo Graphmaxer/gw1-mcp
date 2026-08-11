@@ -16,6 +16,9 @@ on:
     paths:
       - "gwtoolbox-plugin/**"
       - ".github/workflows/build-gwtoolbox-plugin.yml"
+      # A pin bump must rebuild: the tripwire's PR body claims "CI proves it
+      # still builds", and that claim is only true if this file triggers here.
+      - ".github/pins.env"
   workflow_call:
     inputs:
       release_tag:
@@ -36,13 +39,16 @@ jobs:
     # fed through a run artifact.
     permissions:
       contents: read
-    env:
-      VCPKG_COMMIT: ce613c41372b23b1f51333815feb3edd87ef8a8b
-      # Pinned to a verified GWToolboxpp commit instead of a floating master
-      # clone (GW1-04). Bump deliberately after reviewing upstream changes.
-      GWTOOLBOX_COMMIT: ca20ae743551fd24f4fd0653e8a64d5e5b55a820
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # GWTOOLBOX_COMMIT and VCPKG_COMMIT used to be job-level `env:` here. They
+      # moved to .github/pins.env so the weekly tripwire can actually open the PR
+      # that bumps them — see that file's header for why. The grep is what allows
+      # comments in it: $GITHUB_ENV rejects a non-assignment line.
+      - name: Load upstream pins
+        shell: bash
+        run: grep -E '^[A-Z0-9_]+=' .github/pins.env >> "$GITHUB_ENV"
 
       - name: Checkout GWToolboxpp (pinned commit)
         shell: bash

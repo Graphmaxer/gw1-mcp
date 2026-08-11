@@ -259,11 +259,14 @@ const searchSkillsInput = {
     .describe(
       'Filter by attribute line, exact English name, e.g. "Blood Magic", "Swordsmanship", "Divine Favor".',
     ),
-  campaignName: z
-    .string()
-    .max(64)
-    .optional()
-    .describe("Filter by campaign: Core, Prophecies, Factions, Nightfall, or Eye of the North."),
+  campaignName: z.string().max(64).optional().describe(
+    // The caveat belongs HERE, not only in the server `instructions`: many
+    // clients never forward instructions, while this description is in every
+    // tools/list. Measured: 0 of 42 attribute lines are confined to one
+    // campaign, and filtering one by campaign can return 26% of it (Illusion
+    // Magic has 34 skills across all five campaigns, 9 of them Prophecies).
+    "Filter by the campaign a skill was INTRODUCED in: Core, Prophecies, Factions, Nightfall, or Eye of the North. Not a filter on availability — every attribute line spans several campaigns, so combining this with attributeName hides most of the line. Omit it when exploring an attribute.",
+  ),
   elite: z
     .boolean()
     .optional()

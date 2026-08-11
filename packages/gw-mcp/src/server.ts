@@ -27,10 +27,12 @@ import { z } from "zod";
 import {
   getAttributeByName,
   suggestAttributeNames,
+  suggestProfessionNames,
   getHeroById,
   getHeroByName,
   getProfessionByName,
   getSkillByName,
+  campaigns,
   heroes,
   getAttributeById,
   getCampaignById,
@@ -162,6 +164,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
             return jsonError(
               "UNKNOWN_PROFESSION",
               `Unknown profession ${JSON.stringify(professionName)}`,
+              { suggestions: suggestProfessionNames(professionName) },
             );
           filters.professionId = profession.id;
         }
@@ -171,14 +174,20 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
         if (!attribute)
           return jsonError(
             "UNKNOWN_ATTRIBUTE",
-            `Unknown attribute ${JSON.stringify(attributeName)}. Closest valid attribute names: ${suggestAttributeNames(attributeName).join(", ")}. Note: title tracks and each profession's attribute lines are listed in the gw1://meta resource.`,
+            // Suggestions go in the FIELD issueSchema documents, not inside the
+            // prose — get_skill has always used the field, and one idea in two
+            // shapes makes a caller parse text to recover data it was handed.
+            `Unknown attribute ${JSON.stringify(attributeName)}. Title tracks and each profession's attribute lines are listed in the gw1://meta resource.`,
+            { suggestions: suggestAttributeNames(attributeName) },
           );
         filters.attributeId = attribute.id;
       }
       if (campaignName !== undefined) {
         const campaign = getCampaignByName(campaignName);
         if (!campaign)
-          return jsonError("UNKNOWN_CAMPAIGN", `Unknown campaign ${JSON.stringify(campaignName)}`);
+          return jsonError("UNKNOWN_CAMPAIGN", `Unknown campaign ${JSON.stringify(campaignName)}`, {
+            suggestions: campaigns.map((c) => c.name),
+          });
         filters.campaignId = campaign.id;
       }
       if (elite !== undefined) filters.elite = elite;
@@ -363,7 +372,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
     {
       title: "Get a Guild Wars 1 hero",
       description:
-        "Look up a GW1 hero by name or by id (GWCA HeroID, matching the AccountExport plugin output). Returns profession, campaign and how the hero is unlocked. Remember: heroes can equip any skill unlocked at ACCOUNT level, but not most PvE-only skills. Use this for one known hero; to browse or filter the roster, use list_heroes instead.",
+        "Look up a GW1 hero by name or by id (GWCA HeroID, matching the AccountExport plugin output). Returns profession, campaign and how the hero is unlocked. Remember: heroes can equip any skill unlocked at ACCOUNT level, but NO PvE-only skill at all — including Signet of Capture. validate_build with forHero=true reports each one as an error, not a warning. Use this for one known hero; to browse or filter the roster, use list_heroes instead.",
       annotations: READ_ONLY,
       outputSchema: fullHeroSchema.shape,
       inputSchema: getHeroInputObject,
@@ -407,13 +416,16 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
           return jsonError(
             "UNKNOWN_PROFESSION",
             `Unknown profession ${JSON.stringify(professionName)}`,
+            { suggestions: suggestProfessionNames(professionName) },
           );
         results = results.filter((h) => h.professionId === profession.id);
       }
       if (campaignName !== undefined) {
         const campaign = getCampaignByName(campaignName);
         if (!campaign)
-          return jsonError("UNKNOWN_CAMPAIGN", `Unknown campaign ${JSON.stringify(campaignName)}`);
+          return jsonError("UNKNOWN_CAMPAIGN", `Unknown campaign ${JSON.stringify(campaignName)}`, {
+            suggestions: campaigns.map((c) => c.name),
+          });
         results = results.filter((h) => h.campaignId === campaign.id);
       }
       return jsonStructured({
@@ -492,7 +504,8 @@ const BUILD_WORKFLOW_GUIDE = `# Composing a GW1 build with gw1-mcp
    (Sunspear, Lightbringer…) are NOT template attributes.
 5. **Validate** with validate_build (pass unlockedSkillIds from the account
    export when available; set forHero=true for hero bars — heroes cannot use
-   most PvE-only skills).
+   ANY PvE-only skill, Signet of Capture included, and each one is a blocking
+   error rather than a warning).
 6. **Encode** with encode_template only once validation passes, and give the
    player the code(s) to paste in-game.
 

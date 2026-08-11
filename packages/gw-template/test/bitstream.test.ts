@@ -27,4 +27,18 @@ describe("bitstream", () => {
     const writer = new BitWriter();
     expect(() => writer.write(16, 4)).toThrow();
   });
+
+  it("refuses field widths past 31 bits instead of returning wrong numbers", () => {
+    // Both classes use JS bitwise operators, which coerce to 32-bit signed
+    // integers: read(40) used to return a silently wrong value and write(v, 40)
+    // packed the wrong bits, with no error either way. Unreachable through the
+    // codec (23 bits is the format's widest field) but these are exported.
+    const writer = new BitWriter();
+    expect(() => writer.write(1, 40)).toThrow(/handles 0 to 31 bits/);
+    expect(() => writer.write(1, -1)).toThrow(/handles 0 to 31 bits/);
+    writer.write(1, 31);
+    const reader = new BitReader(writer.toValues());
+    expect(() => reader.read(32)).toThrow(/handles 0 to 31 bits/);
+    expect(reader.read(31)).toBe(1);
+  });
 });

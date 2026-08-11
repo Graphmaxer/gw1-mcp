@@ -42,10 +42,23 @@ export function jsonError(code: string, message: string, extra?: Record<string, 
   return { ...json({ error: { code, message, ...extra } }), isError: true };
 }
 
-/** Enrich a hero with resolved profession/campaign names (single source). */
+/**
+ * Enrich a hero with resolved profession/campaign names (single source).
+ *
+ * Every field listed explicitly, for the same reason as fullSkill below: this was
+ * `...hero`, and the five keys happened to line up exactly — but heroes.json is
+ * REGENERATED every week from the GWCA enum plus the curated overlay, so one new
+ * overlay field would have leaked into a strict schema. TypeScript cannot catch
+ * that (excess-property checks do not apply to spreads), which is precisely how
+ * get_skill shipped broken. Audit L5, 2026-08-08.
+ */
 export function fullHero(hero: Hero): FullHeroOut {
   return {
-    ...hero,
+    id: hero.id,
+    name: hero.name,
+    professionId: hero.professionId,
+    campaignId: hero.campaignId,
+    unlock: hero.unlock,
     profession: getProfessionById(hero.professionId)?.name ?? null,
     campaign: getCampaignById(hero.campaignId)?.name ?? null,
   };

@@ -210,6 +210,7 @@ function closest<T>(index: readonly Searchable<T>[], rawNeedle: string, count: n
  */
 let skillSearchIndex: Searchable<Skill>[] | undefined;
 let attributeSearchIndex: Searchable<Attribute>[] | undefined;
+let professionSearchIndex: Searchable<Profession>[] | undefined;
 
 export function suggestAttributeNames(name: string, count = 3): string[] {
   if (name.length > MAX_SUGGEST_LEN) return [];
@@ -221,4 +222,23 @@ export function suggestSkillNames(name: string, count = 3): string[] {
   if (name.length > MAX_SUGGEST_LEN) return [];
   skillSearchIndex ??= indexFor(skills, (s) => s.name);
   return closest(skillSearchIndex, name, count).map((s) => s.name);
+}
+
+/**
+ * Ten candidates, same machinery. Added for the build-resolution errors, where a
+ * profession typo used to come back bare (audit L7) even though the same mistake
+ * in search_skills got a hint — and encode_template is where a caller is most
+ * likely to make it.
+ */
+export function suggestProfessionNames(name: string, count = 3): string[] {
+  if (name.length > MAX_SUGGEST_LEN) return [];
+  // Id 0 ("none") is excluded: it is the no-secondary sentinel, not a profession
+  // anyone means to type, and it is short enough to win on distance against real
+  // names ("Bard" suggested "none" ahead of Monk and Warrior). The way to express
+  // "no secondary" is documented on the parameter itself.
+  professionSearchIndex ??= indexFor(
+    professions.filter((p) => p.id !== 0),
+    (p) => p.name,
+  );
+  return closest(professionSearchIndex, name, count).map((p) => p.name);
 }

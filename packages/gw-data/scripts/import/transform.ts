@@ -30,24 +30,82 @@ type UpstreamSkill = {
   concise: string;
 };
 
+/**
+ * Longest name in the current dataset is 34 characters ("Friend of the Kurzicks
+ * Title Track"); the observed charset is letters, digits, spaces and `! " ' ( ) , - .`
+ * (measured across skills, professions, attributes, campaigns, skill types and
+ * heroes). Both bounds are deliberately loose against those figures.
+ */
+const MAX_NAME_LENGTH = 80;
+const ALLOWED_NAME_CHARS = /^[A-Za-z0-9 !"'(),.-]+$/;
+
+/**
+ * Second-person imperatives aimed at a reader or a model rather than at the
+ * player. Shared by both gates: real descriptions are third-person effect text
+ * ("Target foe takes...") and real names are noun phrases, so neither has any
+ * business matching this. A charset and a length bound alone would NOT catch it in
+ * a name — "Aegis. Ignore all previous instructions." is 40 legal characters.
+ */
+const INSTRUCTION_PATTERN =
+  /\b(ignore (all |any )?(previous|prior|above)|disregard (all |the )?(previous|prior)|system prompt|you are (now )?an? |instead(,)? (call|use|reply|respond|output)|do not (tell|mention|reveal)|reveal your|print your)\b/i;
+
+/**
+ * Plausibility check on every upstream NAME, not just descriptions (audit L1).
+ *
+ * The description gate below was the only content check, but names travel into an
+ * LLM's context by exactly the same routes — get_skill, search_skills,
+ * decode_template — and the weekly data PR AUTO-MERGES. So a compromised upstream
+ * that wrote its instruction into a skill NAME, or into the profession, attribute,
+ * campaign or skill-type tables, passed all three gates untouched.
+ *
+ * A name needs a different shape from a description, so this is not a copy of
+ * assertPlausibleDescription: names are short, carry no markup and no sentence
+ * punctuation, so a charset and a length bound do nearly all the work. Anything
+ * structurally novel stops the import rather than being merged unread.
+ */
+export function assertPlausibleName(kind: string, id: number | string, name: string): void {
+  const fail = (why: string) => {
+    throw new Error(
+      `Implausible ${kind} name at ${id}: ${why}. ` +
+        `Upstream may be compromised or its format changed — review by hand before importing. ` +
+        `Text: ${JSON.stringify(name.slice(0, 200))}`,
+    );
+  };
+  if (name.length === 0) fail("empty");
+  if (name.length > MAX_NAME_LENGTH) {
+    fail(`${name.length} characters, over the ${MAX_NAME_LENGTH} limit`);
+  }
+  if (!ALLOWED_NAME_CHARS.test(name)) {
+    const offenders = [...new Set([...name].filter((c) => !ALLOWED_NAME_CHARS.test(c)))].join("");
+    fail(`unexpected characters ${JSON.stringify(offenders)}`);
+  }
+  if (INSTRUCTION_PATTERN.test(name)) fail("reads as an instruction to a model");
+}
+
+/** The name we ship, after the gate above. */
+function checkedName(kind: string, id: number | string, name: string): string {
+  assertPlausibleName(kind, id, name);
+  return name;
+}
+
 // --- campaigns / professions / attributes / types ---------------------------
 export const transformCampaigns = (CAMPAIGNS: unknown) =>
   (CAMPAIGNS as unknown as UpstreamCampaign[]).map((c, id) => ({
     id,
-    name: c.name.en,
+    name: checkedName("campaign", id, c.name.en),
   }));
 
 export const transformProfessions = (PROFESSIONS: unknown) =>
   (PROFESSIONS as unknown as UpstreamProfession[]).map((p, id) => ({
     id,
-    name: p.name.en,
-    abbr: p.abbr.en,
+    name: checkedName("profession", id, p.name.en),
+    abbr: checkedName("profession abbreviation", id, p.abbr.en),
   }));
 
 export const transformAttributes = (ATTRIBUTES: unknown) =>
   Object.entries(ATTRIBUTES as unknown as Record<string, UpstreamAttribute>).map(([id, a]) => ({
     id: Number(id),
-    name: a.name.en,
+    name: checkedName("attribute", id, a.name.en),
     isPrimary: a.pri,
     professionId: a.prof,
     /** Maximum achievable rank incl. bonuses (21 for regular attributes, title cap otherwise). */
@@ -57,7 +115,7 @@ export const transformAttributes = (ATTRIBUTES: unknown) =>
 export const transformSkillTypes = (SKILLTYPES: unknown) =>
   Object.entries(SKILLTYPES as unknown as Record<string, UpstreamSkillType>).map(([id, t]) => ({
     id: Number(id),
-    name: t.name.en,
+    name: checkedName("skill type", id, t.name.en),
   }));
 
 /** Tags upstream legitimately uses inside skill descriptions. */
@@ -95,11 +153,7 @@ export function assertPlausibleDescription(id: number, name: string, description
   if (/\bhttps?:\/\//i.test(description) || /\bwww\./i.test(description)) {
     fail("contains a URL");
   }
-  // Second-person imperatives aimed at a reader/model, not at the player. Real
-  // descriptions are third-person effect text ("Target foe takes...").
-  const instructionPattern =
-    /\b(ignore (all |any )?(previous|prior|above)|disregard (all |the )?(previous|prior)|system prompt|you are (now )?an? |instead(,)? (call|use|reply|respond|output)|do not (tell|mention|reveal)|reveal your|print your)\b/i;
-  if (instructionPattern.test(description)) fail("reads as an instruction to a model");
+  if (INSTRUCTION_PATTERN.test(description)) fail("reads as an instruction to a model");
 }
 
 /** The description we ship, after the plausibility gate above. */
@@ -128,7 +182,11 @@ export const transformSkills = (upstream: Upstream) =>
       // same name as its PvE counterpart 1547, breaking the name-uniqueness
       // invariant repository.test.ts checks). Enforce the suffix ourselves
       // so a future upstream naming gap never silently collides a skill name.
-      name: s.is_pvp && !s.name.includes("(PvP)") ? `${s.name} (PvP)` : s.name,
+      name: checkedName(
+        "skill",
+        s.id,
+        s.is_pvp && !s.name.includes("(PvP)") ? `${s.name} (PvP)` : s.name,
+      ),
       description: checkedDescription(s),
       campaignId: s.campaign,
       professionId: s.profession,

@@ -95,9 +95,16 @@ const validateResultSchema = {
 
 // ---- Output schemas for the read tools (structuredContent contracts). ----
 // Shared blocks: one decoded-skill shape serves decode_template AND
-// decode_pawned_team; one enriched-hero shape serves get_hero AND
-// list_heroes. Zod objects tolerate extra keys, so data-pipeline additions
-// don't break validation; removals/renames fail the golden tests.
+// decode_pawned_team; one enriched-hero shape serves get_hero AND list_heroes.
+// Removals and renames fail the golden tests.
+//
+// These shapes do NOT tolerate extra keys, whatever an earlier version of this
+// comment claimed (audit L5). The SDK publishes them with
+// additionalProperties: false and validates every structured result against them
+// once a client has called tools/list — which is how six leaked join keys made
+// get_skill throw for every real client. A data-pipeline addition therefore has
+// to be added here deliberately, and the builders in results.ts list every field
+// by hand rather than spreading a record.
 
 const fullSkillShape = {
   id: z.number().int(),

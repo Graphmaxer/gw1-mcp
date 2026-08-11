@@ -15,17 +15,36 @@ import { findDescriptionGrowth } from "./description-growth.mjs";
 const root = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
 const DATA_PATH = "packages/gw-data/data/skills.json";
 
+// "No baseline" and "git failed" are NOT the same thing, and conflating them made
+// this gate fail-OPEN: any git fault silently produced `changed=false` and the
+// weekly PR auto-merged unreviewed (audit L3). Ask git-ls-files whether the file
+// is tracked at all, and treat every other fault as "a human must look".
+// `git ls-files <path>` prints the path when tracked and nothing when not, and
+// exits 0 either way — so an empty result really does mean "first import" rather
+// than "the command broke".
+const isTracked =
+  execFileSync("git", ["ls-files", "--", DATA_PATH], {
+    encoding: "utf8",
+    cwd: root,
+  }).trim().length > 0;
+
 let committed = [];
-try {
-  committed = JSON.parse(
-    execFileSync("git", ["show", `HEAD:${DATA_PATH}`], {
-      encoding: "utf8",
-      maxBuffer: 64 << 20,
-      cwd: root,
-    }),
-  );
-} catch {
-  // No baseline (first import): the plausibility gate is the only check that applies.
+if (isTracked) {
+  try {
+    committed = JSON.parse(
+      execFileSync("git", ["show", `HEAD:${DATA_PATH}`], {
+        encoding: "utf8",
+        maxBuffer: 64 << 20,
+        cwd: root,
+      }),
+    );
+  } catch (error) {
+    // The file is tracked, so a baseline must exist: this is a real fault, and
+    // withholding auto-merge is the only safe answer.
+    console.error(`Could not read the committed baseline for ${DATA_PATH}: ${error}`);
+    console.log("changed=true");
+    process.exit(0);
+  }
 }
 
 const findings = findDescriptionGrowth(

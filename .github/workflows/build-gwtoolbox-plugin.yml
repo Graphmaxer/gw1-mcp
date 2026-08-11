@@ -77,13 +77,19 @@ jobs:
         shell: powershell
         run: echo "VCPKG_ROOT=${{ github.workspace }}\vcpkg" >> $env:GITHUB_ENV
 
+      # EXACT key match only — no restore-keys (audit L9). This cache holds
+      # compiled binaries that get linked into a DLL attached to a public
+      # release, and it is readwrite. A prefix fallback would happily restore an
+      # entry written for a DIFFERENT manifest or a different vcpkg commit, so a
+      # single poisoned entry from an earlier run could reach a release artifact.
+      # The cost of a miss is a slower build; the cost of a wrong hit is shipping
+      # binaries nobody built from these inputs. VCPKG_COMMIT is in the key for
+      # the same reason: the toolchain commit decides what those binaries are.
       - name: Restore vcpkg binary cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ github.workspace }}/vcpkg-bincache
-          key: vcpkg-bin-${{ runner.os }}-${{ hashFiles('GWToolboxpp/vcpkg.json', 'GWToolboxpp/vcpkg-configuration.json', 'GWToolboxpp/vcpkg-overlays/**') }}
-          restore-keys: |
-            vcpkg-bin-${{ runner.os }}-
+          key: vcpkg-bin-${{ runner.os }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('GWToolboxpp/vcpkg.json', 'GWToolboxpp/vcpkg-configuration.json', 'GWToolboxpp/vcpkg-overlays/**') }}
 
       - name: Restore FetchContent cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6

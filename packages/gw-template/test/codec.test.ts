@@ -105,6 +105,36 @@ describe("errors", () => {
       }),
     ).toThrowError(/Profession id 4096 exceeds/);
   });
+
+  it("names the field that overflows, on all four remaining ones (audit L10)", () => {
+    // These four used to surface as the bit writer's own "Value 16 does not fit
+    // in 4 bits" — the right error code with a diagnostic naming an internal
+    // field instead of the caller's mistake, which is what the profession guard
+    // above exists to avoid.
+    const base = {
+      primary: 1,
+      secondary: 0,
+      attributes: [] as { attributeId: number; rank: number }[],
+      skills: [0, 0, 0, 0, 0, 0, 0, 0],
+    };
+    const cases: [string, Parameters<typeof encodeTemplate>[0]][] = [
+      ["skill id", { ...base, skills: [2 ** 23, 0, 0, 0, 0, 0, 0, 0] }],
+      ["attribute id", { ...base, attributes: [{ attributeId: 2 ** 19, rank: 0 }] }],
+      ["attribute rank", { ...base, attributes: [{ attributeId: 1, rank: 16 }] }],
+      [
+        "attribute count",
+        {
+          ...base,
+          attributes: Array.from({ length: 16 }, (_, i) => ({ attributeId: i, rank: 0 })),
+        },
+      ],
+    ];
+    for (const [field, template] of cases) {
+      expect(() => encodeTemplate(template), field).toThrowError(
+        new RegExp(`Invalid ${field} \\d+: a skill template can encode at most`),
+      );
+    }
+  });
 });
 
 describe("malformed input rejection", () => {

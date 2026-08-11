@@ -49,6 +49,18 @@ describe("gw1-mcp server", () => {
     expect(payload(res).error.code).toBe("BAD_REQUEST");
   });
 
+  it("get_hero mirrors get_skill on both name/id argument mistakes (audit L6)", async () => {
+    const client = await connectedClient();
+    // Neither argument used to answer NOT_FOUND: "No hero matching undefined" —
+    // the wrong taxonomy code (NOT_FOUND means a lookup missed) and a message
+    // that named no way to fix the call.
+    for (const args of [{}, { name: "Koss", id: 1 }]) {
+      const res = await client.callTool({ name: "get_hero", arguments: args });
+      expect(res.isError, JSON.stringify(args)).toBe(true);
+      expect(payload(res).error.code, JSON.stringify(args)).toBe("BAD_REQUEST");
+    }
+  });
+
   it("decodes the golden template", async () => {
     const client = await connectedClient();
     const decoded = payload(

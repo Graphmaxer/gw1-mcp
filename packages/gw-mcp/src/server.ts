@@ -432,11 +432,19 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
       inputSchema: getHeroInputObject,
     },
     async ({ name, id }) => {
+      // Both branches mirror get_skill: "exactly one" means neither is a bad
+      // REQUEST, not a lookup that missed. Without the second branch the call
+      // answered NOT_FOUND: "No hero matching undefined" — the wrong taxonomy
+      // code (NOT_FOUND is for a direct lookup that missed) and a message that
+      // told the caller nothing about what to send instead (audit L6).
       if (name !== undefined && id !== undefined) {
         return jsonError("BAD_REQUEST", "Provide exactly one of name or id, not both");
       }
+      if (name === undefined && id === undefined) {
+        return jsonError("BAD_REQUEST", "Provide exactly one of name or id");
+      }
       const hero =
-        id !== undefined ? getHeroById(id) : name !== undefined ? getHeroByName(name) : undefined;
+        name !== undefined ? getHeroByName(name) : id !== undefined ? getHeroById(id) : undefined;
       if (!hero) {
         return jsonError("NOT_FOUND", `No hero matching ${JSON.stringify(name ?? id)}`);
       }

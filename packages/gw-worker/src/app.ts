@@ -325,8 +325,14 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
   });
 
   const MAX_BODY_BYTES = 512 * 1024;
-  app.use(
-    "/mcp",
+  // useOnMcp, not app.use("/mcp", ...): this middleware WAS the one that drifted.
+  // Registered on the bare path only, "/mcp/" had no body ceiling at all, so
+  // adding one character to the URL bought an attacker the platform limit
+  // (~100 MB) buffered in an isolate and parsed twice when MCP_ANALYTICS is
+  // bound. Found by an external audit on 2026-08-08, which reproduced it: 600
+  // KiB to /mcp answered 413, the same body to /mcp/ answered 400 after being
+  // fully read. Both spellings are covered by tests now.
+  useOnMcp(
     bodyLimit({
       maxSize: MAX_BODY_BYTES,
       onError: (c) =>

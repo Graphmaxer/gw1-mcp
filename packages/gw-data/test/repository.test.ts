@@ -151,6 +151,27 @@ describe("lookups", () => {
     // wrong matches above — it is the boundary case that fixes the cap at 5.
     expect(suggestSkillNames("Vœu de piété")[0]).toBe("Vow of Piety");
   });
+
+  it("suggests nothing for a query that normalises to nothing (audit M2)", () => {
+    // distance("", candidate) is just the candidate's length, so before the
+    // empty-needle guard every short skill name passed the cap and a Cyrillic,
+    // CJK or punctuation-only query came back with three confident wrong
+    // answers — "Возрождение" returned ["Awe", "Echo", "Gale"].
+    for (const query of ["Возрождение", "回復", "!!!", "   ", "***", "😀"]) {
+      expect(suggestSkillNames(query), query).toEqual([]);
+      expect(suggestAttributeNames(query), query).toEqual([]);
+    }
+  });
+
+  it("treats a nameContains that normalises to nothing as matching nothing (audit L8)", () => {
+    // `includes("")` is true for every name, so this used to return the whole
+    // non-PvP dataset presented as the results of a filter that matched nothing.
+    expect(searchSkills({ nameContains: "!!!" })).toEqual([]);
+    expect(searchSkills({ nameContains: "" })).toEqual([]);
+    expect(searchSkills({ nameContains: "Возрождение" })).toEqual([]);
+    // An ABSENT filter still returns everything — the two cases must stay distinct.
+    expect(searchSkills({}).length).toBeGreaterThan(1000);
+  });
 });
 
 describe("documented counts stay true (mechanical lock)", () => {

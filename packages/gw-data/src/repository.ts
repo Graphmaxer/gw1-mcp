@@ -69,6 +69,11 @@ export interface SkillSearchFilters {
 export function searchSkills(filters: SkillSearchFilters): Skill[] {
   const needle =
     filters.nameContains !== undefined ? normalizeName(filters.nameContains) : undefined;
+  // A normalized-empty needle is a filter that matched nothing, not an absent
+  // filter. `includes("")` is true for every name, so nameContains: "!!!" used to
+  // return the whole non-PvP dataset presented as search hits (audit L8, same
+  // family as the empty-needle guard in closest() below).
+  if (needle !== undefined && needle.length === 0) return [];
   return skills.filter(
     (s) =>
       (filters.includePvpVersions === true || !s.isPvpVersion) &&
@@ -157,6 +162,15 @@ function indexFor<T>(items: readonly T[], nameOf: (item: T) => string): Searchab
 /** Rank candidates by token-prefix match first, then by bounded edit distance. */
 function closest<T>(index: readonly Searchable<T>[], rawNeedle: string, count: number): T[] {
   const needle = normalizeName(rawNeedle);
+  // A query whose every character is dropped by normalizeName (Cyrillic, CJK,
+  // Arabic, emoji, punctuation, whitespace) is not a typo of anything. Without
+  // this guard the distance path took over: distance("", candidate) is just the
+  // candidate's length, so every short name passed the cap and "Возрождение"
+  // (Russian for Resurrection) came back as ["Awe", "Echo", "Gale"] — a
+  // confidently wrong suggestion, which is precisely the failure mode
+  // MAX_SUGGEST_DISTANCE exists to avoid. Reported by an external audit
+  // 2026-08-08 and reproduced through get_skill.
+  if (needle.length === 0) return [];
   const needleTokens = needle.split(" ").filter((t) => t.length > 0);
   const prefixed: { item: T; length: number }[] = [];
   const scored: { item: T; d: number }[] = [];

@@ -249,10 +249,21 @@ describe("output schemas match reality (mechanical lock)", () => {
         "encode_template",
         { primary: "Monk", attributes: [{ attribute: "Healing Prayers", rank: 12 }], skills: bar },
       ],
+      // The golden PvX blob from server.test.ts, verbatim including the
+      // wrap-induced spaces. This tool was the ONE the completeness assertion
+      // below used to exempt (`- 1`), so a change to the slot shape — a new
+      // field, a renamed inGamePlayerName — would have shipped green and broken
+      // every client that primes its validators. Audit finding M3, 2026-08-08.
+      [
+        "decode_pawned_team",
+        {
+          pwnd: "pwnd0001?download pawned2 @ Copyright 2008-2018 Redeemer >XOwBR4ZymcBaXMmEAAAAAAAAAAAAAABXUGxheWVyCmh0dHBzOi8vZ3dwdnguZ2FtZXBlZGlhLmNvbS9 CdWlsZDpUZWFtXy1fM19IZXJvX0Rpc2NvcmR3YXkZOAhjUoGYIPxsjaGTaO5GmjzLGAAAACEIAAKSGVy byAxCgbOAhkUsG3RFuTMzOgIkmTuhJ1+iBAAAACEJAAKSGVybyAyCgZOANDUshvSxMVBoBbhKg3V1DBE AAAACEIAAKSGVybyAzCg<",
+        },
+      ],
     ];
 
     // Every declared tool must appear above, or a new tool could ship unchecked.
-    expect(new Set(calls.map(([name]) => name)).size).toBe(TOOL_NAMES.length - 1);
+    expect(new Set(calls.map(([name]) => name)).size).toBe(TOOL_NAMES.length);
 
     for (const [name, args] of calls) {
       await expect(

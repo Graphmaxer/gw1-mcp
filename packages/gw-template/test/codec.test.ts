@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { decodeTemplate, encodeTemplate, TemplateError } from "../src/index.js";
 import fixtureFile from "./fixtures/templates.json";
+import { mulberry32 } from "./prng.js";
 
 describe("golden fixtures", () => {
   for (const fixture of fixtureFile.fixtures) {
@@ -167,5 +168,40 @@ describe("malformed bitstream rejection (GW1-02 audit)", () => {
   it("rejects a non-zero trailing base64 char", () => {
     expect(() => decodeTemplate("OQAAAAAAAAAAAAAAB")).toThrow(/tail|non-zero/i);
     expect(() => decodeTemplate("OQAAAAAAAAAAAAAA/")).toThrow(/tail|non-zero/i);
+  });
+
+  it("never throws anything but TemplateError, on 3000 mutated golden codes", () => {
+    // The closed TemplateError taxonomy is what lets gw-mcp map every decode
+    // failure to a structured tool error instead of a 500. An external audit
+    // verified it over ~300 000 mutated inputs on 2026-08-08 and asked for a
+    // permanent lock; this is the same property at a size the suite can afford.
+    const CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    const rand = mulberry32(20260808);
+    const codes = fixtureFile.fixtures.map((f) => f.code);
+    for (let i = 0; i < 3000; i++) {
+      const base = codes[rand(codes.length)]!;
+      const chars = [...base];
+      // One of: substitute a charset char, inject an off-charset char, truncate,
+      // or append — the four shapes a pasted or corrupted code actually takes.
+      switch (rand(4)) {
+        case 0:
+          chars[rand(chars.length)] = CHARSET[rand(64)]!;
+          break;
+        case 1:
+          chars[rand(chars.length)] = "!";
+          break;
+        case 2:
+          chars.length = rand(chars.length);
+          break;
+        default:
+          chars.push(CHARSET[rand(64)]!);
+      }
+      const mutated = chars.join("");
+      try {
+        decodeTemplate(mutated);
+      } catch (error) {
+        expect(error, `input ${JSON.stringify(mutated)}`).toBeInstanceOf(TemplateError);
+      }
+    }
   });
 });

@@ -10,6 +10,7 @@ import {
   getProfessionByName,
   getSkillById,
   getSkillByName,
+  getSkillType,
   heroes,
   searchSkills,
   skills,
@@ -52,10 +53,26 @@ describe("upstream-integrity invariants (GW1-13)", () => {
     }
   });
   it("pvpSplit and splitId agree bidirectionally", () => {
+    // This test only checked that the target EXISTS, despite its name — an
+    // external audit verified the reciprocity by script on 2026-08-08 and asked
+    // for it to be locked. Every pvpSplit must point at a real PvP version, and
+    // that version must point back.
+    let pairs = 0;
     for (const s of skills) {
-      if (s.splitId) {
-        expect(getSkillById(s.splitId), `skill ${s.id} splitId target`).toBeDefined();
-      }
+      if (!s.pvpSplit) continue;
+      const target = getSkillById(s.splitId);
+      expect(target, `skill ${s.id} splitId target`).toBeDefined();
+      expect(target?.isPvpVersion, `skill ${s.id} splits to a PvP version`).toBe(true);
+      expect(target?.splitId, `skill ${s.id} split points back`).toBe(s.id);
+      pairs++;
+    }
+    expect(pairs).toBe(skills.filter((s) => s.isPvpVersion).length);
+  });
+  it("every skill's typeId resolves", () => {
+    // The other four foreign keys were covered; typeId was not, and it is the one
+    // feeding the `type` field of every get_skill answer.
+    for (const s of skills) {
+      expect(getSkillType(s.typeId), `skill ${s.id} type`).toBeDefined();
     }
   });
 });

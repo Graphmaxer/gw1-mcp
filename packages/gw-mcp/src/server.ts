@@ -32,8 +32,11 @@ import {
   getHeroByName,
   getProfessionByName,
   getSkillByName,
+  attributes,
   campaigns,
   heroes,
+  professions,
+  skillTypes,
   getAttributeById,
   getCampaignById,
   getProfessionById,
@@ -59,6 +62,31 @@ import { fullHero, fullSkill, jsonError, jsonStructured, pwndSlotLabel } from ".
  * consumer to record somewhere public, and it is the same rule the worker
  * already applies to tool names.
  */
+
+/**
+ * The gw1://meta payload, serialized once at module scope (a resource read must
+ * not rebuild it, same rule as the tool schema literals).
+ *
+ * It carries the reference tables, not just provenance: an UNKNOWN_ATTRIBUTE
+ * error points a caller here to enumerate title tracks and each profession's
+ * attribute lines, and that pointer was a dead end while this served
+ * _meta.json alone.
+ */
+const metaResourceJson = JSON.stringify(
+  {
+    provenance: dataMeta,
+    professions,
+    // Includes the non-templatable ids on purpose: a caller needs to see that
+    // "Sunspear Title Track" exists before learning it cannot go in a template.
+    attributeIdRanges:
+      "0-44 are templatable attribute lines; 101 is No Attribute; 102-109 are PvE title tracks, which skills use but templates cannot encode.",
+    attributes,
+    campaigns,
+    skillTypes,
+  },
+  null,
+  2,
+);
 
 export function createServer(options: CreateServerOptions = {}): McpServer {
   const server = new McpServer(
@@ -457,13 +485,13 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
     "data-provenance",
     "gw1://meta",
     {
-      title: "Data provenance and freshness",
+      title: "Reference tables and data provenance",
       description:
-        "Where the skill data comes from and how fresh it is relative to Guild Wars Reforged balance updates",
+        "Professions, attribute lines (including PvE title tracks), campaigns and skill types — plus where the data comes from and how fresh it is relative to Guild Wars Reforged balance updates",
       mimeType: "application/json",
     },
     async (uri) => ({
-      contents: [{ uri: uri.href, text: JSON.stringify(dataMeta, null, 2) }],
+      contents: [{ uri: uri.href, text: metaResourceJson }],
     }),
   );
 

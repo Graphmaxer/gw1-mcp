@@ -331,6 +331,11 @@ describe("security.txt reproducibility", () => {
     expect(body).not.toMatch(/a tool name and a timestamp/);
     // And it must still say what it does not do.
     expect(body).toMatch(/never IP/i);
+    // The client name is caller-controlled, so an unqualified "no personal data
+    // is collected" would be a claim the server cannot enforce. Say who supplies
+    // it instead of asserting the absolute.
+    expect(body).not.toMatch(/no personal data is collected/i);
+    expect(body).toMatch(/supplied by the caller/i);
   });
 
   it("fails while there is still time to bump Expires, not after it lapses", async () => {

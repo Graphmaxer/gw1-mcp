@@ -111,7 +111,9 @@ pnpm --filter @gw1-mcp/gw-data run import:data -- https://build-wars.github.io/g
 ## GWToolbox integration
 
 `gwtoolbox-plugin/` contains a read-only GWToolbox plugin adding
-`/exportaccount`: it copies your account state as JSON to the clipboard. The
+`/exportaccount`: it copies your account state as JSON to the clipboard — which
+includes your current character's name, so read it before pasting it somewhere
+public. The
 export has two skill lists — `learnedCharacterSkills` (skills your current
 character has actually learned) and `unlockedAccountSkills` (everything unlocked
 account-wide, e.g. for heroes). Paste it in your conversation and pass the list

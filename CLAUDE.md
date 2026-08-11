@@ -823,6 +823,35 @@ despite the same laziness making `server.close()` empty a response.
 On a repository this well tested, look at whether the automation RAN before looking
 for a wrong line of code.
 
+A FOURTH external audit (ChatGPT, 2026-08-11, snapshot without `.git` and with no
+npm access, so no suite run) rated the code 7.4/10 and raised three "P1"s. One was
+real and its sharpest form was not the one reported: `gw1://meta` served
+`_meta.json` alone while the README promised four reference tables AND
+`UNKNOWN_ATTRIBUTE` told the caller to enumerate title tracks there — a dead
+pointer in an LLM-facing error, which is worse than a wrong README line. The
+resource now composes provenance + professions + attributes (title tracks
+included) + campaigns + skill types at module scope, tables read from gw-data
+rather than written into `_meta.json` (that would be an unmanaged copy), and a
+test asserts each table. Two prose fixes followed: the privacy policy said "no
+personal data is collected" absolutely while recording a CALLER-CONTROLLED client
+name — the blob stays (it is what proved 63% of traffic was one uptime monitor),
+the absolute claim goes, replaced by naming who supplies the value and that
+Analytics Engine has no per-row deletion; and the README now says `/exportaccount`
+copies your character name.
+
+Rejected, with reasons, so nobody re-derives them: the README `pnpm --filter
+@gw1-mcp/gw-data update` command was reported broken because no `update` SCRIPT
+exists — `update` is a pnpm builtin (verified, pnpm 11.11.0), the command is
+correct; dropping the client-name dimension was the audit's recommended fix and
+would delete the capability that answers "does any directory listing send real
+clients"; the data-import auto-merge critique restates debt already gated
+(upstream JSON Schemas, name gate over all five tables, `assertCoherentSnapshot`,
+growth gate, golden fixtures) and its "measure a word-diff threshold" successor
+was already tried and rejected; licensing is the counsel-gated register entry and
+the audit added nothing to it. Method note: this pass never ran the suite, so its
+strongest claims were about prose consistency — and that is exactly where its one
+real finding was.
+
 NEXT (maintainer-gated only): file the upstream bug report (debt #4, report
 ready in docs/), submit to the ChatGPT and Claude directories (kits in docs/,
 refreshed 2026-07-29 against the current forms). Debt #9 was CLOSED 2026-07-29

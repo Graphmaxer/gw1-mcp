@@ -312,7 +312,15 @@ describe("resources and error surfaces", () => {
     }
     const metaContents = (await client.readResource({ uri: "gw1://meta" })).contents[0];
     const meta = JSON.parse(metaContents && "text" in metaContents ? metaContents.text : "{}");
-    expect(meta.source ?? meta.upstream ?? meta).toBeTruthy();
+    expect(meta.provenance?.skills?.source).toBeTruthy();
+    // The reference tables are the point, not a bonus: an UNKNOWN_ATTRIBUTE
+    // error tells the caller to enumerate title tracks here, and the README
+    // promises the same four tables.
+    expect(meta.professions.some((p: { name: string }) => p.name === "Monk")).toBe(true);
+    expect(meta.attributes.some((a: { name: string }) => a.name === "Divine Favor")).toBe(true);
+    expect(meta.attributes.some((a: { id: number }) => a.id === 102)).toBe(true);
+    expect(meta.campaigns.some((c: { name: string }) => c.name === "Nightfall")).toBe(true);
+    expect(meta.skillTypes.length).toBeGreaterThan(0);
   });
 
   it("returns a structured error for malformed template codes", async () => {

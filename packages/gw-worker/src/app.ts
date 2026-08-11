@@ -409,6 +409,46 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
     await next();
   });
 
+  // No JSON-RPC batching (audit N1, 2026-08-08). This is the last amplification
+  // path left: every other guard in this file reasons per REQUEST — the body
+  // limit, the pwnd slot cap, the bounded Levenshtein — and the rate limiter
+  // counts HTTP requests, so a batch was the one place where one request was
+  // many operations. Measured: a single 508 KiB POST carrying 3100 get_skill
+  // calls fits under the 512 KiB ceiling, returns 3100 results, and costs one
+  // unit of the 100/min/IP quota — a ~139 s/min/IP work ceiling under Node.
+  //
+  // Rejecting is also the conformant answer, not just the cheap one: MCP
+  // 2025-06-18 REMOVED batching (spec PR #416) and every later revision keeps it
+  // removed. The SDK still lists 2025-03-26 and 2024-11-05 as supported
+  // versions and @hono/mcp still parses arrays, so this has to be refused here
+  // rather than assumed absent. Unconditional on purpose: no real client batches,
+  // and gating it on a negotiated version would mean tracking session state this
+  // stateless server does not have.
+  //
+  // Registered with useOnMcp and AFTER bodyLimit, both deliberately: M1 in this
+  // same audit was a middleware registered on one path spelling only, and an
+  // oversized batch must still 413 rather than be buffered and inspected here.
+  useOnMcp(async (c, next) => {
+    // First non-whitespace character only — a body of up to 512 KiB does not
+    // need JSON.parse to answer "is the top level an array?".
+    const body = await c.req.raw.clone().text();
+    if (/^\s*\[/.test(body)) {
+      return c.json(
+        {
+          jsonrpc: "2.0",
+          id: null,
+          error: {
+            code: -32600,
+            message:
+              "JSON-RPC batching is not supported: send one request object per HTTP POST. Batching was removed from MCP in revision 2025-06-18.",
+          },
+        },
+        400,
+      );
+    }
+    await next();
+  });
+
   // B2/B3. In stateless mode there is no session to resume and no server->client
   // notification to stream, so a GET opened an SSE body that never closed (100
   // danglers per IP per minute, since the limiter only counts the opening

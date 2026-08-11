@@ -15,6 +15,7 @@ import {
   searchSkills,
   skills,
   suggestAttributeNames,
+  suggestProfessionNames,
   suggestSkillNames,
 } from "../src/index.js";
 
@@ -178,6 +179,19 @@ describe("lookups", () => {
       expect(suggestSkillNames(query), query).toEqual([]);
       expect(suggestAttributeNames(query), query).toEqual([]);
     }
+  });
+
+  it("suggests professions, excluding the no-secondary sentinel (audit L7)", () => {
+    // Added for the build-resolution errors, where a profession typo used to come
+    // back bare. Id 0 ("none") is out of the index on purpose: it is short enough
+    // to beat real names on distance ("Bard" put it ahead of Monk and Warrior)
+    // and it is not a profession anyone means to type.
+    expect(suggestProfessionNames("Paragorn")[0]).toBe("Paragon");
+    expect(suggestProfessionNames("necromancr")[0]).toBe("Necromancer");
+    expect(suggestProfessionNames("Bard")).not.toContain("none");
+    expect(suggestProfessionNames("Bard").length).toBeGreaterThan(0);
+    expect(suggestProfessionNames("Возрождение")).toEqual([]);
+    expect(suggestProfessionNames("z".repeat(5000))).toEqual([]);
   });
 
   it("treats a nameContains that normalises to nothing as matching nothing (audit L8)", () => {

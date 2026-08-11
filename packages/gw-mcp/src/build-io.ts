@@ -6,6 +6,8 @@ import {
   getAttributeById,
   getProfessionById,
   getSkillById,
+  suggestAttributeNames,
+  suggestProfessionNames,
   suggestSkillNames,
 } from "@gw1-mcp/gw-data";
 import type { SkillTemplate } from "@gw1-mcp/gw-template";
@@ -33,11 +35,17 @@ export function resolveNamedBuild(
 ): { template: SkillTemplate; errors: [] } | { template: null; errors: ResolutionError[] } {
   const errors: ResolutionError[] = [];
 
+  // Every resolution error here carries suggestions (audit L7). The same typo in
+  // search_skills already got a hint inline, while encode_template and
+  // validate_build — where a caller is far likelier to make it, and where the
+  // one-round-trip self-correction the design rules require actually matters —
+  // returned the error bare.
   const primary = getProfessionByName(build.primary);
   if (!primary) {
     errors.push({
       code: "UNKNOWN_PROFESSION",
       message: `Unknown profession: ${JSON.stringify(build.primary)}`,
+      suggestions: suggestProfessionNames(build.primary),
     });
   }
   const secondaryName = build.secondary?.trim();
@@ -49,6 +57,7 @@ export function resolveNamedBuild(
     errors.push({
       code: "UNKNOWN_PROFESSION",
       message: `Unknown profession: ${JSON.stringify(build.secondary)}`,
+      suggestions: suggestProfessionNames(secondaryName ?? ""),
     });
   }
 
@@ -59,6 +68,7 @@ export function resolveNamedBuild(
       errors.push({
         code: "UNKNOWN_ATTRIBUTE",
         message: `Unknown attribute: ${JSON.stringify(attribute)}`,
+        suggestions: suggestAttributeNames(attribute),
       });
       continue;
     }

@@ -47,9 +47,19 @@ export function validateBuild(
   // progress, so a title track at rank 9 used to add 48 phantom points and made
   // this message state a false total — ATTRIBUTE_NOT_TEMPLATABLE already reports
   // the real problem below.
-  const budgeted = template.attributes.filter(
-    ({ attributeId }) => attributeId <= MAX_TEMPLATE_ATTRIBUTE_ID,
-  );
+  // Deduplicated by id, for the same reason title tracks are excluded: the game
+  // charges an attribute line once, whatever a malformed template repeats. A bar
+  // listing Healing Prayers three times at rank 12 used to be billed 291 points
+  // and the message announced that figure — a false total inside a message whose
+  // whole purpose is to be arithmetic the caller can trust. DUPLICATE_ATTRIBUTE
+  // below reports the repetition itself.
+  const budgeted = [
+    ...new Map(
+      template.attributes
+        .filter(({ attributeId }) => attributeId <= MAX_TEMPLATE_ATTRIBUTE_ID)
+        .map((a) => [a.attributeId, a]),
+    ).values(),
+  ];
   const hasOutOfRangeRank = budgeted.some(({ rank }) => RANK_COST[rank] === undefined);
   const spentPoints = budgeted.reduce((total, { rank }) => total + (RANK_COST[rank] ?? 0), 0);
   if (!hasOutOfRangeRank && spentPoints > MAX_ATTRIBUTE_POINTS) {

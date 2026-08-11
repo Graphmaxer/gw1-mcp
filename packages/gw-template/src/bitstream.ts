@@ -1,6 +1,27 @@
 import { TemplateError } from "./types.js";
 
 /**
+ * Widest field either primitive will handle.
+ *
+ * Both use JS bitwise operators, which coerce to 32-bit signed integers, so
+ * `read(40)` returned a silently WRONG value and `write(v, 40)` packed the wrong
+ * bits — no error, just bad data. The template format never asks for more than 23
+ * bits, so this is unreachable through encode/decode; it matters because these two
+ * classes are exported from the package index, where a caller has no way to learn
+ * the limit. Reported as an info finding by an external audit, 2026-08-08.
+ */
+const MAX_FIELD_BITS = 31;
+
+function assertFieldWidth(n: number): void {
+  if (!Number.isInteger(n) || n < 0 || n > MAX_FIELD_BITS) {
+    throw new TemplateError(
+      "VALUE_OUT_OF_RANGE",
+      `Field width ${n} is out of range: this bitstream handles 0 to ${MAX_FIELD_BITS} bits`,
+    );
+  }
+}
+
+/**
  * Reads unsigned integers from a stream of 6-bit base64 values, where every
  * binary number is stored lowest-bit-first (bit i contributes 2^i, numbers
  * spanning 6-bit groups continue in the same order).
@@ -26,6 +47,7 @@ export class BitReader {
   }
 
   read(n: number): number {
+    assertFieldWidth(n);
     if (this.remaining < n) {
       throw new TemplateError(
         "TRUNCATED",
@@ -64,6 +86,7 @@ export class BitWriter {
   private readonly bits: number[] = [];
 
   write(value: number, n: number): void {
+    assertFieldWidth(n);
     if (value < 0 || value >= 2 ** n) {
       throw new TemplateError("VALUE_OUT_OF_RANGE", `Value ${value} does not fit in ${n} bits`);
     }

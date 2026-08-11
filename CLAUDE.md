@@ -209,9 +209,15 @@ this file already argues about in prose:
   bounded (the 109 ms -> 1.4 ms fix has a regression guard now).
 - gw-mcp `bench/build.bench.ts`: resolve -> validate -> describe, then the
   same tools through the SDK over InMemoryTransport.
-- gw-worker `bench/http.bench.ts`: the deployed shape — JSON-RPC over the
-  Hono app, including the initialize + tools/list pair that is ~97.5% of real
-  traffic and the 10 ms Workers CPU budget it has to fit in.
+- gw-worker `bench/startup.bench.ts`: `createApp` — route registration only,
+  NOT the MCP server (see the CodSpeed section: it is the noise floor). The
+  `bench/http.bench.ts` this list claimed until 2026-08-11 does not exist; the
+  async JSON-RPC benchmark that reported 221 ms was removed and the entry was
+  never updated. So there is NO committed benchmark of the `/mcp` request path,
+  and a change to that hot path has to be measured against real workerd by hand
+  (`wrangler dev --local`, time N sequential POSTs, compare medians against the
+  same run on main — that is how the batch middleware was cleared: 3.02 ms vs
+  3.03 ms p50 for `tools/list`, i.e. free).
 
 Benchmarks are measured, not asserted: nothing fails on a slow number, the
 report is the signal. Keep them deterministic (no network, no clock, no
@@ -426,6 +432,121 @@ reconstructed from title-track attrs + Signet of Capture (network-blocked
 import); a real `pnpm import` repopulates it authoritatively from upstream
 is_rp.
 
+Third external audit (2026-08-08 + a from-scratch v1.0.0 pass, worked through
+2026-08-11). No High findings; `pnpm audit --prod` clean; the previous two
+audits' fixes confirmed as really applied. Every actionable finding is now
+CLOSED — three Mediums, one Low-Medium, ten Lows and the actionable info notes
+— plus one finding the maintainer's own manual pass had raised. The pattern
+worth remembering: this pass found nothing wrong with the game logic. All four
+substantive findings were about a guard that reasoned per REQUEST while
+something else counted per OPERATION, or a check registered on one of two
+equivalent paths.
+
+- **M1 — the body limit had drifted off `/mcp/`.** `bodyLimit` was the ONE
+  middleware still registered with `app.use("/mcp", ...)` instead of the
+  `useOnMcp()` helper, whose comment claims "the two paths cannot drift apart".
+  600 KiB answered 413 on `/mcp` and 400 on `/mcp/` after being fully buffered
+  and parsed — twice, when `MCP_ANALYTICS` is bound. Both spellings are now
+  tested for both body-limit cases. When adding a `/mcp` middleware, `useOnMcp`
+  is not a style preference.
+- **N1 — JSON-RPC batching was the last amplification path.** One 508 KiB POST
+  carrying 3100 `get_skill` calls fits under the body limit, returns 3100
+  results, and costs ONE unit of the 100/min/IP quota — the rate limiter counts
+  HTTP requests. Now refused with -32600. Refusing is also the conformant
+  answer: MCP 2025-06-18 removed batching and every later revision keeps it
+  removed, but the SDK still lists 2025-03-26 as supported and @hono/mcp still
+  parses top-level arrays, so it has to be refused HERE rather than assumed
+  absent. Unconditional, because gating it on a negotiated version needs
+  session state a stateless server does not have. The check peeks at the first
+  non-whitespace character of a cloned body and only for JSON content types —
+  both details are load-bearing, and both were measured under real workerd:
+  free on the hot path (3.02 ms vs 3.03 ms p50 for `tools/list`), and the
+  content-type narrowing is what keeps a `text/plain` body answering 415.
+- **M2 — the suggester answered confidently for queries that normalise to
+  nothing.** `distance("", candidate)` is just the candidate's length, so every
+  short name passed the cap: `get_skill {"name":"Возрождение"}` returned
+  ["Awe", "Echo", "Gale"]. One `if (needle.length === 0) return []`. The
+  `needle.length >= 3` floor the audit also floated was deliberately NOT added
+  — the abbreviation ranking ("heal sig", "Vow of Rev") is calibrated and would
+  be the thing it broke. `searchSkills` got the symmetric fix (L8): a
+  `nameContains` normalising to nothing used to return the whole dataset,
+  because `includes("")` is true for everything.
+- **M3 — the output-schema regression lock exempted `decode_pawned_team`.** The
+  test written after the `get_skill` postmortem asserted
+  `TOOL_NAMES.length - 1`, and the exempted tool was the only one no
+  primed-client test called. The golden PvX blob is in the call list and the
+  assertion is back to `TOOL_NAMES.length`.
+- **Unknown tool arguments are now REJECTED, not ignored.** Not from the audit
+  document but from using the thing: `search_skills {"profession":"Monk"}`
+  (instead of `professionName`) returned the first 50 skills of the whole
+  database presented as filtered results, and it took four observations to
+  root-cause during real use. All eight input objects are `.strict()`; zod's
+  message names the key, so a model self-corrects in one round trip. Costs
+  ~232 characters of `tools/list` (18 577 -> 18 809) for
+  `additionalProperties: false`, which is debt #10 money well spent — the
+  schema now states a contract the server enforces. It also revealed that three
+  input shapes were still built INLINE in `createServer`, so the "zero `z.`
+  calls in the function body" rule was aspirational; it is literally true now.
+- **The import gates covered descriptions only (L1, L2, L3).** Names travel
+  into an LLM's context by the same routes and the weekly data PR AUTO-MERGES,
+  so a compromised upstream writing its instruction into a skill NAME — or into
+  the profession, attribute, campaign or skill-type tables — passed all three
+  gates. There is now a name gate with its own shape (charset calibrated on the
+  six real tables, 80-char bound, plus the instruction pattern, now shared with
+  the description gate because "Aegis. Ignore all previous instructions." is 40
+  charset-legal characters). And the growth gate was fail-OPEN: one `catch {}`
+  read "git failed" as "first import", printed `changed=false`, and auto-merge
+  continued; `git ls-files` now answers that question and a real fault withholds
+  the merge.
+- **Smaller, all closed**: suggestions on `UNKNOWN_PROFESSION` /
+  `UNKNOWN_ATTRIBUTE` in build resolution (L7 — the same typo got a hint in
+  `search_skills` but not in `encode_template`, where it is likeliest);
+  `get_hero {}` answered `NOT_FOUND: "No hero matching undefined"`, now
+  `BAD_REQUEST` (L6); `fullHero` enumerates its fields instead of `...hero`,
+  which is the `get_skill` postmortem waiting for the next weekly hero import
+  (L5) — and the `schemas.ts` comment claiming output shapes tolerate extra keys
+  said the opposite of what the SDK does; four encode fields now name themselves
+  instead of surfacing "Value 16 does not fit in 4 bits" (L10); the vcpkg BINARY
+  cache takes an exact key match including `VCPKG_COMMIT`, because a wide
+  `restore-keys` fallback into a readwrite cache feeds a DLL attached to a
+  public release (L9); `BitReader`/`BitWriter` refuse widths past 31 bits
+  (JS bitwise ops are 32-bit signed, so `read(40)` returned a silently wrong
+  number); `ATTRIBUTE_POINTS_EXCEEDED` counts each attribute line once (a
+  duplicate entry made the message print 291 points for a spread costing 97 —
+  a false total inside a message whose entire purpose is trustworthy
+  arithmetic); `Object.hasOwn` for the hero overlay lookup; `pathToFileURL` in
+  `import-heroes`' `isDirectRun`; and one test title that asserted the opposite
+  of the behaviour ("surfaces resolution errors with isError" against a handler
+  returning them as content, with no assertion either way).
+- **Three invariants the audit verified by script are now tested**: PvP split
+  reciprocity (the existing test said "bidirectionally" and only checked the
+  target existed), `typeId` as a foreign key, and "the decoder throws nothing
+  but `TemplateError`" over 3000 mutated golden codes.
+
+TWO NOT FIXED, deliberately, with the reasoning so nobody re-derives it:
+
+- **L2, an equal-length description swap dodging the growth gate.** The
+  `MAX_DESCRIPTION_GROWTH = 80` docblock is explicit that the number came from
+  measuring seven upstream commits and that 120 was tried and rejected. A
+  word-diff percentage invented here would either fire on the next legitimate
+  reword — recreating the rubber-stamping that docblock warns about — or be
+  loose enough to be theatre. The residual risk narrowed anyway: the shared
+  instruction pattern now applies regardless of length, so a bypass needs text
+  that is instruction-shaped to a reader but matches neither the pattern nor a
+  length change. Reopen by MEASURING against upstream history, not by guessing a
+  threshold.
+- **N3, `pnpm knip` needs ~6 GiB.** knip 6 parses via oxc-parser, which
+  reserves a single 6 GiB `ArrayBuffer` by design, so `pnpm verify` (and the
+  pre-push hook) cannot complete on a machine with less free. Already handled —
+  the hook says to use `git push --no-verify` and that CI is authoritative —
+  but it means "green local = green CI" carries a hardware asterisk. It ran
+  fine on this machine.
+
+Method note from this pass, worth keeping: the audit's own line numbers and
+one of its version claims were stale (it reported the server negotiating
+2025-06-18; the SDK's `LATEST_PROTOCOL_VERSION` is 2025-11-25). Both findings
+were still real. Check the claim, not the citation.
+
 1. Deployment is LIVE and verified (2026-07-11): Cloudflare Workers Builds
    deploys every push to main to https://gw1-mcp.graphmaxer.workers.dev
    (first production tool calls served the same day). Residual debt: the
@@ -534,12 +655,14 @@ is_rp.
    the margin improved rather than eroded. `limits.cpu_ms` stays unset
    deliberately: it has no effect under Free and a rejected value would fail a
    deploy.
-10. tools/list costs about 18 600 characters (~4 650 tokens) of FIXED context
+10. tools/list costs about 18 800 characters (~4 700 tokens) of FIXED context
     in every conversation, outputSchemas being ~45% of it. That is a
     deliberate trade — the schemas carry real contracts locked by the golden
     fixtures — but it is paid by every session, including ones that call a
     single tool. decode_pawned_team was slimmed (3 192 -> 1 936 chars); the
-    forPvp parameter then took back about half the win. Trigger: if a client's
+    forPvp parameter then took back about half the win, and strict inputs
+    (2026-08-11) added ~232 characters of `additionalProperties: false`.
+    Trigger: if a client's
     context budget ever matters, check whether that client forwards
     outputSchema to the model at all before optimising further.
 
@@ -589,7 +712,7 @@ since 2019; see Data maintenance.)
   speculative locale data. Revisit only if a machine-readable FR source
   appears; LLM callers translate French skill names to English well anyway.
 
-## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-07-29)
+## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-08-11)
 
 Everything through distribution is DONE and live: codec (four verification
 layers), skills Reforged-current (count lives in the data, not in prose —
@@ -619,7 +742,22 @@ is not a surprise:
   the comment; adding it empties every response.
 - Upstream data imports pass a plausibility gate, and auto-merge is withheld
   when a description grows more than any legitimate upstream commit ever has
-  (+80 chars; largest observed is +56).
+  (+80 chars; largest observed is +56). Since 2026-08-11 the gate also covers
+  NAMES and all five constant tables, and it no longer fails open on a git
+  fault.
+
+A third external audit (2026-08-08, plus a from-scratch v1.0.0 pass) was worked
+through on 2026-08-11: no High findings, and every actionable one is closed. See
+its entry in the debt register for what changed. Four things about the shape of
+the code, so they are not a surprise:
+
+- Tool INPUTS are `.strict()`. An undeclared argument is a tool error naming the
+  key, not a silently ignored filter.
+- The worker refuses JSON-RPC batches, and `useOnMcp` is mandatory for anything
+  registered on `/mcp` — one middleware that skipped it is the reason.
+- The suggesters and `searchSkills` return nothing for a query that normalises
+  to nothing, instead of the whole dataset or three plausible wrong names.
+- Suite is 360 tests (107 / 68 / 113 / 72).
 
 NEXT (maintainer-gated only): file the upstream bug report (debt #4, report
 ready in docs/), submit to the ChatGPT and Claude directories (kits in docs/,
@@ -705,6 +843,13 @@ cap. Now 1.0 ms.
 Found by the benchmark suite, which 313 tests could not do: nothing was wrong,
 something was unbounded.
 
+**The same class recurred twice on 2026-08-08**, so treat it as the project's
+characteristic failure rather than a one-off. A guard is only as good as the unit it
+counts: `bodyLimit` counted bytes on one of two equivalent PATHS (audit M1), and the
+rate limiter counted HTTP REQUESTS while a JSON-RPC batch carried 3100 operations
+inside one (audit N1). When adding a bound, ask what unit the attacker controls and
+whether anything else in the chain counts a different one.
+
 ## get_skill violated its own output schema (fixed 2026-07-31)
 
 `fullSkill` used `...skill`, leaking six internal join keys into a strict schema, so
@@ -721,13 +866,33 @@ client. Three reasons nothing caught it, all worth keeping:
 So: never `...skill` in `results.ts`, and the conventions test lists tools before
 calling all of them, asserting coverage of `TOOL_NAMES`.
 
+**That lock had a hole for eight days, and it was in the assertion itself**: it read
+`TOOL_NAMES.length - 1`, permanently exempting `decode_pawned_team` — the one tool no
+primed-client test called (audit M3, 2026-08-08). Fixed, and `fullHero` was de-spread
+at the same time (audit L5): its five keys lined up exactly today, but `heroes.json` is
+regenerated weekly, so the next new overlay field would have re-run this postmortem
+verbatim. Two lessons compound here: a completeness assertion with an arithmetic escape
+hatch is not a completeness assertion, and "the keys happen to match" is not a contract.
+The same test now also asserts every tool REJECTS an undeclared argument.
+
 ## workerd runs locally, and there are no compatibility flags
 
 `pnpm --filter @gw1-mcp/gw-worker exec wrangler dev --local` starts the REAL workerd.
 Use it: any claim hedged with "measured under Node" can be checked properly, and the
 gap has been material twice — `tools/list` measured ~17 ms under Node against 7.66 ms
-in production, and an async benchmark reported 221 ms for the same call. Bindings are
-the limit: Analytics Engine and the rate limiter are not exercised locally.
+in production, and an async benchmark reported 221 ms for the same call.
+
+**The rate limiter IS emulated locally**, contrary to what this section said until
+2026-08-11: 120 sequential POSTs to a fresh `wrangler dev --local` returned 94x 200 and
+26x 429, which is the 100/min binding doing its job. Worth knowing in both directions —
+the limiter can be exercised for real, and a probe loop of more than 100 requests will
+start getting 429s that look like a bug in whatever is being tested (it cost one
+confusing measurement). Analytics Engine remains the binding that is not exercised.
+
+Reading response codes off real workerd also caught something the unit suite did not:
+the batch middleware answered 400 for a `text/plain` body starting with "[", where the
+transport answers 415. A middleware that inspects the BODY has to respect the
+content-type contract of the layer below it.
 
 `nodejs_compat` was removed 2026-07-31 after proving it did nothing: the bundle has no
 `node:` specifier, no unenv polyfill and no Node global (the only matches are
@@ -760,8 +925,14 @@ pre-built (the SDK rebuilt all sixteen per request via `objectFromShape`). Zero 
 calls remain inside the function body — keep it that way. Each chained zod method
 CLONES the schema, which is why one `z.string().max(64).describe(...)` costs 0.147 ms.
 
-Verified byte-identical: `tools/list` is 18 577 characters, and strictness survives —
-an extra property in a structured result is still rejected.
+"Zero `z.` calls in the function body" was ASPIRATIONAL until 2026-08-11: three input
+shapes (search_skills, decode_template, decode_pawned_team) were still inline and paid
+the per-request cost this section says was removed. They are at module scope now, so
+the sentence is literally true — check it rather than trusting it when adding a tool.
+
+Verified byte-identical at the time: `tools/list` was 18 577 characters, and strictness
+survives — an extra property in a structured result is still rejected. It is 18 809
+since inputs became `.strict()` (see the third-audit entry in the debt register).
 
 ## Workflow: push straight to main
 

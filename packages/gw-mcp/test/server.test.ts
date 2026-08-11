@@ -49,6 +49,18 @@ describe("gw1-mcp server", () => {
     expect(payload(res).error.code).toBe("BAD_REQUEST");
   });
 
+  it("get_hero mirrors get_skill on both name/id argument mistakes (audit L6)", async () => {
+    const client = await connectedClient();
+    // Neither argument used to answer NOT_FOUND: "No hero matching undefined" —
+    // the wrong taxonomy code (NOT_FOUND means a lookup missed) and a message
+    // that named no way to fix the call.
+    for (const args of [{}, { name: "Koss", id: 1 }]) {
+      const res = await client.callTool({ name: "get_hero", arguments: args });
+      expect(res.isError, JSON.stringify(args)).toBe(true);
+      expect(payload(res).error.code, JSON.stringify(args)).toBe("BAD_REQUEST");
+    }
+  });
+
   it("decodes the golden template", async () => {
     const client = await connectedClient();
     const decoded = payload(
@@ -394,7 +406,11 @@ describe("remaining tool surfaces", () => {
     expect(res.errors.map((e: { code: string }) => e.code)).toContain("TOO_MANY_PVE_SKILLS");
   });
 
-  it("encode_template surfaces resolution errors with isError", async () => {
+  // Title corrected: it said "with isError", which is the opposite of both the
+  // handler (jsonStructured) and the documented policy — a requested report is
+  // normal content — and the assertion never checked the flag either way. An
+  // external audit spotted the contradiction on 2026-08-08.
+  it("encode_template returns resolution errors as content, with suggestions", async () => {
     const client = await connectedClient();
     const res = await client.callTool({
       name: "encode_template",
@@ -413,7 +429,48 @@ describe("remaining tool surfaces", () => {
         ],
       },
     });
-    expect(JSON.stringify(res.content)).toContain("UNKNOWN_PROFESSION");
+    expect(res.isError ?? false).toBe(false);
+    const body = payload(res);
+    const issue = body.errors.find((e: { code: string }) => e.code === "UNKNOWN_PROFESSION");
+    expect(issue).toBeDefined();
+    // Audit L7: this error used to be bare here while the same typo in
+    // search_skills got a hint, and encode_template is where it is likeliest.
+    // "Bard" is not a typo of any profession, so what matters is that real
+    // profession names come back — never "none", the no-secondary sentinel,
+    // which is short enough to win on distance and is not a profession.
+    expect(issue.suggestions.length).toBeGreaterThan(0);
+    expect(issue.suggestions).not.toContain("none");
+    expect(issue.suggestions).toContain("Monk");
+  });
+
+  it("suggests a real profession for a near-miss spelling", async () => {
+    const client = await connectedClient();
+    const res = await client.callTool({
+      name: "encode_template",
+      arguments: {
+        primary: "Paragorn",
+        attributes: [],
+        skills: ["Aegis", null, null, null, null, null, null, null],
+      },
+    });
+    const issue = payload(res).errors.find(
+      (e: { code: string }) => e.code === "UNKNOWN_PROFESSION",
+    );
+    expect(issue.suggestions[0]).toBe("Paragon");
+  });
+
+  it("encode_template suggests attribute names too (audit L7)", async () => {
+    const client = await connectedClient();
+    const res = await client.callTool({
+      name: "encode_template",
+      arguments: {
+        primary: "Monk",
+        attributes: [{ attribute: "Healing Prayer", rank: 12 }],
+        skills: ["Aegis", null, null, null, null, null, null, null],
+      },
+    });
+    const issue = payload(res).errors.find((e: { code: string }) => e.code === "UNKNOWN_ATTRIBUTE");
+    expect(issue.suggestions).toContain("Healing Prayers");
   });
 
   it("search_skills flags unknown profession and campaign filters", async () => {

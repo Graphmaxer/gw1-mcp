@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { decodeTemplate, encodeTemplate, TemplateError } from "../src/index.js";
 import fixtureFile from "./fixtures/templates.json";
+import { mulberry32 } from "./prng.js";
 
 describe("golden fixtures", () => {
   for (const fixture of fixtureFile.fixtures) {
@@ -105,6 +106,36 @@ describe("errors", () => {
       }),
     ).toThrowError(/Profession id 4096 exceeds/);
   });
+
+  it("names the field that overflows, on all four remaining ones (audit L10)", () => {
+    // These four used to surface as the bit writer's own "Value 16 does not fit
+    // in 4 bits" — the right error code with a diagnostic naming an internal
+    // field instead of the caller's mistake, which is what the profession guard
+    // above exists to avoid.
+    const base = {
+      primary: 1,
+      secondary: 0,
+      attributes: [] as { attributeId: number; rank: number }[],
+      skills: [0, 0, 0, 0, 0, 0, 0, 0],
+    };
+    const cases: [string, Parameters<typeof encodeTemplate>[0]][] = [
+      ["skill id", { ...base, skills: [2 ** 23, 0, 0, 0, 0, 0, 0, 0] }],
+      ["attribute id", { ...base, attributes: [{ attributeId: 2 ** 19, rank: 0 }] }],
+      ["attribute rank", { ...base, attributes: [{ attributeId: 1, rank: 16 }] }],
+      [
+        "attribute count",
+        {
+          ...base,
+          attributes: Array.from({ length: 16 }, (_, i) => ({ attributeId: i, rank: 0 })),
+        },
+      ],
+    ];
+    for (const [field, template] of cases) {
+      expect(() => encodeTemplate(template), field).toThrowError(
+        new RegExp(`Invalid ${field} \\d+: a skill template can encode at most`),
+      );
+    }
+  });
 });
 
 describe("malformed input rejection", () => {
@@ -137,5 +168,40 @@ describe("malformed bitstream rejection (GW1-02 audit)", () => {
   it("rejects a non-zero trailing base64 char", () => {
     expect(() => decodeTemplate("OQAAAAAAAAAAAAAAB")).toThrow(/tail|non-zero/i);
     expect(() => decodeTemplate("OQAAAAAAAAAAAAAA/")).toThrow(/tail|non-zero/i);
+  });
+
+  it("never throws anything but TemplateError, on 3000 mutated golden codes", () => {
+    // The closed TemplateError taxonomy is what lets gw-mcp map every decode
+    // failure to a structured tool error instead of a 500. An external audit
+    // verified it over ~300 000 mutated inputs on 2026-08-08 and asked for a
+    // permanent lock; this is the same property at a size the suite can afford.
+    const CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    const rand = mulberry32(20260808);
+    const codes = fixtureFile.fixtures.map((f) => f.code);
+    for (let i = 0; i < 3000; i++) {
+      const base = codes[rand(codes.length)]!;
+      const chars = [...base];
+      // One of: substitute a charset char, inject an off-charset char, truncate,
+      // or append — the four shapes a pasted or corrupted code actually takes.
+      switch (rand(4)) {
+        case 0:
+          chars[rand(chars.length)] = CHARSET[rand(64)]!;
+          break;
+        case 1:
+          chars[rand(chars.length)] = "!";
+          break;
+        case 2:
+          chars.length = rand(chars.length);
+          break;
+        default:
+          chars.push(CHARSET[rand(64)]!);
+      }
+      const mutated = chars.join("");
+      try {
+        decodeTemplate(mutated);
+      } catch (error) {
+        expect(error, `input ${JSON.stringify(mutated)}`).toBeInstanceOf(TemplateError);
+      }
+    }
   });
 });

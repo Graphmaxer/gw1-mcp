@@ -325,8 +325,14 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
   });
 
   const MAX_BODY_BYTES = 512 * 1024;
-  app.use(
-    "/mcp",
+  // useOnMcp, not app.use("/mcp", ...): this middleware WAS the one that drifted.
+  // Registered on the bare path only, "/mcp/" had no body ceiling at all, so
+  // adding one character to the URL bought an attacker the platform limit
+  // (~100 MB) buffered in an isolate and parsed twice when MCP_ANALYTICS is
+  // bound. Found by an external audit on 2026-08-08, which reproduced it: 600
+  // KiB to /mcp answered 413, the same body to /mcp/ answered 400 after being
+  // fully read. Both spellings are covered by tests now.
+  useOnMcp(
     bodyLimit({
       maxSize: MAX_BODY_BYTES,
       onError: (c) =>
@@ -399,6 +405,52 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
       if (!ok) {
         return c.json({ error: "forbidden origin" }, 403);
       }
+    }
+    await next();
+  });
+
+  // No JSON-RPC batching (audit N1, 2026-08-08). This is the last amplification
+  // path left: every other guard in this file reasons per REQUEST — the body
+  // limit, the pwnd slot cap, the bounded Levenshtein — and the rate limiter
+  // counts HTTP requests, so a batch was the one place where one request was
+  // many operations. Measured: a single 508 KiB POST carrying 3100 get_skill
+  // calls fits under the 512 KiB ceiling, returns 3100 results, and costs one
+  // unit of the 100/min/IP quota — a ~139 s/min/IP work ceiling under Node.
+  //
+  // Rejecting is also the conformant answer, not just the cheap one: MCP
+  // 2025-06-18 REMOVED batching (spec PR #416) and every later revision keeps it
+  // removed. The SDK still lists 2025-03-26 and 2024-11-05 as supported
+  // versions and @hono/mcp still parses arrays, so this has to be refused here
+  // rather than assumed absent. Unconditional on purpose: no real client batches,
+  // and gating it on a negotiated version would mean tracking session state this
+  // stateless server does not have.
+  //
+  // Registered with useOnMcp and AFTER bodyLimit, both deliberately: M1 in this
+  // same audit was a middleware registered on one path spelling only, and an
+  // oversized batch must still 413 rather than be buffered and inspected here.
+  useOnMcp(async (c, next) => {
+    // JSON bodies only. Without this the check ran first and answered 400 for a
+    // `text/plain` body starting with "[", where the transport answers 415 —
+    // silently changing a documented response code. Measured under real workerd
+    // 2026-08-11. Nothing is lost: a non-JSON batch never reaches any work,
+    // because the transport refuses the content type before parsing.
+    if (c.req.header("Content-Type")?.includes("application/json") !== true) return next();
+    // First non-whitespace character only — a body of up to 512 KiB does not
+    // need JSON.parse to answer "is the top level an array?".
+    const body = await c.req.raw.clone().text();
+    if (/^\s*\[/.test(body)) {
+      return c.json(
+        {
+          jsonrpc: "2.0",
+          id: null,
+          error: {
+            code: -32600,
+            message:
+              "JSON-RPC batching is not supported: send one request object per HTTP POST. Batching was removed from MCP in revision 2025-06-18.",
+          },
+        },
+        400,
+      );
     }
     await next();
   });

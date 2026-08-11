@@ -644,28 +644,88 @@ describe("rate limiting", () => {
     expect(res.status).not.toBe(500);
   });
 
-  it("rejects an oversized body with 413 before processing (GW1-AUD-01)", async () => {
-    const res = await createApp().request("/mcp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Content-Length": String(600 * 1024) },
-      body: "x".repeat(10),
+  // Both spellings, both tests: the limit was registered on the bare path only,
+  // so "/mcp/" — an endpoint this app deliberately serves — had no ceiling at all
+  // and buffered the body before failing to parse it (audit M1, 2026-08-08).
+  for (const path of ["/mcp", "/mcp/"]) {
+    it(`rejects an oversized body on ${path} with 413 before processing (GW1-AUD-01)`, async () => {
+      const res = await createApp().request(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Content-Length": String(600 * 1024) },
+        body: "x".repeat(10),
+      });
+      expect(res.status).toBe(413);
     });
-    expect(res.status).toBe(413);
-  });
-  it("rejects a real oversized body even without a Content-Length header (GW1-RESTE-02)", async () => {
-    // A Content-Length-only check is bypassable (omitted header, chunked
-    // transfer, or a forged small value). hono/body-limit counts actual bytes
-    // read, so a genuinely large body is caught even when no length is declared.
-    const res = await createApp().request("/mcp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: "x".repeat(600 * 1024),
+    it(`rejects a real oversized body on ${path} without a Content-Length header (GW1-RESTE-02)`, async () => {
+      // A Content-Length-only check is bypassable (omitted header, chunked
+      // transfer, or a forged small value). hono/body-limit counts actual bytes
+      // read, so a genuinely large body is caught even when no length is declared.
+      const res = await createApp().request(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "x".repeat(600 * 1024),
+      });
+      expect(res.status).toBe(413);
     });
-    expect(res.status).toBe(413);
-  });
+  }
   it("passes through when the limiter allows", async () => {
     const env = { RATE_LIMITER: { limit: async () => ({ success: true }) } };
     const res = await post(createApp(), env);
     expect(res.status).not.toBe(429);
+  });
+
+  // Audit N1: a batch was the only place where one HTTP request — one unit of the
+  // per-IP quota — carried N operations. 3100 get_skill calls fitted under the
+  // 512 KiB body limit and cost 1.4 s of work for one unit.
+  for (const path of ["/mcp", "/mcp/"]) {
+    it(`rejects a JSON-RPC batch on ${path} with -32600 (audit N1)`, async () => {
+      const batch = Array.from({ length: 3 }, (_, i) => ({
+        jsonrpc: "2.0",
+        id: i,
+        method: "tools/list",
+        params: {},
+      }));
+      const res = await createApp().request(path, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json, text/event-stream",
+        },
+        body: JSON.stringify(batch),
+      });
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error.code).toBe(-32600);
+      expect(body.error.message).toMatch(/batching is not supported/);
+    });
+  }
+
+  it("still rejects an oversized batch as 413, not as a batch (order matters)", async () => {
+    // bodyLimit must stay AHEAD of the batch check: otherwise a huge body gets
+    // buffered and inspected before being refused for its size.
+    const res = await createApp().request("/mcp", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: `[${"x".repeat(600 * 1024)}]`,
+    });
+    expect(res.status).toBe(413);
+  });
+
+  it("a single request object is unaffected by the batch check", async () => {
+    const { status, message } = await rpc({ jsonrpc: "2.0", id: 1, method: "tools/list" });
+    expect(status).toBe(200);
+    expect(message.result.tools.length).toBeGreaterThan(0);
+  });
+
+  it("leaves the content-type answer to the transport", async () => {
+    // The batch check runs on every POST, so it must not answer for a body the
+    // transport would refuse on its content type: a text/plain body starting
+    // with "[" answered 400 instead of 415 until the check was narrowed to JSON.
+    const res = await createApp().request("/mcp", {
+      method: "POST",
+      headers: { "content-type": "text/plain" },
+      body: "[1,2,3]",
+    });
+    expect(res.status).toBe(415);
   });
 });

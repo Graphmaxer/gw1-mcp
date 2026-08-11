@@ -18,7 +18,7 @@
  * instead of silent staleness. Orphan overlay keys are warnings.
  */
 import { readFileSync, writeFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 
 const ENUM_URL =
@@ -90,7 +90,12 @@ export function parseHeroEnum(header: string): Map<number, string> {
 /** Merge the upstream enum with the curated overlay into full hero records. */
 export function generateHeroes(header: string, overlay: Record<string, HeroMeta>): HeroRecord[] {
   const upstream = parseHeroEnum(header);
-  const missing = [...upstream.values()].filter((identifier) => !(identifier in overlay));
+  // Object.hasOwn, not `in`: `in` walks the prototype chain, so an upstream hero
+  // named "constructor" or "toString" would have been treated as already curated
+  // and shipped with whatever Object.prototype holds under that key.
+  const missing = [...upstream.values()].filter(
+    (identifier) => !Object.hasOwn(overlay, identifier),
+  );
   if (missing.length > 0) {
     throw new Error(
       `data/heroes-overlay.json lacks ${missing.length} hero(es) from the GWCA enum: ${missing.join(", ")} — curate professionId/campaignId/unlock (from GWW) to unblock`,
@@ -203,8 +208,10 @@ async function main(): Promise<void> {
   );
 }
 
-const isDirectRun =
-  process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href;
+// pathToFileURL, like every other entry point here: hand-building `file://${path}`
+// leaves `%`, `#` and `?` unescaped, so this comparison silently returned false —
+// and the script did nothing at all — from a checkout path containing one.
+const isDirectRun = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isDirectRun) {
   main().catch((error: unknown) => {
     console.error(error instanceof Error ? error.message : error);

@@ -10,10 +10,12 @@ import {
   getProfessionByName,
   getSkillById,
   getSkillByName,
+  getSkillType,
   heroes,
   searchSkills,
   skills,
   suggestAttributeNames,
+  suggestProfessionNames,
   suggestSkillNames,
 } from "../src/index.js";
 
@@ -52,10 +54,26 @@ describe("upstream-integrity invariants (GW1-13)", () => {
     }
   });
   it("pvpSplit and splitId agree bidirectionally", () => {
+    // This test only checked that the target EXISTS, despite its name — an
+    // external audit verified the reciprocity by script on 2026-08-08 and asked
+    // for it to be locked. Every pvpSplit must point at a real PvP version, and
+    // that version must point back.
+    let pairs = 0;
     for (const s of skills) {
-      if (s.splitId) {
-        expect(getSkillById(s.splitId), `skill ${s.id} splitId target`).toBeDefined();
-      }
+      if (!s.pvpSplit) continue;
+      const target = getSkillById(s.splitId);
+      expect(target, `skill ${s.id} splitId target`).toBeDefined();
+      expect(target?.isPvpVersion, `skill ${s.id} splits to a PvP version`).toBe(true);
+      expect(target?.splitId, `skill ${s.id} split points back`).toBe(s.id);
+      pairs++;
+    }
+    expect(pairs).toBe(skills.filter((s) => s.isPvpVersion).length);
+  });
+  it("every skill's typeId resolves", () => {
+    // The other four foreign keys were covered; typeId was not, and it is the one
+    // feeding the `type` field of every get_skill answer.
+    for (const s of skills) {
+      expect(getSkillType(s.typeId), `skill ${s.id} type`).toBeDefined();
     }
   });
 });
@@ -150,6 +168,40 @@ describe("lookups", () => {
     // The threshold is calibrated to keep this one (d=5) while dropping the
     // wrong matches above — it is the boundary case that fixes the cap at 5.
     expect(suggestSkillNames("Vœu de piété")[0]).toBe("Vow of Piety");
+  });
+
+  it("suggests nothing for a query that normalises to nothing (audit M2)", () => {
+    // distance("", candidate) is just the candidate's length, so before the
+    // empty-needle guard every short skill name passed the cap and a Cyrillic,
+    // CJK or punctuation-only query came back with three confident wrong
+    // answers — "Возрождение" returned ["Awe", "Echo", "Gale"].
+    for (const query of ["Возрождение", "回復", "!!!", "   ", "***", "😀"]) {
+      expect(suggestSkillNames(query), query).toEqual([]);
+      expect(suggestAttributeNames(query), query).toEqual([]);
+    }
+  });
+
+  it("suggests professions, excluding the no-secondary sentinel (audit L7)", () => {
+    // Added for the build-resolution errors, where a profession typo used to come
+    // back bare. Id 0 ("none") is out of the index on purpose: it is short enough
+    // to beat real names on distance ("Bard" put it ahead of Monk and Warrior)
+    // and it is not a profession anyone means to type.
+    expect(suggestProfessionNames("Paragorn")[0]).toBe("Paragon");
+    expect(suggestProfessionNames("necromancr")[0]).toBe("Necromancer");
+    expect(suggestProfessionNames("Bard")).not.toContain("none");
+    expect(suggestProfessionNames("Bard").length).toBeGreaterThan(0);
+    expect(suggestProfessionNames("Возрождение")).toEqual([]);
+    expect(suggestProfessionNames("z".repeat(5000))).toEqual([]);
+  });
+
+  it("treats a nameContains that normalises to nothing as matching nothing (audit L8)", () => {
+    // `includes("")` is true for every name, so this used to return the whole
+    // non-PvP dataset presented as the results of a filter that matched nothing.
+    expect(searchSkills({ nameContains: "!!!" })).toEqual([]);
+    expect(searchSkills({ nameContains: "" })).toEqual([]);
+    expect(searchSkills({ nameContains: "Возрождение" })).toEqual([]);
+    // An ABSENT filter still returns everything — the two cases must stay distinct.
+    expect(searchSkills({}).length).toBeGreaterThan(1000);
   });
 });
 

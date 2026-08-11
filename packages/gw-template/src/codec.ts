@@ -88,17 +88,38 @@ export function encodeTemplate(template: SkillTemplate): string {
   // a fractional skill id used to encode as a different, valid skill. Legality
   // (unknown ids, duplicate attributes) stays the validator's job — this only
   // guarantees the input is the kind of number the bit writer can represent.
-  for (const [label, values] of [
-    ["skill id", template.skills],
-    ["profession id", [template.primary, template.secondary]],
-    ["attribute id", template.attributes.map((a) => a.attributeId)],
-    ["attribute rank", template.attributes.map((a) => a.rank)],
+  //
+  // Each field also carries its structural CEILING, derived from the width code
+  // that describes it in the bitstream: the skill and attribute width codes are
+  // 4 bits each, so widths top out at 8+15 and 4+15 bits respectively, and rank
+  // and the attribute count are 4-bit fields. Without these the error was the
+  // bit writer's own "Value 16 does not fit in 4 bits" — a controlled failure
+  // with the right code but a diagnostic naming an internal field instead of the
+  // caller's mistake, which is exactly what the profession guard below was added
+  // to avoid (audit L10). Widths, layout and ordering are untouched.
+  const MAX_SKILL_ID = (1 << (8 + 15)) - 1;
+  const MAX_ATTRIBUTE_ID = (1 << (4 + 15)) - 1;
+  const MAX_FOUR_BIT = 15;
+  for (const [label, values, max] of [
+    ["skill id", template.skills, MAX_SKILL_ID],
+    // No ceiling here: the profession width is chosen from a 2-bit code, so it
+    // gets its own dedicated check below with a message about the 10-bit limit.
+    ["profession id", [template.primary, template.secondary], Number.MAX_SAFE_INTEGER],
+    ["attribute id", template.attributes.map((a) => a.attributeId), MAX_ATTRIBUTE_ID],
+    ["attribute rank", template.attributes.map((a) => a.rank), MAX_FOUR_BIT],
+    ["attribute count", [template.attributes.length], MAX_FOUR_BIT],
   ] as const) {
     for (const value of values) {
       if (!Number.isInteger(value) || value < 0) {
         throw new TemplateError(
           "VALUE_OUT_OF_RANGE",
           `Invalid ${label} ${value}: expected a non-negative integer`,
+        );
+      }
+      if (value > max) {
+        throw new TemplateError(
+          "VALUE_OUT_OF_RANGE",
+          `Invalid ${label} ${value}: a skill template can encode at most ${max}`,
         );
       }
     }

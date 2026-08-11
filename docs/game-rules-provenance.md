@@ -73,9 +73,15 @@ the right answer when someone reports "your code will not load".
 ## Not game rules
 
 `DUPLICATE_ATTRIBUTE`, `NO_PRIMARY`, `UNKNOWN_SKILL`, `UNKNOWN_ATTRIBUTE`,
-`UNKNOWN_PRIMARY`, `UNKNOWN_SECONDARY`, `SKILL_NOT_UNLOCKED`, `UNUSED_ATTRIBUTE`,
+`UNKNOWN_PROFESSION`, `UNKNOWN_CAMPAIGN`, `UNKNOWN_PRIMARY`, `UNKNOWN_SECONDARY`,
+`BAD_REQUEST`, `NOT_FOUND`, `SKILL_NOT_UNLOCKED`, `UNUSED_ATTRIBUTE`,
 `UNALLOCATED_ATTRIBUTE`. These check request coherence, name resolution, or build
 quality. `SKILL_NOT_UNLOCKED` depends on the caller's own account state.
+
+`UNKNOWN_PROFESSION` was the one code in `src` this list had never mentioned, while
+both its siblings were here — found by diffing the declared codes against this file
+on 2026-08-11. Every resolution error now carries the `suggestions` field
+`issueSchema` documents, in every tool that can raise it.
 
 ## What is NOT a hallucination risk
 

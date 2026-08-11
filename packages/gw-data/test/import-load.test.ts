@@ -1,7 +1,15 @@
 import { createHash } from "node:crypto";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { loadUpstream, normaliseConstantTables } from "../scripts/import/load.js";
+import {
+  assertCoherentSnapshot,
+  loadUpstream,
+  normaliseConstantTables,
+} from "../scripts/import/load.js";
 import { assertPlausibleDescription, assertPlausibleName } from "../scripts/import/transform.js";
+import { syncReadmeSkillCount } from "../scripts/import/write.js";
 import skills from "../data/skills.json";
 import professions from "../data/professions.json";
 import attributes from "../data/attributes.json";
@@ -158,6 +166,73 @@ describe("upstream description plausibility gate (audit C1)", () => {
 
   it("rejects an implausibly long description", () => {
     expect(ok("a".repeat(601))).toThrow(/over the 600/);
+  });
+});
+
+describe("upstream snapshot coherence (2026-08-10 phantom import)", () => {
+  // The weekly run imported a snapshot with 1484 skills while upstream serves
+  // 1485 before and after: a Pages deploy read mid-rebuild. A count-delta bound
+  // would not have caught it — the count moved by ONE, which is what a balance
+  // patch looks like. Cross-file id equality does, because the two files are
+  // generated together.
+  it("accepts two files describing the same ids", () => {
+    expect(() =>
+      assertCoherentSnapshot({ 0: {}, 1: {}, 2: {} }, { 0: {}, 1: {}, 2: {} }),
+    ).not.toThrow();
+  });
+
+  it("rejects a snapshot missing one id on either side", () => {
+    expect(() => assertCoherentSnapshot({ 0: {}, 1: {}, 2: {} }, { 0: {}, 1: {} })).toThrow(
+      /Incoherent upstream snapshot[\s\S]*only in skilldata \(2\)/,
+    );
+    expect(() => assertCoherentSnapshot({ 0: {}, 1: {} }, { 0: {}, 1: {}, 9: {} })).toThrow(
+      /only in skilldesc \(9\)/,
+    );
+  });
+
+  it("names the mid-rebuild cause, since that is the likely one", () => {
+    expect(() => assertCoherentSnapshot({ 1: {} }, {})).toThrow(/mid-rebuild/);
+  });
+
+  it("holds on the data we actually ship", () => {
+    // Non-vacuity: the real dataset must pass, or the guard would block every import.
+    const ids = Object.fromEntries(
+      (skills as { id: number }[]).map((s) => [String(s.id), {}] as const),
+    );
+    expect(() => assertCoherentSnapshot(ids, { ...ids })).not.toThrow();
+  });
+});
+
+describe("README skill count is generated, not hand-kept", () => {
+  // It was hand-kept, and repository.test.ts asserts it EXACTLY, so the first
+  // upstream count change reds the weekly import until a human edits prose.
+  const tmp = join(tmpdir(), `gw1-readme-${process.pid}.md`);
+  afterEach(() => {
+    rmSync(tmp, { force: true });
+  });
+
+  it("rewrites every mention and reports how many", () => {
+    writeFileSync(tmp, "looks up the 1484 real skills\nand 1484 skills elsewhere\n");
+    expect(syncReadmeSkillCount(tmp, 1485)).toBe(2);
+    expect(readFileSync(tmp, "utf8")).toBe(
+      "looks up the 1485 real skills\nand 1485 skills elsewhere\n",
+    );
+  });
+
+  it("touches nothing when the count already matches", () => {
+    const text = "the 1485 real skills\n";
+    writeFileSync(tmp, text);
+    expect(syncReadmeSkillCount(tmp, 1485)).toBe(0);
+    expect(readFileSync(tmp, "utf8")).toBe(text);
+  });
+
+  it("leaves other numbers alone", () => {
+    // Narrow by design: it must not reflow a sentence or touch 8 tools, 31 heroes.
+    writeFileSync(tmp, "8 tools, 31 heroes, 3 resources, 1484 skills, port 8787\n");
+    expect(syncReadmeSkillCount(tmp, 1485)).toBe(1);
+    expect(readFileSync(tmp, "utf8")).toBe(
+      "8 tools, 31 heroes, 3 resources, 1485 skills, port 8787\n",
+    );
   });
 });
 

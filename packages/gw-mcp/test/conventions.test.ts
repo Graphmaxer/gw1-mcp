@@ -288,3 +288,57 @@ describe("output schemas match reality (mechanical lock)", () => {
     }
   });
 });
+
+/**
+ * The upstream pins must stay OUT of workflow YAML.
+ *
+ * Not tidiness — a placement the automation depends on. `upstream-pin-bump.yml`
+ * opens its PR with the gw1-mcp-bot App token, and GitHub refuses any App push
+ * touching `.github/workflows/**` without `Workflows: write`. While the pins sat
+ * in the workflows, the tripwire detected drift and failed to deliver it twice
+ * (2026-08-03, 2026-08-10) — and looked green the two runs before, because there
+ * was nothing to report. Inlining a pin again would silently restore that.
+ */
+describe("upstream pins live in .github/pins.env, not in workflow YAML", () => {
+  const pins = read("../../../.github/pins.env");
+  const workflows = [
+    "build-gwtoolbox-plugin.yml",
+    "publish-registry.yml",
+    "upstream-pin-bump.yml",
+  ] as const;
+
+  it("parses as KEY=value and defines every pin the workflows consume", () => {
+    const keys = [...pins.matchAll(/^([A-Z0-9_]+)=(\S+)$/gm)].map(([, k]) => k ?? "");
+    expect(new Set(keys).size, "no duplicate keys").toBe(keys.length);
+    expect(keys.sort()).toEqual([
+      "GWTOOLBOX_COMMIT",
+      "MCP_PUBLISHER_SHA256_AMD64",
+      "MCP_PUBLISHER_SHA256_ARM64",
+      "MCP_PUBLISHER_VERSION",
+      "VCPKG_COMMIT",
+    ]);
+    // Every non-comment line is an assignment, or `>> $GITHUB_ENV` would reject it.
+    for (const line of pins.split("\n")) {
+      if (line.trim() === "" || line.startsWith("#")) continue;
+      expect(line, "every non-comment line must be KEY=value").toMatch(/^[A-Z0-9_]+=\S+$/);
+    }
+  });
+
+  it("no workflow hardcodes a pin value", () => {
+    const values = [...pins.matchAll(/^[A-Z0-9_]+=(\S+)$/gm)].map(([, v]) => v ?? "");
+    for (const name of workflows) {
+      const yaml = read(`../../../.github/workflows/${name}`);
+      for (const value of values) {
+        expect(yaml, `${name} must read ${value.slice(0, 12)}… from pins.env`).not.toContain(value);
+      }
+    }
+  });
+
+  it("the plugin build rebuilds when a pin changes", () => {
+    // The tripwire's PR body claims "CI proves it still builds". That is only
+    // true if a pins.env change triggers the build.
+    expect(read("../../../.github/workflows/build-gwtoolbox-plugin.yml")).toContain(
+      ".github/pins.env",
+    );
+  });
+});

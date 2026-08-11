@@ -310,26 +310,67 @@ the policy doing its job, not a bug, and the fix was patience. Keep the two
 numbers in sync if either changes — a mismatch just brings the same
 guaranteed-red-PR problem back.
 
-MANUAL PINS Dependabot CANNOT see (they live in workflow env:/run:, not a
-manifest — so they drift SILENTLY; this is the maintenance cost we accepted
-in exchange for the audit's security). Bump each deliberately:
+MANUAL PINS Dependabot CANNOT see all live in **`.github/pins.env`**, and that
+location is load-bearing rather than tidy — see the file's own header. They were
+job-level `env:` inside the workflows until 2026-08-11, which made
+`upstream-pin-bump.yml` structurally unable to do its job: it opens its PR with
+the gw1-mcp-bot App token, and GitHub refuses ANY App push touching
+`.github/workflows/**` without `Workflows: write`. So it detected drift and died
+at "Open pull request" on 2026-08-03 and 2026-08-10, having looked green the two
+runs before purely for want of drift — while GWToolboxpp fell 4 commits behind and
+mcp-publisher a release behind. Granting the App `Workflows: write` was the other
+fix and was rejected on purpose: it gives an automated identity the right to
+rewrite the CI that reviews everything else. A conventions test now fails if any
+pin value reappears inside a workflow file.
 
-- GWTOOLBOX_COMMIT (build-gwtoolbox-plugin.yml): the GWToolboxpp commit the
-  plugin compiles against. Was a floating master clone (GW1-04). Build runs
-  contents:read; a separate release-upload job holds contents:write.
-- VCPKG_COMMIT (same file): upstream's pinned vcpkg toolchain commit.
+Consumers load it with `grep -E '^[A-Z0-9_]+=' .github/pins.env >> "$GITHUB_ENV"`
+— the grep is what allows comments in the file. Bump each deliberately:
+
+- GWTOOLBOX_COMMIT: the GWToolboxpp commit the plugin compiles against. Was a
+  floating master clone (GW1-04). Build runs contents:read; a separate
+  release-upload job holds contents:write. `pins.env` is in the plugin build's
+  `paths:` trigger, so a bump rebuilds — which is what makes the tripwire's "CI
+  proves it still builds" claim true.
+- VCPKG_COMMIT: upstream's pinned vcpkg toolchain commit.
   Deliberately NOT watched by the tripwire (unlike GWToolboxpp/mcp-publisher):
   vcpkg's master moves dozens of times a day and it is a frozen build
   toolchain, not a feature source — auto-PRing it would be pure noise. Bump it
   manually only when a dependency actually needs a newer vcpkg baseline.
-- mcp-publisher VERSION + SHA256_amd64/arm64 (publish-registry.yml): pinned
-  release with per-arch digest check (GW1-05). To bump: download the new
-  tarballs, `sha256sum` them, update VERSION and BOTH digests together.
-  The weekly upstream-pin-bump workflow opens a PR (never auto-merged) when any of these drifts from upstream latest, recomputing mcp-publisher's digests for eye-review — the active tripwire instead of memory.
+- MCP_PUBLISHER_VERSION + MCP_PUBLISHER_SHA256_AMD64/ARM64: pinned release with
+  per-arch digest check (GW1-05). To bump: download the new tarballs,
+  `sha256sum` them, update the version and BOTH digests together.
+  `publish-registry.yml` re-binds them to the short names its script uses instead
+  of exporting a job-wide `VERSION`.
+  The weekly upstream-pin-bump workflow opens a PR (never auto-merged) when any of these drifts from upstream latest, recomputing mcp-publisher's digests for eye-review — the active tripwire instead of memory. It still has no notification path beyond a red scheduled run, which is how two weeks of failure went unnoticed; if that recurs, wire one rather than trusting the badge.
 
 The weekly Pages import stays isolated from all secrets by the two-job split
 in update-data.yml; its npm fallback is lockfile-integrity-checked. Data
 import provenance now records sha256 of the downloaded bytes (GW1-06).
+
+**The import can be handed a PHANTOM snapshot, and was (2026-08-10).** Pages is a
+live, mutable source: five files fetched in sequence from a deploy that can be
+rebuilt between requests. That run imported a snapshot one skill SHORT of what
+upstream serves before and after — a deploy read mid-rebuild. (Phrased without the
+figure on purpose: the doc-count lock reads "<number> skills" as a current claim
+and fired on this very paragraph while it was being written, which is the ratchet
+demonstrating itself.) The provenance comment in load.ts had
+predicted exactly this ("a Pages redeploy between requests could even mix
+versions") and answered it by hashing the bytes, which makes an incoherent import
+reproducible rather than impossible. `assertCoherentSnapshot` now hard-fails when
+skilldata and skilldesc disagree on their id sets, because they are generated
+together. Note what does NOT work: a count-delta bound. The count moved by ONE,
+which is what a balance patch looks like.
+
+Two things followed from the same incident. The failing check was
+`repository.test.ts`'s README count assertion — three packages away, naming the
+wrong culprit — and because `update-data.yml` never rewrote README while the test
+demands it be exact, the lock was a ONE-WAY RATCHET on the only automated path
+that changes the count: the first legitimate count change would red the weekly job
+until a human edited prose. The import now owns that number
+(`syncReadmeSkillCount`), like every other derived byte ("no unmanaged copies").
+And the whole incident self-heals: content matches again, so the next run goes
+green and nothing records that the pipeline can ingest a snapshot that never
+existed. That is why this paragraph exists.
 
 CodeQL runs via GitHub DEFAULT SETUP: its configuration lives OUTSIDE the
 repo (Settings -> Code security), the same out-of-repo category as the
@@ -757,7 +798,30 @@ the code, so they are not a surprise:
   registered on `/mcp` — one middleware that skipped it is the reason.
 - The suggesters and `searchSkills` return nothing for a query that normalises
   to nothing, instead of the whole dataset or three plausible wrong names.
-- Suite is 360 tests (107 / 68 / 113 / 72).
+- Suite is 376 tests (107 / 79 / 118 / 72).
+
+A SELF-audit followed on 2026-08-11 — probes and sweeps rather than reading — and
+its lesson is where to look next. The core did not yield: ~1900 generated cases
+(375 adversarial tool calls against a primed client, 1500 legal builds round-tripped
+by NAME through encode/decode, whole-dataset validator and codec sweeps, the C++
+plugin read in full) produced ZERO findings in the codec, the validator, the data
+or the plugin. Both real findings were in the automation meant to watch the source,
+and both were failing silently: the pin tripwire (see the manual-pin registry) and
+the importer's phantom snapshot (see the data-provenance paragraph). Two smaller
+ones were contradictions between enforced rules and LLM-facing prose — heroes
+"cannot use most PvE-only skills" against a hard error on every one of them, and
+the campaign-filter caveat living only in server `instructions`, which many clients
+never forward, while the parameter description that IS always forwarded said
+nothing.
+
+Two things verified end to end for the first time, worth trusting now: the
+production RATE LIMITER really engages (first 429 at request #102 against a
+documented 100/min/IP), and response hardening survives the lazy body — `no-store`,
+`nosniff` and CORS are all present on a real `text/event-stream` `/mcp` answer,
+despite the same laziness making `server.close()` empty a response.
+
+On a repository this well tested, look at whether the automation RAN before looking
+for a wrong line of code.
 
 NEXT (maintainer-gated only): file the upstream bug report (debt #4, report
 ready in docs/), submit to the ChatGPT and Claude directories (kits in docs/,

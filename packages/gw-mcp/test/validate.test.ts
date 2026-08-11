@@ -42,6 +42,50 @@ describe("attribute point budget", () => {
     expect(report.errors.map((e) => e.code)).toContain("ATTRIBUTE_NOT_TEMPLATABLE");
   });
 
+  it("charges a repeated attribute line once, and says so in the message", () => {
+    // The game charges a line once, whatever a malformed template repeats. Three
+    // entries at rank 12 used to be billed 291 points and the message printed
+    // that figure — a false total inside a message whose whole purpose is
+    // arithmetic the caller can trust (audit note, 2026-08-08). The verdict is
+    // still false, because DUPLICATE_ATTRIBUTE is an error in its own right.
+    const report = validateBuild(
+      {
+        primary: 3,
+        secondary: 0,
+        attributes: [
+          { attributeId: 18, rank: 12 }, // Healing Prayers (97), three times
+          { attributeId: 18, rank: 12 },
+          { attributeId: 18, rank: 12 },
+        ],
+        skills: [0, 0, 0, 0, 0, 0, 0, 0],
+      },
+      {},
+    );
+    const codes = report.errors.map((e) => e.code);
+    expect(codes).toContain("DUPLICATE_ATTRIBUTE");
+    expect(codes).not.toContain("ATTRIBUTE_POINTS_EXCEEDED");
+    expect(report.valid).toBe(false);
+  });
+
+  it("still names the real total when a genuine spread is over budget", () => {
+    // The dedup above must not make the message understate a real overspend.
+    const report = validateBuild(
+      {
+        primary: 10,
+        secondary: 0,
+        attributes: [
+          { attributeId: 41, rank: 12 }, // 97
+          { attributeId: 44, rank: 12 }, // 97
+          { attributeId: 43, rank: 8 }, // 37 -> 231
+        ],
+        skills: [0, 0, 0, 0, 0, 0, 0, 0],
+      },
+      {},
+    );
+    const issue = report.errors.find((e) => e.code === "ATTRIBUTE_POINTS_EXCEEDED");
+    expect(issue?.message).toContain("costs 231 points");
+  });
+
   it("accepts a standard 11/10/8 spread (175 points)", () => {
     const report = validateBuild(
       {

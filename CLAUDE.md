@@ -209,9 +209,15 @@ this file already argues about in prose:
   bounded (the 109 ms -> 1.4 ms fix has a regression guard now).
 - gw-mcp `bench/build.bench.ts`: resolve -> validate -> describe, then the
   same tools through the SDK over InMemoryTransport.
-- gw-worker `bench/http.bench.ts`: the deployed shape — JSON-RPC over the
-  Hono app, including the initialize + tools/list pair that is ~97.5% of real
-  traffic and the 10 ms Workers CPU budget it has to fit in.
+- gw-worker `bench/startup.bench.ts`: `createApp` — route registration only,
+  NOT the MCP server (see the CodSpeed section: it is the noise floor). The
+  `bench/http.bench.ts` this list claimed until 2026-08-11 does not exist; the
+  async JSON-RPC benchmark that reported 221 ms was removed and the entry was
+  never updated. So there is NO committed benchmark of the `/mcp` request path,
+  and a change to that hot path has to be measured against real workerd by hand
+  (`wrangler dev --local`, time N sequential POSTs, compare medians against the
+  same run on main — that is how the batch middleware was cleared: 3.02 ms vs
+  3.03 ms p50 for `tools/list`, i.e. free).
 
 Benchmarks are measured, not asserted: nothing fails on a slow number, the
 report is the signal. Keep them deterministic (no network, no clock, no
@@ -451,7 +457,11 @@ equivalent paths.
   removed, but the SDK still lists 2025-03-26 as supported and @hono/mcp still
   parses top-level arrays, so it has to be refused HERE rather than assumed
   absent. Unconditional, because gating it on a negotiated version needs
-  session state a stateless server does not have.
+  session state a stateless server does not have. The check peeks at the first
+  non-whitespace character of a cloned body and only for JSON content types —
+  both details are load-bearing, and both were measured under real workerd:
+  free on the hot path (3.02 ms vs 3.03 ms p50 for `tools/list`), and the
+  content-type narrowing is what keeps a `text/plain` body answering 415.
 - **M2 — the suggester answered confidently for queries that normalise to
   nothing.** `distance("", candidate)` is just the candidate's length, so every
   short name passed the cap: `get_skill {"name":"Возрождение"}` returned
@@ -747,7 +757,7 @@ the code, so they are not a surprise:
   registered on `/mcp` — one middleware that skipped it is the reason.
 - The suggesters and `searchSkills` return nothing for a query that normalises
   to nothing, instead of the whole dataset or three plausible wrong names.
-- Suite is 357 tests (107 / 68 / 111 / 71).
+- Suite is 360 tests (107 / 68 / 113 / 72).
 
 NEXT (maintainer-gated only): file the upstream bug report (debt #4, report
 ready in docs/), submit to the ChatGPT and Claude directories (kits in docs/,
@@ -870,8 +880,19 @@ The same test now also asserts every tool REJECTS an undeclared argument.
 `pnpm --filter @gw1-mcp/gw-worker exec wrangler dev --local` starts the REAL workerd.
 Use it: any claim hedged with "measured under Node" can be checked properly, and the
 gap has been material twice — `tools/list` measured ~17 ms under Node against 7.66 ms
-in production, and an async benchmark reported 221 ms for the same call. Bindings are
-the limit: Analytics Engine and the rate limiter are not exercised locally.
+in production, and an async benchmark reported 221 ms for the same call.
+
+**The rate limiter IS emulated locally**, contrary to what this section said until
+2026-08-11: 120 sequential POSTs to a fresh `wrangler dev --local` returned 94x 200 and
+26x 429, which is the 100/min binding doing its job. Worth knowing in both directions —
+the limiter can be exercised for real, and a probe loop of more than 100 requests will
+start getting 429s that look like a bug in whatever is being tested (it cost one
+confusing measurement). Analytics Engine remains the binding that is not exercised.
+
+Reading response codes off real workerd also caught something the unit suite did not:
+the batch middleware answered 400 for a `text/plain` body starting with "[", where the
+transport answers 415. A middleware that inspects the BODY has to respect the
+content-type contract of the layer below it.
 
 `nodejs_compat` was removed 2026-07-31 after proving it did nothing: the bundle has no
 `node:` specifier, no unenv polyfill and no Node global (the only matches are

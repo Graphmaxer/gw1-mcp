@@ -716,4 +716,16 @@ describe("rate limiting", () => {
     expect(status).toBe(200);
     expect(message.result.tools.length).toBeGreaterThan(0);
   });
+
+  it("leaves the content-type answer to the transport", async () => {
+    // The batch check runs on every POST, so it must not answer for a body the
+    // transport would refuse on its content type: a text/plain body starting
+    // with "[" answered 400 instead of 415 until the check was narrowed to JSON.
+    const res = await createApp().request("/mcp", {
+      method: "POST",
+      headers: { "content-type": "text/plain" },
+      body: "[1,2,3]",
+    });
+    expect(res.status).toBe(415);
+  });
 });

@@ -429,6 +429,12 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
   // same audit was a middleware registered on one path spelling only, and an
   // oversized batch must still 413 rather than be buffered and inspected here.
   useOnMcp(async (c, next) => {
+    // JSON bodies only. Without this the check ran first and answered 400 for a
+    // `text/plain` body starting with "[", where the transport answers 415 —
+    // silently changing a documented response code. Measured under real workerd
+    // 2026-08-11. Nothing is lost: a non-JSON batch never reaches any work,
+    // because the transport refuses the content type before parsing.
+    if (c.req.header("Content-Type")?.includes("application/json") !== true) return next();
     // First non-whitespace character only — a body of up to 512 KiB does not
     // need JSON.parse to answer "is the top level an array?".
     const body = await c.req.raw.clone().text();

@@ -271,5 +271,20 @@ describe("output schemas match reality (mechanical lock)", () => {
         `${name} must not throw a schema validation error`,
       ).resolves.toBeDefined();
     }
+
+    // Same fixture, second question: does every tool REJECT an argument it does
+    // not declare? Permissive inputs answered as if the argument had not been
+    // sent — `search_skills {"profession":"Monk"}` returned the first 50 skills
+    // of the whole database presented as filtered results, which a caller cannot
+    // tell from a real answer. Zod's message names the key, so one round trip is
+    // enough to self-correct.
+    for (const [name, args] of calls) {
+      const res = await client.callTool({
+        name,
+        arguments: { ...args, notAToolArgument: "x" },
+      });
+      expect(res.isError, `${name} must reject an undeclared argument`).toBe(true);
+      expect(JSON.stringify(res.content), name).toContain("notAToolArgument");
+    }
   });
 });

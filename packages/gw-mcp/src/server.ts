@@ -1,10 +1,10 @@
 import type { ToolName } from "./tool-names.js";
 import { type CreateServerOptions, deriveEvent } from "./events.js";
 import {
-  MAX_PWND_BLOB_LEN,
   MAX_PWND_SLOTS,
-  MAX_TEMPLATE_CODE_LEN,
   READ_ONLY,
+  decodePwndInputObject,
+  decodeTemplateInputObject,
   decodedBuildShapeObject,
   encodeInputObject,
   encodeResultSchemaObject,
@@ -15,6 +15,7 @@ import {
   listHeroesInputObject,
   listHeroesOutputObject,
   pwndOutputObject,
+  searchSkillsInputObject,
   searchSkillsOutputObject,
   skillSummarySchema,
   validateInputObject,
@@ -140,61 +141,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
         "Search the full GW1 skill database by profession, attribute, campaign, elite flag or name fragment (valid values are documented per parameter). Returns compact records; use get_skill for full details.",
       annotations: READ_ONLY,
       outputSchema: searchSkillsOutputObject,
-      inputSchema: {
-        professionName: z
-          .string()
-          .max(64)
-          .optional()
-          .describe(
-            "Filter by profession: Warrior, Ranger, Monk, Necromancer, Mesmer, Elementalist, Assassin, Ritualist, Paragon, Dervish, or None (common / PvE-only skills that belong to no profession).",
-          ),
-        attributeName: z
-          .string()
-          .max(64)
-          .optional()
-          .describe(
-            'Filter by attribute line, exact English name, e.g. "Blood Magic", "Swordsmanship", "Divine Favor".',
-          ),
-        campaignName: z
-          .string()
-          .max(64)
-          .optional()
-          .describe(
-            "Filter by campaign: Core, Prophecies, Factions, Nightfall, or Eye of the North.",
-          ),
-        elite: z
-          .boolean()
-          .optional()
-          .describe("If true, return only elite skills; if false, only non-elite; omit for both."),
-        nameContains: z
-          .string()
-          .max(64)
-          .optional()
-          .describe(
-            "Case-insensitive substring match on the skill name, e.g. \"heal\" matches every skill with 'heal' in its name.",
-          ),
-        includePvpVersions: z
-          .boolean()
-          .default(false)
-          .describe(
-            "Include separate '(PvP)' skill versions. Default false — most builds want the PvE version only.",
-          ),
-        limit: z
-          .number()
-          .int()
-          .min(1)
-          .max(200)
-          .default(50)
-          .describe(
-            "Maximum number of records to return (1–200, default 50). Narrow filters if you hit it.",
-          ),
-        offset: z
-          .number()
-          .int()
-          .min(0)
-          .default(0)
-          .describe("Number of records to skip, for paging through results beyond the limit."),
-      },
+      inputSchema: searchSkillsInputObject,
     },
     async ({
       professionName,
@@ -266,12 +213,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
         'Decode an in-game GW1 skill template code (e.g. "OwpiMypMBg1cxcBAMBdmtIKAA") into professions, attribute allocations and the 8 skills with their stats and descriptions. This decodes a SINGLE build code; for a multi-hero paw-ned2 team blob, use decode_pawned_team instead.',
       annotations: READ_ONLY,
       outputSchema: decodedBuildShapeObject,
-      inputSchema: {
-        code: z
-          .string()
-          .max(MAX_TEMPLATE_CODE_LEN, "Template code too long")
-          .describe("The template code string"),
-      },
+      inputSchema: decodeTemplateInputObject,
     },
     async ({ code }) => {
       try {
@@ -293,12 +235,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
         "Decode a paw-ned2 team build blob (the 'pwnd0001...>...<' format shared on PvXwiki team pages and by the paw-ned2 tool) into its individual builds: player/hero label, description, and each skill bar fully decoded. Whitespace and line wraps in the pasted blob are tolerated. For a single (non-team) build code, use decode_template instead.",
       annotations: READ_ONLY,
       outputSchema: pwndOutputObject,
-      inputSchema: {
-        pwnd: z
-          .string()
-          .max(MAX_PWND_BLOB_LEN, "pwnd blob too large")
-          .describe("The full pwnd blob, starting with 'pwnd000'"),
-      },
+      inputSchema: decodePwndInputObject,
     },
     async ({ pwnd }) => {
       // Re-join line-wrapped payloads: strip all whitespace inside the

@@ -176,7 +176,7 @@ const pwndEntrySchema = z.object({
  * field's length is encoded in a single base64 character, so a slot code cannot
  * exceed 63 characters.
  */
-export const MAX_TEMPLATE_CODE_LEN = 128;
+const MAX_TEMPLATE_CODE_LEN = 128;
 
 /**
  * Most slots a pwnd blob may declare. A paw-ned2 team is a player plus up to
@@ -203,7 +203,7 @@ export const MAX_PWND_SLOTS = 12;
  * Both bounds matter. The slot cap stops the handler doing 29 112 decodes; this
  * one stops the upstream container parse being handed 256 KiB in the first place.
  */
-export const MAX_PWND_BLOB_LEN = 16384;
+const MAX_PWND_BLOB_LEN = 16384;
 
 /**
  * Tool input schemas live at MODULE scope, not inline in `createServer`.
@@ -231,6 +231,78 @@ const getSkillInput = {
 const getHeroInput = {
   name: z.string().max(64).optional().describe('Hero name, e.g. "Master of Whispers"'),
   id: z.number().int().min(0).max(255).optional().describe("GWCA HeroID value"),
+};
+
+// Three shapes that were still built INLINE in createServer, so they paid the
+// per-request cost the docblock above says was removed. Moved here on 2026-08-11
+// with the strictness sweep: the rule is now literally true, no `z.` call
+// survives inside the function body.
+const searchSkillsInput = {
+  professionName: z
+    .string()
+    .max(64)
+    .optional()
+    .describe(
+      "Filter by profession: Warrior, Ranger, Monk, Necromancer, Mesmer, Elementalist, Assassin, Ritualist, Paragon, Dervish, or None (common / PvE-only skills that belong to no profession).",
+    ),
+  attributeName: z
+    .string()
+    .max(64)
+    .optional()
+    .describe(
+      'Filter by attribute line, exact English name, e.g. "Blood Magic", "Swordsmanship", "Divine Favor".',
+    ),
+  campaignName: z
+    .string()
+    .max(64)
+    .optional()
+    .describe("Filter by campaign: Core, Prophecies, Factions, Nightfall, or Eye of the North."),
+  elite: z
+    .boolean()
+    .optional()
+    .describe("If true, return only elite skills; if false, only non-elite; omit for both."),
+  nameContains: z
+    .string()
+    .max(64)
+    .optional()
+    .describe(
+      "Case-insensitive substring match on the skill name, e.g. \"heal\" matches every skill with 'heal' in its name.",
+    ),
+  includePvpVersions: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Include separate '(PvP)' skill versions. Default false — most builds want the PvE version only.",
+    ),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(200)
+    .default(50)
+    .describe(
+      "Maximum number of records to return (1–200, default 50). Narrow filters if you hit it.",
+    ),
+  offset: z
+    .number()
+    .int()
+    .min(0)
+    .default(0)
+    .describe("Number of records to skip, for paging through results beyond the limit."),
+};
+
+const decodeTemplateInput = {
+  code: z
+    .string()
+    .max(MAX_TEMPLATE_CODE_LEN, "Template code too long")
+    .describe("The template code string"),
+};
+
+const decodePwndInput = {
+  pwnd: z
+    .string()
+    .max(MAX_PWND_BLOB_LEN, "pwnd blob too large")
+    .describe("The full pwnd blob, starting with 'pwnd000'"),
 };
 
 // Both filters REJECT unknown values (UNKNOWN_PROFESSION / UNKNOWN_CAMPAIGN), so
@@ -326,14 +398,35 @@ const listHeroesOutput = {
  * produce identical output; full zod keeps the file uniform.
  */
 export const fullSkillShapeObject = z.object(fullSkillShape);
-export const getSkillInputObject = z.object(getSkillInput);
 export const searchSkillsOutputObject = z.object(searchSkillsOutput);
 export const decodedBuildShapeObject = z.object(decodedBuildShape);
 export const pwndOutputObject = z.object(pwndOutput);
 export const encodeResultSchemaObject = z.object(encodeResultSchema);
-export const encodeInputObject = z.object(encodeInput);
 export const validateResultSchemaObject = z.object(validateResultSchema);
-export const validateInputObject = z.object(validateInput);
-export const getHeroInputObject = z.object(getHeroInput);
 export const listHeroesOutputObject = z.object(listHeroesOutput);
-export const listHeroesInputObject = z.object(listHeroesInput);
+
+/**
+ * INPUT objects are `.strict()`; output objects are not.
+ *
+ * A misspelled argument used to be dropped in silence and the tool answered as if
+ * the filter had not been passed: `search_skills {"profession":"Monk"}` (instead of
+ * `professionName`) returned the first 50 skills of the whole database, presented
+ * as filtered results. That is the same failure class as a confidently wrong
+ * suggestion — an answer the caller cannot tell is wrong — and it happened twice
+ * during real use before an audit reproduced it on 2026-08-08. Zod's rejection
+ * names the unrecognised key, so a model self-corrects in one round trip.
+ *
+ * The published JSON Schema gains `additionalProperties: false` per tool, which is
+ * a few hundred characters of fixed context (debt #10) buying a contract the
+ * server actually enforces. Outputs stay permissive on purpose: they are OUR
+ * shapes, and the strictness that matters there is asserted by the conventions
+ * test against every tool.
+ */
+export const getSkillInputObject = z.object(getSkillInput).strict();
+export const getHeroInputObject = z.object(getHeroInput).strict();
+export const listHeroesInputObject = z.object(listHeroesInput).strict();
+export const searchSkillsInputObject = z.object(searchSkillsInput).strict();
+export const decodeTemplateInputObject = z.object(decodeTemplateInput).strict();
+export const decodePwndInputObject = z.object(decodePwndInput).strict();
+export const encodeInputObject = z.object(encodeInput).strict();
+export const validateInputObject = z.object(validateInput).strict();

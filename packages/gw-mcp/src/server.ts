@@ -168,7 +168,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
     {
       title: "Search Guild Wars 1 skills",
       description:
-        "Search the full GW1 skill database by profession, attribute, campaign, elite flag or name fragment (valid values are documented per parameter). Returns compact records; use get_skill for full details.",
+        "Search the full GW1 skill database by profession, attribute, campaign, elite flag or name fragment (valid values are documented per parameter). Returns compact records, at most `limit` of them alongside a `total` count of every match — a full page is not the whole result, page with offset. Use get_skill for full details.",
       annotations: READ_ONLY,
       outputSchema: searchSkillsOutputObject,
       inputSchema: searchSkillsInputObject,
@@ -375,7 +375,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
     {
       title: "Validate a build against GW1 rules",
       description:
-        "Check a build (professions, attributes, 8 skills by exact English name) against Guild Wars 1 rules: one elite max, profession/attribute ownership, primary attributes, duplicates, rank ranges. Returns { valid, errors, warnings } without encoding.",
+        "Check a build (professions, attributes, 8 skills by exact English name) against Guild Wars 1 rules: one elite max, profession/attribute ownership, primary attributes, duplicates, rank ranges. Returns { valid, errors, warnings } without encoding — use encode_template instead when you also want the template code, since it runs these same rules and refuses on any error.",
       annotations: READ_ONLY,
       outputSchema: validateResultSchemaObject,
       inputSchema: validateInputObject,

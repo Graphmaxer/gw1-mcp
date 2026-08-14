@@ -131,3 +131,19 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: gh pr merge ${{ steps.data-pr.outputs.pull-request-number }} --auto --squash
+
+  # A zero-touch weekly job is exactly the kind that fails unwatched — and the
+  # gates here are meant to WITHHOLD the merge, so a crash reads the same as a
+  # quiet week from the outside. `open-pr` is skipped when upstream did not
+  # change, which is not a failure and produces nothing.
+  notify:
+    needs: [import, open-pr]
+    if: failure()
+    # See the same block in upstream-pin-bump.yml: the callee cannot widen the
+    # caller's token, so `issues: write` has to be granted at the call site.
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/notify-failure.yml
+    with:
+      workflow: Update game data

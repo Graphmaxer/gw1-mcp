@@ -1,0 +1,72 @@
+name: Notify failure
+
+# A scheduled workflow that breaks has no audience. Nobody opens the Actions tab
+# to admire a green badge, so nobody notices when it stops being green: the
+# upstream-pin tripwire failed on 2026-08-03 and 2026-08-10 and went unnoticed for
+# two weeks while GWToolboxpp drifted 4 commits and mcp-publisher a full release.
+# The lesson recorded then was to wire a notification rather than trust the badge.
+#
+# The notification is a GitHub issue, deliberately, and not an email or a chat
+# webhook: it needs no secret, no third-party service and no dash-side config
+# (which is debt #1 — the category of setting that has already cost this project
+# a silent breakage of its own). An issue also survives being ignored, which is
+# the exact failure mode being defended against.
+#
+# ONE issue per workflow, reused. A weekly job failing for a month must produce a
+# thread with four comments, not four issues — the second copy is where a human
+# starts filtering the notification out. Reuse is matched on the exact title via
+# the issues API rather than `gh issue list --search`, because the search index
+# lags behind by minutes and would happily hand back "no results" for an issue
+# opened seven days ago.
+#
+# The issue is never closed automatically. A run going green again does not mean
+# the cause was understood, and a self-closing issue erases the record of how
+# often this recurs — which is the datum that would justify a real alerting path.
+
+on:
+  workflow_call:
+    inputs:
+      workflow:
+        description: The human name of the failing workflow, e.g. "Upstream pin bump"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  open-or-comment:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Open or update the failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WORKFLOW: ${{ inputs.workflow }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          TITLE="CI: ${WORKFLOW} is failing"
+          export TITLE
+          # --jq on the API, not the search index: an issue opened last week is
+          # not reliably findable by search, and a miss here means a duplicate.
+          # The title reaches jq as env.TITLE rather than by string splicing, so
+          # a quote in the caller's workflow name cannot rewrite the filter.
+          existing=$(gh api "repos/${REPO}/issues?state=open&per_page=100" \
+            --jq '[.[] | select(.pull_request == null) | select(.title == env.TITLE) | .number] | first // empty')
+
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$REPO" \
+              --body "Failed again: ${RUN_URL}"
+            echo "commented on #${existing}"
+          else
+            gh issue create --repo "$REPO" \
+              --title "$TITLE" \
+              --body "$(printf '%s\n\n%s\n\n%s\n' \
+                "The scheduled workflow **${WORKFLOW}** failed." \
+                "Run: ${RUN_URL}" \
+                "This issue is reused for every subsequent failure of the same workflow, and is never closed automatically — close it once the cause is understood.")"
+            echo "opened a new issue"
+          fi

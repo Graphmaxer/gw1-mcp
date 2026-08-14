@@ -148,3 +148,22 @@ jobs:
           title: "ci: bump upstream pins Dependabot cannot see"
           commit-message: "ci: bump drifted upstream pins (GWToolboxpp / mcp-publisher)"
           body: ${{ needs.check.outputs.body }}
+
+  # This job is the whole reason the 2026-08-03 and 2026-08-10 failures were
+  # invisible: without it a broken tripwire is indistinguishable from a quiet
+  # week. `failure()` fires when either job above fails; `open-pr` being SKIPPED
+  # on a no-drift week is not a failure and correctly produces nothing.
+  notify:
+    needs: [check, open-pr]
+    if: failure()
+    # Granted HERE, not only in the called workflow: a reusable workflow can
+    # narrow the caller's token but never widen it, and this file's top-level
+    # grant is `contents: read`. Without this line the callee's `issues: write`
+    # is silently denied and the notification fails — a broken alarm on the job
+    # whose entire point is that a broken alarm went unnoticed for two weeks.
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/notify-failure.yml
+    with:
+      workflow: Upstream pin bump

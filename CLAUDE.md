@@ -870,7 +870,18 @@ the code, so they are not a surprise:
   registered on `/mcp` — one middleware that skipped it is the reason.
 - The suggesters and `searchSkills` return nothing for a query that normalises
   to nothing, instead of the whole dataset or three plausible wrong names.
-- Suite is 394 tests (107 / 89 / 126 / 72) as of 2026-08-17.
+- Suite is roughly 400 tests across the four packages; `pnpm -r test` prints the
+  exact figure, and that is deliberately the ONLY place it lives. This line read
+  "394 tests (107 / 89 / 126 / 72) as of 2026-08-17" and was accurate the moment
+  it was written — it went stale ONE commit later, when `provenance-cli.test.ts`
+  added eight, in the same day's work as the audit that was fixing exactly this
+  kind of drift. Do NOT answer that by locking it in a test. A test count moves
+  with every legitimate addition, so a lock is the one-way ratchet the README
+  skill count already taught us (see the phantom-snapshot paragraph): it reds a
+  green suite until a human edits prose. That is the opposite of `tools/list`,
+  which is locked EXACTLY on purpose — a fixed context cost paid by every caller
+  is a promise, and a dependency moved it silently once. Lock the numbers that
+  only change when someone decides to change them.
 
 A SELF-audit followed on 2026-08-11 — probes and sweeps rather than reading — and
 its lesson is where to look next. The core did not yield: ~1900 generated cases

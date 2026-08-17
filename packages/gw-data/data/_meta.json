@@ -1,7 +1,7 @@
 {
  "skills": {
   "source": "https://github.com/build-wars/gw-skilldata (npm: @buildwars/gw-skilldata)",
-  "sourceVersion": "npm:2.0.0",
+  "sourceVersion": "pages@e32dbdc4e0ec (sha256 skilldata:2f4bcec2bdec14fd desc:7af3a68fbf7dabc8 skilldataSchema:0e1cb51189d0dd8c descSchema:5779171e35e6f56c bundle:08ca993c6bc57aa2)",
   "importedAt": "2026-08-17",
   "freshness": "Upstream is actively maintained and tracks Guild Wars Reforged balance updates (stat changes and newly added skills). Data is only as fresh as the installed package version; run the update workflow or `pnpm update @buildwars/gw-skilldata` to refresh. Recent balance notes: https://wiki.guildwars.com/wiki/Game_updates"
  },

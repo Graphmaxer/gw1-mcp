@@ -1301,7 +1301,25 @@ dashboard, not a smaller suite.
   version or hash bump within the same kind still does not. The decision is
   `scripts/provenance-changed.ts` — a unit-tested pure function, not shell
   string-slicing, because it is precisely the sort of logic never exercised
-  until it is wrong. Consequence worth knowing: while provenance reads `npm:`,
+  until it is wrong. **The first version of it broke the weekly job anyway
+  (run #20), and not in the logic**: the step called it via
+  `pnpm --filter <pkg> exec`, which chdirs into `packages/gw-data`, while
+  passing repo-root-relative paths — so `packages/gw-data/data/_meta.json`
+  resolved to `packages/gw-data/packages/gw-data/data/_meta.json` and the job
+  died with ENOENT. Every unit test stayed green throughout, because they
+  import the function and never touch a path or a cwd. Worse, the manual check
+  that was meant to catch it passed for the WRONG REASON: the bad path was
+  supplied as the BEFORE argument, where a read failure is deliberately
+  swallowed as "no record", so it printed `changed` and looked healthy. The
+  lesson is the one this file already had from the audit's own false findings —
+  check the harness before believing the harness — applied one step too late.
+  Three things now hold the line: the invocation is `pnpm exec` from the repo
+  root with `$GITHUB_WORKSPACE`-absolute paths, so cwd cannot matter; a missing
+  AFTER file is a hard error naming the resolved path and the cwd, so a path bug
+  can never masquerade as a data decision; and `provenance-cli.test.ts` runs the
+  script as a SUBPROCESS from a foreign cwd and statically asserts the workflow
+  still passes absolute paths. That last test was verified non-vacuous by
+  restoring the run #20 line and watching it fail. Consequence worth knowing: while provenance reads `npm:`,
   the shipped data carries none of the GW1-06 content hashes, deliberately (the
   npm path relies on lockfile SHA-512 integrity instead).
 - **The npm fallback in update-data.yml has now masked a persistent Pages break

@@ -2,8 +2,8 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "workspaces": {
     "packages/gw-data": {
-      "entry": ["scripts/**/*.{ts,mjs}", "test/**/*.test.ts", "bench/**/*.bench.ts"],
-      "project": ["src/**/*.ts", "scripts/**/*.{ts,mjs}", "test/**/*.ts", "bench/**/*.ts"]
+      "entry": ["scripts/**/*.ts", "test/**/*.test.ts", "bench/**/*.bench.ts"],
+      "project": ["src/**/*.ts", "scripts/**/*.ts", "test/**/*.ts", "bench/**/*.ts"]
     },
     "packages/gw-template": {
       "entry": ["test/**/*.test.ts", "bench/**/*.bench.ts"],

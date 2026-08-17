@@ -148,11 +148,23 @@ jobs:
       # description fields at once). A gate that fires weekly is rubber-stamping.
       # This flags added text instead — the shape an injected instruction has —
       # at a threshold no commit in upstream history would have tripped.
+      # Pins the Node that runs the growth gate. NOT an install step: setup-node
+      # fetches a Node distribution and nothing else, so this job still has no
+      # `pnpm install` and still executes no third-party code — the property the
+      # two-job split exists to protect. It is here because the gate is a `.ts`
+      # file run by bare `node`, which needs the type stripping unflagged since
+      # 22.18; without this the version would come from whatever the runner image
+      # happens to ship, which is exactly the kind of unstated dependency this
+      # repo pins everywhere else.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: 24
       - name: Flag suspicious description growth (prompt-injection channel)
         id: desc
         # Bare node: this job has no pnpm install and must not gain one (it holds
-        # contents:write). The script has zero dependencies for that reason.
-        run: node packages/gw-data/scripts/check-description-growth.mjs >> "$GITHUB_OUTPUT"
+        # contents:write). The script has zero dependencies for that reason, and
+        # node strips its type annotations without ever type-checking them.
+        run: node packages/gw-data/scripts/description-growth.ts >> "$GITHUB_OUTPUT"
       - name: Open pull request
         id: data-pr
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8

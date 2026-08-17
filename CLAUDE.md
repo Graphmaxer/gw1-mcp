@@ -398,7 +398,20 @@ five languages.
 - ONE script archetype, and it covers entry shims too (stdio.ts, worker
   node.ts): every executable wraps its flow in main() behind an
   `isDirectRun` guard — importing a module must never trigger I/O
-  (network, files, ports, stdin). Two deliberate non-violations: pure
+  (network, files, ports, stdin). The description-growth gate was the last
+  holdout on both counts until 2026-08-17: it was a `.mjs` PAIR whose entry
+  point ran `execFileSync` at module top level, so importing it shelled out to
+  git. It is now one `.ts` file in the archetype. Nothing was lost by dropping
+  `.mjs` — the privileged `open-pr` job still runs it with BARE `node` and no
+  install, because node strips type annotations (unflagged since 22.18) without
+  ever checking them; the workflow pins Node 24 via setup-node rather than
+  trusting the runner image, since that is now a real requirement. What was
+  GAINED is `tsc`: those ~100 lines of a security gate were completely
+  untypechecked, verified by planting `const oops: number = "not a number"` in
+  the old `.mjs` and watching typecheck pass. Merging the pair also removed the
+  cross-file import, so no `allowImportingTsExtensions` was needed — note that
+  bare node requires a `./x.ts` specifier and will NOT resolve the usual
+  `./x.js`, which is the constraint to remember if this is ever split again. Two deliberate non-violations: pure
   in-memory index building at import time is initialization, not a side
   effect (gw-data repository Maps — required for Workers bundling); and
   gw-worker/src/index.ts exports `createApp()` because the Cloudflare

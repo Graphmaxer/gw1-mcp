@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_DESCRIPTION_GROWTH, findDescriptionGrowth } from "../scripts/description-growth.mjs";
+import { MAX_DESCRIPTION_GROWTH, findDescriptionGrowth } from "../scripts/description-growth.js";
 
 const skill = (id: number, description: string) => ({ id, name: `Skill ${id}`, description });
 

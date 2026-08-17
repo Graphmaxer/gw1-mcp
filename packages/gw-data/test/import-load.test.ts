@@ -45,6 +45,34 @@ const bundleSource = [
   "};",
 ].join("\n");
 
+/**
+ * The SAME contract as upstream 2.x actually deploys: classes carrying id-keyed
+ * statics, no flat tables. This shape is why the stub above is not enough — it is
+ * 1.x-shaped, so every Pages test passed while the real import died on
+ * "Cannot read properties of undefined (reading 'map')" (run #18, 2026-08-17).
+ * What the bundle exports is decided by upstream's deploy, not by our lockfile,
+ * so BOTH shapes have to be exercised here.
+ */
+const bundleSource2x = [
+  "module.exports = {",
+  "  Profession: {",
+  "    NAME: { 0: { en: 'none' }, 1: { en: 'Warrior' } },",
+  "    NAME_ABBR: { 0: { en: 'X' }, 1: { en: 'W' } },",
+  "    PRIMARY_ATTRIBUTE: [101, 17],",
+  "  },",
+  "  Campaign: { NAME: { 0: { en: 'Core' }, 1: { en: 'Prophecies' } } },",
+  "  Attribute: {",
+  "    NAME: { 17: { en: 'Strength' } },",
+  "    PROFESSION: { 17: 1 },",
+  "    MAX_VALUE: { 17: 21 },",
+  "  },",
+  "  Type: { NAME: { 1: { en: 'Skill' } } },",
+  "};",
+].join("\n");
+
+/** Neither major's shape — what the next upstream API change looks like. */
+const bundleSourceUnknown = "module.exports = { SomethingNew: {} };";
+
 const skilldataText = JSON.stringify({ skilldata: { 1: { id: 1 } } });
 const descText = JSON.stringify({ skilldesc: { 1: { name: "Test" } } });
 
@@ -125,6 +153,42 @@ describe("loadUpstream (Pages source)", () => {
       expect(upstream.PROFESSIONS).toEqual({ 1: "Warrior" });
       expect(upstream.SKILLTYPES).toEqual({ 1: "Skill" });
       expect(upstream.skilldata).toEqual({ 1: { id: 1 } });
+    },
+    BUNDLE_EVAL_TIMEOUT_MS,
+  );
+
+  it(
+    "normalises a 2.x bundle instead of returning four undefined tables",
+    async () => {
+      // The regression lock for run #18: the npm path was adapted for the 2.0.0 class
+      // API and this one was not, so it handed the transforms `undefined`. Asserting the
+      // NORMALISED shape (dense arrays for the positionally-indexed tables) is what
+      // makes this fail if the normaliser is ever bypassed here again.
+      stubPages({ "js/gw-skilldata-node.cjs": { body: bundleSource2x } });
+      const upstream = await loadUpstream(PAGES);
+      expect(upstream.CAMPAIGNS).toEqual([
+        { name: { en: "Core" } },
+        { name: { en: "Prophecies" } },
+      ]);
+      expect(upstream.PROFESSIONS).toEqual([
+        { name: { en: "none" }, abbr: { en: "X" } },
+        { name: { en: "Warrior" }, abbr: { en: "W" } },
+      ]);
+      expect(upstream.ATTRIBUTES).toEqual({
+        17: { name: { en: "Strength" }, prof: 1, pri: true, max: 21 },
+      });
+      expect(upstream.SKILLTYPES).toEqual({ 1: { name: { en: "Skill" } } });
+    },
+    BUNDLE_EVAL_TIMEOUT_MS,
+  );
+
+  it(
+    "aborts naming the upstream API change when the bundle is neither shape",
+    async () => {
+      // The failure mode that cost the diagnosis: a shape nobody recognises must stop
+      // the import HERE, where the cause is visible, not in a transform's `.map`.
+      stubPages({ "js/gw-skilldata-node.cjs": { body: bundleSourceUnknown } });
+      await expect(loadUpstream(PAGES)).rejects.toThrow(/unrecognised shape/);
     },
     BUNDLE_EVAL_TIMEOUT_MS,
   );

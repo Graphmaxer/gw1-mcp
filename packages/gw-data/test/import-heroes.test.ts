@@ -5,8 +5,8 @@ import {
   identifierToName,
   parseHeroEnum,
   renderHeroNamesHeader,
-} from "../scripts/import-heroes.js";
-import type { HeroMeta } from "../scripts/import-heroes.js";
+} from "../scripts/import-heroes.ts";
+import type { HeroMeta } from "../scripts/import-heroes.ts";
 import heroes from "../data/heroes.json";
 import overlay from "../data/heroes-overlay.json";
 

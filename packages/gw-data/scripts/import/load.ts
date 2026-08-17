@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { createRequire } from "node:module";
 import { execSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
-import { validateAgainstSchema } from "./upstream-schema.js";
+import { validateAgainstSchema } from "./upstream-schema.ts";
 
 export interface Upstream {
   ATTRIBUTES: unknown;

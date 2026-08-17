@@ -76,7 +76,7 @@ Two things to know when it next complains:
 - knip 5 is not a fallback: it crashes on TypeScript 7.
 - Test files are entry points. Without that, everything they exercise looks unused.
 - If something is reached only through configuration rather than imports — a
-  Wrangler entry, a release-please target, a `.mjs` script called from a workflow —
+  Wrangler entry, a release-please target, a script called from a workflow by bare `node` —
   add it to `entry` rather than silencing the rule. And trust knip's own
   configuration hints: they were right about every line of the first config.
 

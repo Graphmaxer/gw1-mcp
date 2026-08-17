@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { provenanceKindChanged, provenanceSourceKind } from "../scripts/provenance-changed.js";
+import { provenanceKindChanged, provenanceSourceKind } from "../scripts/provenance-changed.ts";
 
 /**
  * These lock the rule the weekly workflow leans on: a provenance-only diff is

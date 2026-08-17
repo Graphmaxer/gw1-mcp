@@ -2,6 +2,13 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
+    // scripts/ imports siblings with a `.ts` specifier because BARE `node` runs
+    // them (see the ONE script archetype in CLAUDE.md): node's type stripping
+    // resolves the real file on disk and will NOT map `./x.js` back to `./x.ts`
+    // the way tsx and bundlers do. tsc rejects a `.ts` specifier without this,
+    // and the option is only legal alongside noEmit — which is already the case
+    // here, since nothing in this repo is ever built to dist.
+    "allowImportingTsExtensions": true,
     "types": ["node"]
   },
   "include": ["src", "test", "bench", "scripts"]

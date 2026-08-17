@@ -31,8 +31,24 @@
  * import (`changed`), because "we have no record" is exactly when a record is
  * worth writing; an unreadable AFTER file exits non-zero, since that means the
  * import itself produced something unusable.
+ *
+ * PASS ABSOLUTE PATHS. Both arguments are resolved against the CURRENT WORKING
+ * DIRECTORY, and the first invocation of this script got that wrong in a way
+ * worth recording: the workflow called it through `pnpm --filter <pkg> exec`,
+ * which chdirs into `packages/gw-data`, while passing repo-root-relative paths.
+ * `packages/gw-data/data/_meta.json` therefore resolved to
+ * `packages/gw-data/packages/gw-data/data/_meta.json` and the weekly job died
+ * with ENOENT (run #20). The manual check that was supposed to catch it passed
+ * for the wrong reason — the bad path was given as BEFORE, where a read failure
+ * is deliberately swallowed as "no record", so it printed `changed` and looked
+ * healthy. Hence two things below: every resolved path is echoed to stderr, so
+ * the job log always shows which files were actually compared, and
+ * `provenance-cli.test.ts` runs this file as a SUBPROCESS from a foreign cwd,
+ * which is the only way that class of mistake fails in CI rather than in
+ * production.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 /**
@@ -83,18 +99,35 @@ export function provenanceKindChanged(
 }
 
 function main(): void {
-  const [beforePath, afterPath] = process.argv.slice(2);
-  if (!beforePath || !afterPath) {
+  const [beforeArg, afterArg] = process.argv.slice(2);
+  if (!beforeArg || !afterArg) {
     throw new Error("usage: provenance-changed.ts <before.json> <after.json>");
   }
-  let before: string | undefined;
-  try {
-    before = readFileSync(beforePath, "utf8");
-  } catch {
-    // No committed provenance yet (first import, or the file is new).
+  // Resolve and ANNOUNCE both paths. A silent read failure on the before file is
+  // the intended behaviour for a first import and was also what hid the run #20
+  // cwd bug, so the log has to show which files were actually compared.
+  const beforePath = resolve(beforeArg);
+  const afterPath = resolve(afterArg);
+  console.error(`provenance: comparing ${beforePath} -> ${afterPath}`);
+
+  // The AFTER file is the import's own output: if it is not there, the caller
+  // pointed somewhere wrong, and guessing would turn a path bug into a data
+  // decision. Fail loudly, naming the resolved path rather than the argument.
+  if (!existsSync(afterPath)) {
+    throw new Error(
+      `no _meta.json at ${afterPath} — check the path and the working directory (this script resolves relative paths against cwd, which is ${process.cwd()})`,
+    );
   }
-  const after = readFileSync(afterPath, "utf8");
-  console.log(provenanceKindChanged(before, after) ? "changed" : "unchanged");
+
+  let before: string | undefined;
+  if (existsSync(beforePath)) {
+    before = readFileSync(beforePath, "utf8");
+  } else {
+    console.error(`provenance: no committed record at ${beforePath}, treating as a first import`);
+  }
+  console.log(
+    provenanceKindChanged(before, readFileSync(afterPath, "utf8")) ? "changed" : "unchanged",
+  );
 }
 
 const isDirectRun = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;

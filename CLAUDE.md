@@ -175,14 +175,18 @@ bypass merge stays the legitimate unblock if it ever regresses (release PRs
 have 0 coverable lines).
 
 `pnpm test:coverage` (provider @vitest/coverage-v8, version-locked to the
-workspace vitest). Reference levels (vitest 4 measurement): gw-template
-~92% (uncovered: internal-bug guards in bitstream/base64 unreachable from
-valid inputs), gw-data src ~93% (scripts/import.ts intentionally untested
-— validated by upstream schemas at run time and golden tests downstream),
-gw-mcp ~93% with validate.ts and build-io.ts at 100% lines and server.ts
-~87% (every tool exercised through InMemoryTransport incl. error paths;
-remainder is response-formatting branches), gw-worker app.ts 100%
-(index/node/stdio are entry-point shims). Every validator rule and
+workspace vitest). Reference levels, REMEASURED 2026-08-17 (the previous
+figures — ~92 / ~93 / ~93 / 100 — had drifted low enough that a real
+regression would still have read as on-target, which is the opposite of what
+a reference is for): gw-template 99.3% statements (uncovered: internal-bug
+guards in bitstream/base64 unreachable from valid inputs), gw-data src 98.2%
+(scripts/import.ts intentionally untested — validated by upstream schemas at
+run time and golden tests downstream; the scripts/ tree as a whole sits ~83%),
+gw-mcp 96.8% with validate.ts and build-io.ts at 100% lines and server.ts
+~95%, gw-worker app.ts 99.0% (index/node/stdio are entry-point shims).
+These are a REFERENCE, not a gate: the mechanical guard against a coverage
+regression is `codecov/project` at a 1% threshold on every commit, so do not
+add vitest thresholds that would duplicate it. Every validator rule and
 resolution error code MUST have a test that triggers it — and this rule is
 MECHANICALLY ENFORCED by test/conventions.test.ts in gw-mcp, which scans
 the src for `code: "..."` declarations and fails if any code never appears
@@ -525,7 +529,8 @@ equivalent paths.
   database presented as filtered results, and it took four observations to
   root-cause during real use. All eight input objects are `.strict()`; zod's
   message names the key, so a model self-corrects in one round trip. Costs
-  ~232 characters of `tools/list` (18 577 -> 18 809) for
+  ~232 characters of `tools/list` (18 577 -> 18 809; the current figure and the
+  test that locks it are in the createServer section) for
   `additionalProperties: false`, which is debt #10 money well spent — the
   schema now states a contract the server enforces. It also revealed that three
   input shapes were still built INLINE in `createServer`, so the "zero `z.`
@@ -698,13 +703,18 @@ were still real. Check the claim, not the citation.
    the margin improved rather than eroded. `limits.cpu_ms` stays unset
    deliberately: it has no effect under Free and a rejected value would fail a
    deploy.
-10. tools/list costs about 18 800 characters (~4 700 tokens) of FIXED context
-    in every conversation, outputSchemas being ~45% of it. That is a
-    deliberate trade — the schemas carry real contracts locked by the golden
+10. tools/list costs 19 418 characters (~4 900 tokens) of FIXED context
+    in every conversation, outputSchemas being ~42% of it (8 128 chars). That is
+    a deliberate trade — the schemas carry real contracts locked by the golden
     fixtures — but it is paid by every session, including ones that call a
     single tool. decode_pawned_team was slimmed (3 192 -> 1 936 chars); the
     forPvp parameter then took back about half the win, and strict inputs
     (2026-08-11) added ~232 characters of `additionalProperties: false`.
+    The number is now LOCKED EXACTLY by conventions.test.ts, because the
+    largest single move it ever made was one nobody chose: an SDK bump added
+    `"execution":{"taskSupport":"forbidden"}` to all eight tools, +312
+    characters, and this entry went stale without a commit touching it. This
+    debt is only trackable if a dependency cannot move it silently.
     Trigger: if a client's
     context budget ever matters, check whether that client forwards
     outputSchema to the model at all before optimising further.
@@ -757,6 +767,30 @@ since 2019; see Data maintenance.)
 
 ## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-08-17)
 
+A FIFTH audit ran on 2026-08-17, in this repo with a working npm and a real
+network — the "re-audit in a working environment" the first audit asked for, and
+the first to combine that with live probing. ~53 000 generated cases across ten
+surfaces: 20 000 codec round-trips, 28 437 malformed codes, whole-dataset data and
+validator sweeps, 41 MCP contract assertions against a PRIMED client, 400 name-level
+encode/decode round-trips, 40 HTTP assertions under real workerd, and the C++ core
+compiled under g++ as a second compiler. It found **zero defects in code, data or
+configuration** — every previous audit's fix confirmed still applied, and the rate
+limiter, the body limits, the batch refusal and the pwnd slot cap all verified live.
+
+All three findings were DOCUMENTATION drift, and the pattern is worth keeping: none
+of them was reachable by reading code, and two were caused by things working exactly
+as designed. `tools/list` had grown 549 characters since the figure here, 312 of them
+an SDK field nobody chose (now locked exactly by a test); the coverage reference
+levels had drifted far enough low that a real regression would still read as
+on-target (remeasured); and provenance could not commit itself (fixed — see the data
+maintenance section on run #19). This file is the source of truth, so a number in it
+that only a human updates is a number that goes stale — prefer a lock.
+
+Method note, since it cost real time: two of my own sweeps produced 313 false
+findings before yielding a true one — a degenerate PRNG that collapsed 30 000 fuzz
+inputs to 562 distinct values, and reading `pvpSplit` as symmetric when the type doc
+says it flags the PvE side only. Check the harness before believing the harness.
+
 On 2026-08-17 the weekly data import was found broken for the SECOND time in the
 same way, and the second finding is the one that matters: not the code defect
 (upstream 2.x constant tables reaching only one of three source modes — see Data
@@ -807,7 +841,7 @@ the code, so they are not a surprise:
   registered on `/mcp` — one middleware that skipped it is the reason.
 - The suggesters and `searchSkills` return nothing for a query that normalises
   to nothing, instead of the whole dataset or three plausible wrong names.
-- Suite is 378 tests (107 / 81 / 118 / 72).
+- Suite is 394 tests (107 / 89 / 126 / 72) as of 2026-08-17.
 
 A SELF-audit followed on 2026-08-11 — probes and sweeps rather than reading — and
 its lesson is where to look next. The core did not yield: ~1900 generated cases
@@ -876,7 +910,7 @@ codec question.
 | -------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `get_skill`                | name or id                                             | full skill record, or structured not-found with close-match suggestions                                                                                                                                 |
 | `search_skills`            | filters (profession, attribute, elite, campaign, text) | paginated list of skill records                                                                                                                                                                         |
-| `decode_template`          | template code                                          | build object (professions, attributes, skills)                                                                                                                                                          |
+| `decode_template`          | template code (line wraps tolerated)                   | build object (professions, attributes, skills)                                                                                                                                                          |
 | `encode_template`          | build object                                           | template code (runs validation first; refuses on errors, returns them)                                                                                                                                  |
 | `validate_build`           | build object                                           | `{ valid, errors[], warnings[] }`                                                                                                                                                                       |
 | `get_hero` / `list_heroes` | name / campaign filter                                 | hero record(s): professions, campaign, how unlocked (DONE — data curated in gw-data/data/heroes.json, ids aligned with GWCA HeroID; unlock notes are coarse-grained, verify specifics against the wiki) |
@@ -1044,8 +1078,23 @@ the per-request cost this section says was removed. They are at module scope now
 the sentence is literally true — check it rather than trusting it when adding a tool.
 
 Verified byte-identical at the time: `tools/list` was 18 577 characters, and strictness
-survives — an extra property in a structured result is still rejected. It is 18 809
-since inputs became `.strict()` (see the third-audit entry in the debt register).
+survives — an extra property in a structured result is still rejected. It went to 18 809
+when inputs became `.strict()` (see the third-audit entry in the debt register), and is
+**19 418 today, LOCKED by a test** — `conventions.test.ts` asserts the exact character
+count and fails on any movement in either direction.
+
+The lock exists because of how the number drifted. Between 18 809 and the audit of
+2026-08-17 it had reached 19 358, and 312 of those 549 characters were the SDK newly
+emitting `"execution":{"taskSupport":"forbidden"}` on each of the eight tools. Nobody
+decided that; it arrived with a version bump. This file measures the number carefully
+whenever WE change the tool surface and not at all when a dependency does, so the one
+direction the process could not see was the one that moved. An upper bound would not
+have helped — it passes silently until it does not, the same "green means nothing
+happened" trap the weekly data job fell into twice. Exact equality is the point: when
+it fails, either you changed the surface (update the constant and this figure in the
+same commit, as the failure message says) or something upstream did, and you want to
+know which. The remaining 60 characters are decode_template's description gaining its
+whitespace-tolerance sentence, in the same change that added the lock.
 
 ## Workflow: push straight to main
 
@@ -1235,6 +1284,26 @@ dashboard, not a smaller suite.
   bundle's shape is decided by upstream's DEPLOY, not by our lockfile, so tests
   stub both shapes; the pre-existing Pages test stubbed a 1.x bundle, which is
   why 376 green tests coexisted with a broken weekly import.
+- **A provenance-only change is now COMMITTED when the import CHANNEL changes**
+  (2026-08-17, found by re-running the workflow by hand as run #19). The change
+  detection reverts `_meta.json` when it is the only diff, and must — every run
+  rewrites the import date, so without it the weekly job opens a date-bump PR
+  every Monday. The cost only became visible once the Pages path worked again:
+  run #19 took it for the first time since the 2.x fix, computed
+  `pages@e32dbdc4e0ec` with all five sha256 hashes, and threw it away because
+  upstream had touched no skill. So the committed record went on reading
+  `npm:2.0.0` — the mode the fallback wrote weeks earlier — and NOTHING in the
+  repository showed the importer had recovered. That is the fallback's own
+  silence in mirror image: there a green run hid bad news, here a green run
+  carried good news that nothing persisted, and a reader three weeks later
+  would still have concluded from the repo alone that it was degraded. Now a
+  change of KIND (`npm` <-> `pages`) opens a PR on its own, while a date,
+  version or hash bump within the same kind still does not. The decision is
+  `scripts/provenance-changed.ts` — a unit-tested pure function, not shell
+  string-slicing, because it is precisely the sort of logic never exercised
+  until it is wrong. Consequence worth knowing: while provenance reads `npm:`,
+  the shipped data carries none of the GW1-06 content hashes, deliberately (the
+  npm path relies on lockfile SHA-512 integrity instead).
 - **The npm fallback in update-data.yml has now masked a persistent Pages break
   TWICE** — the `--` argument bug (masked "for months", see import.ts's docblock)
   and the 2.x tables above. Both times the mechanics were identical and worth

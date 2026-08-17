@@ -17,15 +17,15 @@
 import { mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { loadUpstream } from "./import/load.js";
+import { loadUpstream } from "./import/load.ts";
 import {
   transformAttributes,
   transformCampaigns,
   transformProfessions,
   transformSkills,
   transformSkillTypes,
-} from "./import/transform.js";
-import { mergeProvenance, syncReadmeSkillCount, writeData } from "./import/write.js";
+} from "./import/transform.ts";
+import { mergeProvenance, syncReadmeSkillCount, writeData } from "./import/write.ts";
 
 /**
  * `pnpm run import:data -- <url>` forwards the literal "--" token into this

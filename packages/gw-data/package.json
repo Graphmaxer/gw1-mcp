@@ -9,11 +9,11 @@
     "./data/_meta.json": "./data/_meta.json"
   },
   "scripts": {
-    "import:data": "tsx scripts/import.ts",
+    "import:data": "node scripts/import.ts",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "bench": "vitest bench --run",
-    "import:heroes": "tsx scripts/import-heroes.ts"
+    "import:heroes": "node scripts/import-heroes.ts"
   },
   "dependencies": {
     "fastest-levenshtein": "^1.0.16"

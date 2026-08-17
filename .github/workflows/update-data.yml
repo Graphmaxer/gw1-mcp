@@ -84,7 +84,7 @@ jobs:
         # paths — the unit tests cannot see either mistake.
         run: |
           git show HEAD:packages/gw-data/data/_meta.json > "$RUNNER_TEMP/meta-before.json" 2>/dev/null || true
-          provenance=$(pnpm --silent exec tsx \
+          provenance=$(node \
             "$GITHUB_WORKSPACE/packages/gw-data/scripts/provenance-changed.ts" \
             "$RUNNER_TEMP/meta-before.json" \
             "$GITHUB_WORKSPACE/packages/gw-data/data/_meta.json")

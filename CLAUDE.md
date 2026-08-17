@@ -409,9 +409,25 @@ five languages.
   GAINED is `tsc`: those ~100 lines of a security gate were completely
   untypechecked, verified by planting `const oops: number = "not a number"` in
   the old `.mjs` and watching typecheck pass. Merging the pair also removed the
-  cross-file import, so no `allowImportingTsExtensions` was needed — note that
-  bare node requires a `./x.ts` specifier and will NOT resolve the usual
-  `./x.js`, which is the constraint to remember if this is ever split again. Two deliberate non-violations: pure
+  cross-file import.
+- ONE SCRIPT RUNTIME, decided 2026-08-17: **everything under `scripts/` runs on
+  bare `node`**; `tsx` survives only in the two local dev servers (`gw-mcp dev`,
+  `gw-worker dev:node`), which run `src/` and are a different concern. The split
+  used to be accidental — `tsx` for the import scripts, `node` for the growth
+  gate — and the reason it could not simply become "tsx everywhere" is worth
+  keeping: `tsx` lives in node_modules, so using it in `open-pr` means
+  `pnpm install` in the job holding contents:write and the app token, which
+  executes third-party postinstall scripts (esbuild and workerd both have them).
+  That is precisely what the two-job split exists to prevent, so the alignment
+  had to go the other way. Consequence, and the thing that bites: node's type
+  stripping resolves the real file on disk and will NOT map `./x.js` back to
+  `./x.ts` the way tsx and bundlers do, so sibling imports in `scripts/` use a
+  `.ts` specifier and gw-data's tsconfig carries `allowImportingTsExtensions`
+  (legal only with `noEmit`, which is already true — nothing here is ever built
+  to dist). `src/` keeps `.js` specifiers: wrangler and vitest map them, and
+  changing that would touch the Worker bundle for no gain. Verified rather than
+  assumed — the real import was re-run under bare node and reproduced all five
+  data files, `heroes.json` and the generated C++ header byte-for-byte. Two deliberate non-violations: pure
   in-memory index building at import time is initialization, not a side
   effect (gw-data repository Maps — required for Workers bundling); and
   gw-worker/src/index.ts exports `createApp()` because the Cloudflare

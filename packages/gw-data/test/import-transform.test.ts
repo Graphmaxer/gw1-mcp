@@ -5,7 +5,7 @@ import {
   transformProfessions,
   transformSkillTypes,
   transformSkills,
-} from "../scripts/import/transform.js";
+} from "../scripts/import/transform.ts";
 
 /**
  * The name plausibility gate (audit L1) is only worth having if it is actually

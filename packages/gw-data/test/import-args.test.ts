@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveSourceArg } from "../scripts/import.js";
+import { resolveSourceArg } from "../scripts/import.ts";
 
 describe("resolveSourceArg (regression: pnpm '--' passthrough)", () => {
   // `pnpm run import:data -- <url>` forwards a literal "--" into argv ahead

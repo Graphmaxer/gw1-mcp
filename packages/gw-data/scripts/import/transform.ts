@@ -1,5 +1,5 @@
 /** Upstream shapes -> our committed data shapes. Pure functions, no I/O. */
-import type { Upstream } from "./load.js";
+import type { Upstream } from "./load.ts";
 
 // Upstream constant shapes (informal, mirrored from es6/constants.js).
 type LangName = { en: string; de: string };

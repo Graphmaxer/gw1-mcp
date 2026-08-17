@@ -7,9 +7,9 @@ import {
   assertCoherentSnapshot,
   loadUpstream,
   normaliseConstantTables,
-} from "../scripts/import/load.js";
-import { assertPlausibleDescription, assertPlausibleName } from "../scripts/import/transform.js";
-import { syncReadmeSkillCount } from "../scripts/import/write.js";
+} from "../scripts/import/load.ts";
+import { assertPlausibleDescription, assertPlausibleName } from "../scripts/import/transform.ts";
+import { syncReadmeSkillCount } from "../scripts/import/write.ts";
 import skills from "../data/skills.json";
 import professions from "../data/professions.json";
 import attributes from "../data/attributes.json";

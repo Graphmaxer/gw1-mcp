@@ -20,6 +20,7 @@ jobs:
       contents: read
     outputs:
       changed: ${{ steps.diff.outputs.changed }}
+      provenance: ${{ steps.diff.outputs.provenance }}
       fallback: ${{ steps.import.outputs.fallback }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -59,8 +60,28 @@ jobs:
         run: pnpm --filter @gw1-mcp/gw-data import:heroes
       - name: Check for meaningful changes (ignore import date)
         id: diff
+        # Two kinds of "meaningful", because reverting _meta.json unconditionally
+        # cost something real. Run #19 (2026-08-17, a manual re-run) took the
+        # Pages path for the first time after the 2.x constant-table fix, computed
+        # `pages@e32dbdc4e0ec` with all five sha256 hashes, and discarded it —
+        # upstream had touched no skill, so _meta.json was the only diff. The
+        # committed record went on saying `npm:2.0.0`, and nothing in the
+        # repository showed the importer had recovered.
+        #
+        # So a change of CHANNEL (npm <-> pages) now counts on its own, while a
+        # date, version or hash bump within the same channel still does not —
+        # otherwise this opens a PR every Monday. The decision is a unit-tested
+        # pure function rather than shell string-slicing, because it is exactly
+        # the kind of logic that is never exercised until it is wrong.
         run: |
+          git show HEAD:packages/gw-data/data/_meta.json > /tmp/meta-before.json 2>/dev/null || true
+          provenance=$(pnpm --silent --filter @gw1-mcp/gw-data exec \
+            tsx scripts/provenance-changed.ts /tmp/meta-before.json packages/gw-data/data/_meta.json)
+          echo "provenance=$provenance" >> "$GITHUB_OUTPUT"
           if git diff --numstat -- packages/gw-data/data gwtoolbox-plugin/AccountExport/hero-names.generated.h | grep -v "_meta.json" | grep -q .; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif [ "$provenance" = "changed" ]; then
+            echo "::notice::Data unchanged, but the import channel changed — committing provenance alone."
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             git checkout -- packages/gw-data/data/_meta.json || true
@@ -132,6 +153,13 @@ jobs:
           body: |
             Automated re-import from build-wars/gw-skilldata (Reforged-tracking upstream) detected changes.
             Review the diff in `packages/gw-data/data/`.
+
+            Import channel changed: ${{ needs.import.outputs.provenance }}.
+            When `changed`, this PR may touch `_meta.json` ALONE — that is not a
+            no-op: it records that the importer switched between the Pages path
+            and the pinned npm fallback, which the repository could not otherwise
+            show (see run #19, 2026-08-17). A `pages@…` provenance also restores
+            the sha256 content hashes the npm path deliberately omits.
 
             CI runs the full golden-fixture suite against the new data.
 

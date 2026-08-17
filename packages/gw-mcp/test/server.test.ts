@@ -614,6 +614,56 @@ describe("LLM-client hardening (from the first production transcript)", () => {
   });
 });
 
+describe("decode_template tolerates a pasted code's whitespace", () => {
+  // A code copied out of a forum post, a wiki table or a chat message routinely
+  // arrives wrapped. The CODEC is right to refuse whitespace — it is not in the
+  // charset — but at the paste surface that produced INVALID_CHARACTER, which
+  // reads to a model as "this code is wrong" rather than "rejoin it", so it goes
+  // and invents another. decode_pawned_team already re-joined its payload; this
+  // is the same treatment for the single-code tool.
+  const CODE = "OwpiMypMBg1cxcBAMBdmtIKAA";
+
+  it.each([
+    ["a mid-code line wrap", `${CODE.slice(0, 12)}\n${CODE.slice(12)}`],
+    ["a mid-code space", `${CODE.slice(0, 12)} ${CODE.slice(12)}`],
+    ["several wraps and tabs", `${CODE.slice(0, 6)}\n\t${CODE.slice(6, 18)}  ${CODE.slice(18)}`],
+    ["surrounding whitespace", `\n  ${CODE}  \n`],
+  ])("decodes the same build given %s", async (_label, code) => {
+    const client = await connectedClient();
+    const wrapped = payload(
+      await client.callTool({ name: "decode_template", arguments: { code } }),
+    );
+    const clean = payload(
+      await client.callTool({ name: "decode_template", arguments: { code: CODE } }),
+    );
+    expect(wrapped).toEqual(clean);
+  });
+
+  it("still rejects a code whose non-whitespace characters are off-charset", async () => {
+    // The tolerance must not become "accept anything": stripping whitespace is
+    // not the same as forgiving a bad character.
+    const client = await connectedClient();
+    const result = await client.callTool({
+      name: "decode_template",
+      arguments: { code: `${CODE.slice(0, 12)} !${CODE.slice(12)}` },
+    });
+    expect(result.isError).toBe(true);
+    expect(payload(result).error.code).toBe("INVALID_CHARACTER");
+  });
+
+  it("cannot be used to smuggle a payload past the length bound", async () => {
+    // The schema bounds the RAW argument, so padding with whitespace to get a
+    // longer stripped code must fail at the schema, not decode a big template.
+    const client = await connectedClient();
+    const result = await client.callTool({
+      name: "decode_template",
+      arguments: { code: `${" ".repeat(120)}${CODE}` },
+    });
+    expect(result.isError).toBe(true);
+    expect(JSON.stringify(result.content)).toContain("Template code too long");
+  });
+});
+
 describe("error branches (total failures and reports)", () => {
   it("decode_template rejects garbage with a TemplateError code and isError", async () => {
     const client = await connectedClient();

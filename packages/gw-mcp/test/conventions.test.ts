@@ -342,3 +342,68 @@ describe("upstream pins live in .github/pins.env, not in workflow YAML", () => {
     );
   });
 });
+
+/**
+ * The fixed context cost every conversation pays (debt #10).
+ *
+ * Nothing used to lock this number, and the gap that opened is instructive: the
+ * repository measures it carefully whenever IT changes the tool surface, and not
+ * at all when a dependency does. Between the 18 809 characters recorded in
+ * CLAUDE.md and the audit of 2026-08-17 it had reached 19 358, and 312 of those
+ * 549 characters were the SDK newly emitting
+ * `"execution":{"taskSupport":"forbidden"}` on each of the eight tools. Nobody
+ * decided that; it arrived with a version bump and the doc quietly went stale.
+ *
+ * An upper bound would not have caught it — it passes silently until it does
+ * not, which is the same "green means nothing happened" trap the weekly data
+ * job fell into twice. So this is exact, and it fails on ANY movement in either
+ * direction. Failing is the feature: the number is a claim the project makes
+ * about what it costs its callers, and the failure message says where to update
+ * that claim.
+ */
+describe("tools/list size is a locked, deliberate number (debt #10)", () => {
+  // Measured 2026-08-17. Keep this and the figure in CLAUDE.md in the same commit.
+  // 19 358 at the moment of measurement; +60 for the decode_template description
+  // gaining its whitespace-tolerance sentence in the same change as this lock.
+  const TOOLS_LIST_CHARS = 19_418;
+
+  it("has not drifted, from our side or a dependency's", async () => {
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await createServer().connect(serverTransport);
+    const client = new Client({ name: "size-lock", version: "1" });
+    await client.connect(clientTransport);
+    const { tools } = await client.listTools();
+    await client.close();
+
+    const actual = JSON.stringify(tools).length;
+    const delta = actual - TOOLS_LIST_CHARS;
+    expect(
+      actual,
+      delta === 0
+        ? ""
+        : `tools/list moved by ${delta > 0 ? "+" : ""}${delta} characters (${TOOLS_LIST_CHARS} -> ${actual}). ` +
+            `If YOU changed the tool surface, update TOOLS_LIST_CHARS and the debt #10 figure in CLAUDE.md together. ` +
+            `If you did not, a dependency did — check whether the SDK started emitting a new field before accepting it.`,
+    ).toBe(TOOLS_LIST_CHARS);
+  });
+
+  it("still declares an outputSchema and a strict input for every tool", async () => {
+    // Non-vacuity for the count above: the character total would also stay put
+    // if a schema vanished and a description grew by the same amount.
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await createServer().connect(serverTransport);
+    const client = new Client({ name: "size-lock-shape", version: "1" });
+    await client.connect(clientTransport);
+    const { tools } = await client.listTools();
+    await client.close();
+
+    expect(tools).toHaveLength(TOOL_NAMES.length);
+    for (const tool of tools) {
+      expect(tool.outputSchema, `${tool.name} must declare an outputSchema`).toBeDefined();
+      expect(
+        (tool.inputSchema as { additionalProperties?: boolean }).additionalProperties,
+        `${tool.name} input must be strict`,
+      ).toBe(false);
+    }
+  });
+});

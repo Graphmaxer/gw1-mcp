@@ -101,7 +101,14 @@ export async function loadUpstream(source: string | undefined): Promise<Upstream
     const bundlePath = join(mkdtempSync(join(tmpdir(), "gw-skilldata-")), "bundle.cjs");
     writeFileSync(bundlePath, bundle);
     const require = createRequire(import.meta.url);
-    const constants = require(bundlePath) as Record<string, unknown>;
+    // Normalised, not read directly: the bundle is whatever upstream has DEPLOYED,
+    // so its shape is not pinned by our lockfile. 2.0.0 replaced the flat tables
+    // with classes, and reading `.ATTRIBUTES` off a 2.x bundle yields four
+    // `undefined`s that only fail three call frames later in a transform's `.map`.
+    // That is exactly what broke the weekly Pages import (run #18, 2026-08-17):
+    // the npm path was adapted for 2.x, this one was not, and the npm fallback
+    // masked it as a warning.
+    const constants = normaliseConstantTables(require(bundlePath) as Record<string, unknown>);
 
     // Provenance bound to the actual bytes we fetched (GW1-06): a post-hoc
     // `ls-remote` names a commit that may differ from what produced these five
@@ -144,7 +151,17 @@ export async function loadUpstream(source: string | undefined): Promise<Upstream
   }
 
   if (cloneRoot) {
-    const constants = await import(pathToFileURL(join(cloneRoot, "es6", "constants.js")).href);
+    // es6/index.js, NOT es6/constants.js: 2.0.0 deleted the latter outright, so this
+    // path did not merely read undefined tables — it threw ERR_MODULE_NOT_FOUND. The
+    // index is the stable entry point across both majors (1.x re-exports the flat
+    // tables from it, 2.x exports the classes), and normaliseConstantTables takes
+    // either.
+    const constants = normaliseConstantTables(
+      (await import(pathToFileURL(join(cloneRoot, "es6", "index.js")).href)) as Record<
+        string,
+        unknown
+      >,
+    );
     const skilldata = JSON.parse(
       readFileSync(join(cloneRoot, "data", "json-full", "skilldata.json"), "utf8"),
     );
@@ -171,7 +188,13 @@ export async function loadUpstream(source: string | undefined): Promise<Upstream
 
     const version = `git:${JSON.parse(readFileSync(join(cloneRoot, "package.json"), "utf8")).version}`;
     return {
-      ...constants,
+      // Named rather than spread, like the other two paths: the normaliser's four
+      // keys are the contract here, and an upstream module gaining an export must
+      // not silently widen what we return.
+      ATTRIBUTES: constants.ATTRIBUTES,
+      CAMPAIGNS: constants.CAMPAIGNS,
+      PROFESSIONS: constants.PROFESSIONS,
+      SKILLTYPES: constants.SKILLTYPES,
       skilldata: skilldata.skilldata,
       skilldesc: desc.skilldesc,
       version,

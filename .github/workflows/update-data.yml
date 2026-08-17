@@ -20,6 +20,7 @@ jobs:
       contents: read
     outputs:
       changed: ${{ steps.diff.outputs.changed }}
+      fallback: ${{ steps.import.outputs.fallback }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # No version here: pnpm/action-setup reads the packageManager field
@@ -31,14 +32,29 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Import latest upstream data
+        id: import
         # `pnpm import` is a pnpm builtin (lockfile import); our script must be
         # invoked with `run`. URL after `--` so it reaches the script, not pnpm.
         # Try tip-fresh Pages; on any failure fall back to the pinned npm
         # package so the weekly job never breaks on a fragile external surface.
+        #
+        # The fallback is recorded as an OUTPUT, not just a `::warning::`, and the
+        # `notify-degraded` job below turns it into an issue. A warning annotation is
+        # visible only to someone already reading the run — and this job exists
+        # precisely so nobody has to. Twice now the fallback has hidden a real,
+        # persistent break of the Pages path rather than a fragile-network blip: the
+        # `--` argument bug (masked "for months", see import.ts) and the 2.x constant
+        # tables (run #18). Both times the run was green and the pinned npm package
+        # produced a zero diff, so no PR appeared and the quiet looked like a quiet
+        # week upstream.
         run: |
-          pnpm --filter @gw1-mcp/gw-data run import:data -- https://build-wars.github.io/gw-skilldata \
-            || { echo "::warning::Pages import failed; importing from the pinned npm package"; \
-                 pnpm --filter @gw1-mcp/gw-data run import:data; }
+          if pnpm --filter @gw1-mcp/gw-data run import:data -- https://build-wars.github.io/gw-skilldata; then
+            echo "fallback=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Pages import failed; importing from the pinned npm package"
+            echo "fallback=true" >> "$GITHUB_OUTPUT"
+            pnpm --filter @gw1-mcp/gw-data run import:data
+          fi
       - name: Regenerate heroes.json from the GWCA HeroID enum + curated overlay
         run: pnpm --filter @gw1-mcp/gw-data import:heroes
       - name: Check for meaningful changes (ignore import date)
@@ -147,3 +163,26 @@ jobs:
     uses: ./.github/workflows/notify-failure.yml
     with:
       workflow: Update game data
+
+  # The green-run failure mode. `notify` above cannot cover it: the fallback makes the
+  # job SUCCEED, so `if: failure()` never fires and the only trace is a warning
+  # annotation nobody reads. Its own issue thread, not the one above, because the two
+  # conditions have different causes and different fixes — and because the recurrence
+  # count is the datum (see notify-failure.yml): "degraded 6 weeks running" is the
+  # sentence that distinguishes a fragile network from a broken importer.
+  notify-degraded:
+    needs: import
+    if: ${{ !cancelled() && needs.import.outputs.fallback == 'true' }}
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/notify-failure.yml
+    with:
+      workflow: Update game data (Pages import degraded)
+      detail: >-
+        The weekly import could not read the upstream's GitHub Pages release files and
+        fell back to the pinned npm package, so **this run imported whatever version the
+        lockfile already pins** rather than upstream tip. The run is green and the data
+        is unchanged, which is exactly why this needs saying out loud. If it recurs, the
+        Pages path is broken rather than the network being fragile — check the `import`
+        job log for the real error, not this issue.

@@ -30,6 +30,15 @@ on:
         description: The human name of the failing workflow, e.g. "Upstream pin bump"
         required: true
         type: string
+      detail:
+        # For the condition that is NOT a red run: a job that degraded to a fallback
+        # and therefore reports success. "Update game data" does exactly that when the
+        # Pages import fails, and the default body would claim the workflow failed,
+        # which is both wrong and the reason a reader would dismiss the issue.
+        description: Opening line of a newly opened issue; defaults to "the workflow failed".
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -44,6 +53,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           WORKFLOW: ${{ inputs.workflow }}
+          DETAIL: ${{ inputs.detail }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           REPO: ${{ github.repository }}
         run: |
@@ -65,7 +75,7 @@ jobs:
             gh issue create --repo "$REPO" \
               --title "$TITLE" \
               --body "$(printf '%s\n\n%s\n\n%s\n' \
-                "The scheduled workflow **${WORKFLOW}** failed." \
+                "${DETAIL:-The scheduled workflow **${WORKFLOW}** failed.}" \
                 "Run: ${RUN_URL}" \
                 "This issue is reused for every subsequent failure of the same workflow, and is never closed automatically — close it once the cause is understood.")"
             echo "opened a new issue"

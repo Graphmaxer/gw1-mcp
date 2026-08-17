@@ -755,7 +755,14 @@ since 2019; see Data maintenance.)
   speculative locale data. Revisit only if a machine-readable FR source
   appears; LLM callers translate French skill names to English well anyway.
 
-## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-08-11)
+## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-08-17)
+
+On 2026-08-17 the weekly data import was found broken for the SECOND time in the
+same way, and the second finding is the one that matters: not the code defect
+(upstream 2.x constant tables reaching only one of three source modes — see Data
+maintenance) but that the npm fallback reported success both times, so nothing
+ever said so. That pattern now has a name and a notification path; look there
+first when a scheduled job has been quiet.
 
 Everything through distribution is DONE and live: codec (four verification
 layers), skills Reforged-current (count lives in the data, not in prose —
@@ -800,7 +807,7 @@ the code, so they are not a surprise:
   registered on `/mcp` — one middleware that skipped it is the reason.
 - The suggesters and `searchSkills` return nothing for a query that normalises
   to nothing, instead of the whole dataset or three plausible wrong names.
-- Suite is 376 tests (107 / 79 / 118 / 72).
+- Suite is 378 tests (107 / 81 / 118 / 72).
 
 A SELF-audit followed on 2026-08-11 — probes and sweeps rather than reading — and
 its lesson is where to look next. The core did not yield: ~1900 generated cases
@@ -1212,6 +1219,33 @@ dashboard, not a smaller suite.
   a path = a local git clone (offline use). In URL mode the constant tables
   (SKILLTYPES evolves!) come from the Pages-served node bundle built from the
   same commit, and provenance records the tip sha via git ls-remote.
+- **All THREE modes go through `normaliseConstantTables`, and this is not
+  optional.** @buildwars/gw-skilldata 2.0.0 replaced the flat
+  ATTRIBUTES/CAMPAIGNS/PROFESSIONS/SKILLTYPES tables with classes carrying
+  id-keyed statics (`Profession.NAME`, `Attribute.MAX_VALUE`, …). The normaliser
+  accepts both majors, but it was wired into the npm path ONLY, so the other two
+  broke: URL mode read four `undefined`s off a 2.x bundle and died three frames
+  later on `Cannot read properties of undefined (reading 'map')` (weekly run #18,
+  2026-08-17), and clone mode imported `es6/constants.js`, which 2.0.0 deletes
+  outright. Clone mode now imports `es6/index.js` — the stable entry point across
+  both majors (1.x re-exports the flat tables from it). Fixed by normalising in
+  all three; verified end to end against real upstream bytes (a localhost mirror
+  of the Pages layout serving the genuine `gw-skilldata-node.cjs`, plus a real
+  tip clone), both reproducing the committed data byte-for-byte. The upstream
+  bundle's shape is decided by upstream's DEPLOY, not by our lockfile, so tests
+  stub both shapes; the pre-existing Pages test stubbed a 1.x bundle, which is
+  why 376 green tests coexisted with a broken weekly import.
+- **The npm fallback in update-data.yml has now masked a persistent Pages break
+  TWICE** — the `--` argument bug (masked "for months", see import.ts's docblock)
+  and the 2.x tables above. Both times the mechanics were identical and worth
+  recognising on sight: the fallback re-imports the version the lockfile already
+  pins, which produces a ZERO diff, so no PR opens and the silence is
+  indistinguishable from a quiet week upstream. The fallback is kept (a genuine
+  Pages outage should not red the weekly job) but is no longer silent: it sets a
+  step output and a `notify-degraded` job calls notify-failure.yml with its own
+  issue thread. `if: failure()` could never have caught this — the fallback makes
+  the job SUCCEED. When a green scheduled run is the failure mode, the
+  notification has to hang off the degradation, not off the exit code.
 - Pages also serves combined JSON, paw-ned2 CSVs, and per-skill JSON at
   /json/skills/[SKILL_ID].json should a lightweight runtime lookup ever be
   wanted. npm release may lag the Pages/tip by a release.

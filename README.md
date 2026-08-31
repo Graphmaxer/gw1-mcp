@@ -45,7 +45,7 @@ wrong.
 
 ## Tools
 
-- `get_skill` — full record for one skill (by exact name or template id), with closest-match suggestions on typos
+- `get_skill` — full record for one skill (by exact name or template id), with closest-match suggestions on typos. Official **French** skill names resolve too (`Sceau de guérison` -> Healing Signet); every other name field is English-only
 - `search_skills` — filtered search: profession, attribute, campaign, elite, name substring
 - `decode_template` — in-game template code → professions, attributes, 8 skills with stats
 - `encode_template` — named build → validated, official in-game template code

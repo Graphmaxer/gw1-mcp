@@ -9,5 +9,11 @@
   "source": "https://raw.githubusercontent.com/gwdevhub/GWToolboxpp/master/Dependencies/GWCA/include/GWCA/Constants/Constants.h (GWCA HeroID enum, vendored in GWToolboxpp — the living source; standalone gwdevhub/GWCA is gone)",
   "generatedAt": "2026-08-17",
   "curatedOverlay": "data/heroes-overlay.json (professionId/campaignId/unlock — human knowledge, no machine-readable source exists)"
+ },
+ "skillNamesFr": {
+  "source": "https://github.com/build-wars/gw-skilldata (json/skilldesc-fr.json — French NAMES only; no French descriptions are shipped)",
+  "sourceVersion": "pages@f6557a1671f4 (sha256 descFr:2d6bbda52aeae944)",
+  "importedAt": "2026-08-31",
+  "freshness": "Its OWN key because availability is independent of the skills pipeline: only the Pages and clone channels serve French (npm 2.0.0 exports English and German only), so an npm-fallback run refreshes skills.json and leaves this table untouched. A sourceVersion older than the skills entry means the last import ran without a French channel, not that anything failed. This first record covers ONE fetched artifact rather than the importer's usual six, because the table was generated against the committed skills.json on purpose — upstream carries 31 skills not yet imported (ids 3443-3473) and refreshing those belongs to the weekly data PR. The next full import rewrites this entry in the standard six-hash form."
  }
 }

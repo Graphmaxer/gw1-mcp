@@ -449,12 +449,27 @@ five languages.
 data/_meta.json records provenance for EVERY generated data file, one key
 per pipeline (skills <- @buildwars/gw-skilldata import, heroes <- GWCA enum
 
-- curated overlay). Each generator read-merge-writes only its own key. A
+- curated overlay, skillNamesFr <- the same upstream's skilldesc-fr.json). Each
+  generator read-merge-writes only its own key. A
   new generated artifact MUST add its key there — "no unmanaged copies":
   every derived byte in the repo has a generator, a provenance record, and a
   refresh path (the weekly workflow); everything else committed is either
   curated original knowledge (heroes-overlay.json) or a deliberately dated test
   snapshot (fixtures).
+
+`skillNamesFr` has its OWN key despite riding the same import run as `skills`,
+and the reason is the rule's own logic: its REFRESH PATH differs. Only the Pages
+and clone channels serve French — npm 2.0.0, the latest published version and the
+weekly job's fallback, exports English and German only — so an npm-fallback run
+refreshes `skills.json` and leaves the French table untouched. Sharing the skills
+key would have made that record claim a freshness the file does not have. So a
+`skillNamesFr.sourceVersion` older than the `skills` one means the last import ran
+without a French channel, not that anything failed, and the importer logs which of
+the two happened rather than leaving it to be inferred. Absence never DELETES the
+table: a fallback that dropped 1485 names would turn a transient Pages outage into
+a data-loss PR on an auto-merging job. `repository.test.ts` asserts the table and
+`skills.json` name the same id set, which is what catches the drift that design
+permits.
 
 ## Known debts and risks (the honest register)
 
@@ -732,7 +747,7 @@ were still real. Check the claim, not the citation.
    the margin improved rather than eroded. `limits.cpu_ms` stays unset
    deliberately: it has no effect under Free and a rejected value would fail a
    deploy.
-10. tools/list costs 19 095 characters (~4 800 tokens) of FIXED context
+10. tools/list costs 19 308 characters (~4 850 tokens) of FIXED context
     in every conversation, outputSchemas being ~42% of it (8 128 chars). That is
     a deliberate trade — the schemas carry real contracts locked by the golden
     fixtures — but it is paid by every session, including ones that call a
@@ -753,9 +768,38 @@ were still real. Check the claim, not the citation.
     outputSchema, strict input and description. That is the bar for accepting a
     dependency-driven move: show the delta is cosmetic, never just re-baseline
     the constant because CI is red.
+    The same commit then spent +213 characters on purpose, which is the other
+    half of this debt working as intended: `get_skill`'s `name` now says the
+    French name resolves and `search_skills`' `nameContains` says a French
+    substring matches nothing. Paying fixed context for that is the audit
+    L-series lesson — a caveat in the server `instructions` is invisible to the
+    many clients that never forward them, while a parameter description always
+    travels.
     Trigger: if a client's
     context budget ever matters, check whether that client forwards
     outputSchema to the model at all before optimising further.
+11. French name support (2026-08-31) carries three known compromises, none of
+    them fixable without giving up something better.
+    - **2 skills are unreachable by their French name.** "Récupération" (Recovery, 1748) normalises to `recuperation`, the English name of Recuperation (981),
+      and English wins by design. Also true in reverse for the PvP pair
+      (3025/3013). Not fixable in a single-answer lookup; a caller who means
+      Recovery can use the id or the English name. Trigger: only a
+      multiple-candidate return shape would fix it, which is a tool-contract
+      change and not worth it for two skills.
+    - **5 French names are ambiguous** ("Rafale" = Flurry and Gust; also Attaque
+      féroce, Attaque sournoise, Coup enragé, and the PvP form of the last). They
+      resolve to nothing and the suggester returns both English names. Upstream's
+      translation, not ours to fix.
+    - **The table can go stale without anything failing.** Only the Pages and
+      clone channels serve French, so a weekly run that falls back to npm
+      refreshes `skills.json` and not the French names — a new skill would then be
+      nameless in French until the next Pages-backed run. Bounded, not silent:
+      `repository.test.ts` asserts the table and `skills.json` cover the same ids,
+      so the drift reds the suite instead of being discovered by a lookup quietly
+      returning nothing. Trigger: that test failing, or npm publishing a version
+      that exports `SkillLangFrench` (the loader already picks it up with no code
+      change — it asks `typeof SkillLangFrench === "function"` rather than
+      hard-coding today's absence).
 
 ## Golden tests (non-negotiable)
 
@@ -794,16 +838,77 @@ since 2019; see Data maintenance.)
 
 - Imported by a script into `packages/gw-data/data/*.json` (skills, professions, attributes, heroes, campaigns).
 - The import script is committed and re-runnable; the generated JSON is committed too (the server must not fetch anything at runtime).
-- Repository layer exposes typed lookups: `getSkillById`, `getSkillByName` (exact + case/diacritics-insensitive), `searchSkills({ profession?, attribute?, elite?, campaign?, nameContains? })`, `getHero`, `listHeroes`, `getProfession`, `listAttributes(profession)`.
-- Skill names: canonical English names are the primary key. French aliases
-  were WANTED but DECIDED AGAINST (2026-07-13): @buildwars/gw-skilldata ships
-  English and German only (SkillLangEnglish/SkillLangGerman), and scraping the
-  FR wiki is a non-goal. The passive nameDe fields on the side tables (never
-  consumed by any tool) were cut at import for the same reason — no
-  speculative locale data. Revisit only if a machine-readable FR source
-  appears; LLM callers translate French skill names to English well anyway.
+- Repository layer exposes typed lookups: `getSkillById`, `getSkillByName` (exact + case/diacritics-insensitive, English names then French — see below), `searchSkills({ profession?, attribute?, elite?, campaign?, nameContains? })`, `getHero`, `listHeroes`, `getProfession`, `listAttributes(profession)`.
+- Skill names: canonical English names are the primary key. **FRENCH NAMES NOW
+  RESOLVE (2026-08-31)** — this entry said the opposite until then, and the
+  reversal is the trigger it wrote for itself firing, not a change of mind.
+  The 2026-07-13 decision was DECIDED AGAINST on a fact ("@buildwars/gw-skilldata
+  ships English and German only"), with the escape clause "revisit only if a
+  machine-readable FR source appears". One appeared: upstream now serves
+  `json/skilldesc-fr.json`, same shape as the English file, French names for
+  100% of skills. So the premise expired rather than the reasoning being wrong,
+  which is the whole reason a decision is worth writing down with its premise.
+  What ships, and what deliberately does not:
+  - `data/skill-names-fr.json`, the French name of every skill (generated, ~45 KB,
+    +15.5 KB gzipped on the Worker bundle). NAMES ONLY: French descriptions are
+    another 262 KB and would reopen the counsel-gated licensing question in
+    THIRD_PARTY_NOTICES.md on a new wiki (gwiki.fr), for text an LLM does not need
+    to resolve a skill.
+  - `getSkillByName` tries English FIRST, always. A French name can add a way to
+    reach a skill, never change which skill an English name reaches; a
+    whole-dataset sweep in `repository.test.ts` is what makes that a fact.
+  - `searchSkills({ nameContains })` stays English-only, and `nameContains`'
+    own description says so — a French substring silently matching nothing is
+    exactly the trap the audit L-series said to document on the forwarded field.
+  - The passive nameDe fields stay cut. German has a machine-readable source too
+    and nothing consumes it, so it is still speculative locale data; French is not,
+    because French-speaking players are the maintainer's own use case.
+- Two French limitations, both measured and both accepted (details in
+  `repository.ts` and `transform.ts`):
+  - 2 skills lose to English. "Récupération" is the French name of Recovery
+    (1748) but normalises to `recuperation`, the English name of Recuperation
+    (981) — so it resolves to 981. A single-answer lookup cannot serve both, and
+    silently redefining an English name is the worse failure.
+  - 5 French names are claimed by two skills each ("Rafale" is both Flurry and
+    Gust). These do not resolve at all; the suggester returns BOTH English names,
+    so the caller picks instead of the server guessing.
 
-## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-08-17)
+## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-08-31)
+
+**2026-08-31: French skill names resolve, and a Dependabot PR earned the tools/list
+lock its keep.** Two unrelated things landed together.
+
+The dependency bump (zod 4.4 -> 4.5 among eight) failed CI on the `tools/list`
+character lock, which is exactly the case that lock was added for: zod 4.5 writes a
+nullable field as `{"type":["string","null"]}` where 4.4 wrote an `anyOf` pair,
+-323 characters across 17 output fields, and nobody chose it. Accepted after
+normalising both notations and finding the schemas deep-equal — the bar for a
+dependency-driven move is proving the delta is cosmetic, not re-baselining the
+constant because CI is red.
+
+French: upstream started serving `json/skilldesc-fr.json`, so the trigger the Game
+data section wrote for itself in July fired. Names only, English always wins, the
+merge policy lives in one place (`repository.ts`) and the generated table is the
+unfiltered fact. Three things worth carrying forward:
+
+- **Two tests asserted the OLD decision and one asserted it twice.** `repository.test.ts`
+  demanded `[]` for every French query, and both the gw-mcp and gw-worker analytics
+  tests used "Régénération mystique" as their example of an unresolvable name — one
+  of them with a comment saying the counter existed to decide whether French was
+  worth building. Landing a feature meant rewriting the tests that recorded the
+  reasons not to. That is the good case: the tests failed loudly instead of the
+  decision quietly rotting.
+- **A sabotage pass corrected a comment.** The runtime filter that drops a French
+  name colliding with an English one turned out to be redundant — the lookup order
+  (`English ?? French`) is what enforces "English always wins", and removing the
+  filter breaks no test. It stays as defence in depth, but the comment now says
+  which of the two actually holds the line, and the whole-dataset sweep that DOES
+  catch an order flip was verified by flipping it.
+- **Upstream is 31 skills ahead of our committed data** (ids 3443-3473, plus a
+  balance patch), and the weekly job has not opened a PR for them. Not touched
+  here on purpose: a data refresh belongs to `update-data.yml` with its own gates,
+  so the French table was generated against the committed `skills.json` and the
+  next weekly run regenerates both together. Worth checking that run.
 
 A FIFTH audit ran on 2026-08-17, in this repo with a working npm and a real
 network — the "re-audit in a working environment" the first audit asked for, and
@@ -850,11 +955,19 @@ is not a surprise:
 
 - `parseHeroEnum` strips comments BEFORE splitting — an upstream `//` used to
   swallow the next hero and shift every HeroID after it.
-- Suggestions: token-prefix match first, then bounded edit distance capped at 5
-  (calibrated on measured distances, see the comment). Abbreviations resolve;
-  French names return nothing rather than a confident wrong answer. The distance
-  kernel is `fastest-levenshtein` — gw-data's first and only runtime dependency,
-  taken on purpose to delete a hand-written banded matrix.
+- Suggestions: an EXACT French name first, then token-prefix match, then bounded
+  edit distance capped at 5 (calibrated on measured distances, see the comment).
+  Abbreviations resolve. The French pass replaced this bullet's old claim that
+  "French names return nothing rather than a confident wrong answer" — true and
+  correct while nothing here knew any French, and obsolete since 2026-08-31.
+  Ordering matters more than it looks: "Rafale" is 2 edits from "Gale", so ranking
+  English first answered ["Gale", "Recall", "Impale"] for a query whose real
+  meaning was sitting in the French table. Exact evidence outranks a fuzzy match.
+  Note the cap's calibration lost its boundary case in the process — 5 was the
+  widest value that kept "Vœu de piété" -> Vow of Piety (d=5), which is now an
+  exact hit — and it was deliberately NOT re-picked from that one datum. The
+  distance kernel is `fastest-levenshtein` — gw-data's first and only runtime
+  dependency, taken on purpose to delete a hand-written banded matrix.
 - Validator: `forPvp` mirrors `forHero` in both directions; `UNUSED_ATTRIBUTE`
   exists but never fires on a primary attribute (a primary is never wasted).
 - HTTP surface: CORS is open (`*`) because the service is public, read-only and
@@ -879,7 +992,7 @@ the code, so they are not a surprise:
   registered on `/mcp` — one middleware that skipped it is the reason.
 - The suggesters and `searchSkills` return nothing for a query that normalises
   to nothing, instead of the whole dataset or three plausible wrong names.
-- Suite is 394 tests (107 / 89 / 126 / 72) as of 2026-08-17.
+- Suite is 418 tests (107 / 112 / 127 / 72) as of 2026-08-31.
 
 A SELF-audit followed on 2026-08-11 — probes and sweeps rather than reading — and
 its lesson is where to look next. The core did not yield: ~1900 generated cases
@@ -946,7 +1059,7 @@ codec question.
 
 | Tool                       | In                                                     | Out                                                                                                                                                                                                     |
 | -------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `get_skill`                | name or id                                             | full skill record, or structured not-found with close-match suggestions                                                                                                                                 |
+| `get_skill`                | name (English or official French) or id                | full skill record, or structured not-found with close-match suggestions                                                                                                                                 |
 | `search_skills`            | filters (profession, attribute, elite, campaign, text) | paginated list of skill records                                                                                                                                                                         |
 | `decode_template`          | template code (line wraps tolerated)                   | build object (professions, attributes, skills)                                                                                                                                                          |
 | `encode_template`          | build object                                           | template code (runs validation first; refuses on errors, returns them)                                                                                                                                  |
@@ -1118,7 +1231,7 @@ the sentence is literally true — check it rather than trusting it when adding 
 Verified byte-identical at the time: `tools/list` was 18 577 characters, and strictness
 survives — an extra property in a structured result is still rejected. It went to 18 809
 when inputs became `.strict()` (see the third-audit entry in the debt register), and is
-**19 095 today, LOCKED by a test** — `conventions.test.ts` asserts the exact character
+**19 308 today, LOCKED by a test** — `conventions.test.ts` asserts the exact character
 count and fails on any movement in either direction.
 
 The lock exists because of how the number drifted. Between 18 809 and the audit of
@@ -1165,8 +1278,17 @@ Cloudflare build command is the thing to widen first, not the branch policy.
   none of them human. `glimind-probe` alone is 63% of connections, matching the 65%
   the user-agents showed independently. The 95% "protocol overhead" is that, not a
   mystery.
-- **The French alias table (J1 path 3) is closed as NO.** 198 resolved lookups against
-  2 missed, and both misses are most likely our own probes.
+- **The French alias table (J1 path 3) was closed as NO here, and REOPENED on
+  2026-08-31 — read the two together, they answer different questions.** The
+  dashboard evidence stands: 198 resolved lookups against 2 missed, both misses
+  most likely our own probes, so nothing was failing for want of French. What
+  reopened it was not new traffic but a new SOURCE (see Game data); the standing
+  decision was gated on availability, and this panel was measuring demand. Worth
+  keeping as a pair, because a number this clean is easy to mistake for an answer
+  to whichever question is being asked. Note also what it could not see: a caller
+  whose LLM translates a French name to English before calling arrives here as a
+  resolved English lookup, so "no missed French lookups" was never evidence that
+  no French was being typed at the other end.
 - **`ATTRIBUTE_POINTS_EXCEEDED` was the top validation failure, and the cause was
   ours**: `RANK_COST` lived only in `validate.ts`, and the costs are non-linear (rank
   12 costs 97, so 12/12 spends 194 of 200 and three lines at 12 is impossible). The
@@ -1313,6 +1435,19 @@ dashboard, not a smaller suite.
   a path = a local git clone (offline use). In URL mode the constant tables
   (SKILLTYPES evolves!) come from the Pages-served node bundle built from the
   same commit, and provenance records the tip sha via git ls-remote.
+- **The three modes are NOT equivalent any more: only two of them serve French.**
+  `json/skilldesc-fr.json` exists on Pages (and in a clone) but npm 2.0.0 — the
+  latest published version — exports `SkillLangEnglish` and `SkillLangGerman`
+  only. So the French names are optional in the loader, a 404 on that one file is
+  "this channel has no French" rather than a broken deploy, and the npm path asks
+  `typeof SkillLangFrench === "function"` so it starts working the day upstream
+  publishes. Note the Pages file is NOT linked from upstream's index page and is
+  served anyway; it is validated against the same `skilldesc.schema.json` as the
+  English file and put through `assertCoherentSnapshot`, which matters more here
+  than elsewhere: the names are keyed by skill id, so a French file from a
+  different build would attach the right name to the WRONG skill — the only
+  failure mode in this pipeline that produces a confidently wrong lookup instead
+  of a missing one.
 - **All THREE modes go through `normaliseConstantTables`, and this is not
   optional.** @buildwars/gw-skilldata 2.0.0 replaced the flat
   ATTRIBUTES/CAMPAIGNS/PROFESSIONS/SKILLTYPES tables with classes carrying

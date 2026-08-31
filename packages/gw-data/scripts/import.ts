@@ -21,6 +21,7 @@ import { loadUpstream } from "./import/load.ts";
 import {
   transformAttributes,
   transformCampaigns,
+  transformFrenchNames,
   transformProfessions,
   transformSkills,
   transformSkillTypes,
@@ -63,6 +64,52 @@ async function main(): Promise<void> {
     skills,
     `${skills.length} (${skills.filter((s) => s.isPvpVersion).length} PvP versions)`,
   );
+  // French names, when the channel serves them (npm 2.0.0 does not — see the
+  // skilldescFr doc in load.ts). Absence deliberately LEAVES the committed file
+  // alone instead of writing an empty one: the weekly job falls back to npm on a
+  // Pages outage, and a fallback that deleted 1485 French names would turn a
+  // transient upstream hiccup into a data-loss PR. Logged either way, because a
+  // green run that silently changed channel is the exact failure this repo has
+  // had twice.
+  if (upstream.skilldescFr === undefined) {
+    console.log(
+      "skill-names-fr.json: NOT REFRESHED — this source serves no French " +
+        "(npm <= 2.0.0 exports English and German only); committed names left as they are",
+    );
+  } else {
+    const french = transformFrenchNames(upstream.skilldescFr, skills);
+    writeData(
+      outDir,
+      "skill-names-fr.json",
+      french.names,
+      `${Object.keys(french.names).length} French names ` +
+        `(${french.identical.length} identical to English, ` +
+        `${french.shadowed.length} shadowed by an English name, ` +
+        `${french.ambiguous.length} ambiguous — the last two resolve to English / to nothing)`,
+    );
+    // Printed, not merely counted: these are the entries whose LOOKUP behaviour is
+    // surprising, and the weekly PR auto-merges, so the run log is where a reviewer
+    // gets to see a new one appear.
+    for (const { id, frenchName, englishIds } of french.shadowed) {
+      console.log(
+        `  shadowed: skill ${id} French name ${JSON.stringify(frenchName)} is the English name of ${englishIds.join(", ")}`,
+      );
+    }
+    for (const { normalized, ids } of french.ambiguous) {
+      console.log(
+        `  ambiguous: French name ${JSON.stringify(normalized)} claimed by ${ids.join(", ")}`,
+      );
+    }
+    mergeProvenance(outDir, "skillNamesFr", {
+      source:
+        "https://github.com/build-wars/gw-skilldata (json/skilldesc-fr.json — French NAMES only; no French descriptions are shipped)",
+      sourceVersion: upstream.version,
+      importedAt: new Date().toISOString().slice(0, 10),
+      freshness:
+        "Its OWN key because availability is independent of the skills pipeline: only the Pages and clone channels serve French (npm 2.0.0 exports English and German only), so an npm-fallback run refreshes skills.json and leaves this table untouched. A sourceVersion older than the skills entry means the last import ran without a French channel, not that anything failed.",
+    });
+  }
+
   // README advertises the count and repository.test.ts asserts it exactly, so the
   // generator owns it — otherwise an upstream count change reds the weekly job
   // until a human edits prose (which is what happened on 2026-08-10).

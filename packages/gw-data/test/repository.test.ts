@@ -17,7 +17,9 @@ import {
   suggestAttributeNames,
   suggestProfessionNames,
   suggestSkillNames,
+  normalizeName,
 } from "../src/index.js";
+import frenchNamesJson from "../data/skill-names-fr.json";
 
 describe("upstream-integrity invariants (GW1-13)", () => {
   // These lock structural properties that a compromised or mis-parsed upstream
@@ -131,13 +133,23 @@ describe("lookups", () => {
     expect(suggestSkillNames("healing bréeze")[0]).toBe("Healing Breeze");
   });
 
-  it("suggests nothing rather than a plausible wrong skill (GW1-AUD-01, FR names)", () => {
-    // A French skill name is not a typo of an English one. Returning three real
-    // English signets for "Signet de guérison" is what makes an LLM encode a
-    // valid-but-wrong template; an empty list makes it ask or search instead.
-    expect(suggestSkillNames("Signet de guérison")).toEqual([]);
-    expect(suggestSkillNames("Régénération mystique")).toEqual([]);
-    expect(suggestSkillNames("Souffle mystique")).toEqual([]);
+  it("answers a French query with the RIGHT English skill, not a plausible wrong one", () => {
+    // This test used to assert the opposite — [] for every French query — and that
+    // was the correct answer while nothing here knew any French: "Signet de
+    // guérison" sat 7 edits from the WRONG "Signet of Creation", so three real
+    // English signets would have made an LLM encode a valid-but-wrong template.
+    //
+    // Now the French names are indexed, the same queries have a right answer, and
+    // giving it is strictly better than refusing. What must NOT come back is a
+    // confident wrong one, so each case below pins the skill, never merely
+    // "something".
+    expect(suggestSkillNames("Régénération mystique")).toEqual(["Mystic Regeneration"]);
+    // A hybrid the caller half-translated ("Signet" is English, the rest French).
+    // No French name matches it exactly, so this goes through the bounded fuzzy
+    // pass and the right answer has to be IN the list — it ranks third behind two
+    // other "... de guérison" skills at a smaller edit distance, which is what a
+    // three-candidate list is for.
+    expect(suggestSkillNames("Signet de guérison")).toContain("Healing Signet");
   });
 
   it("suggests nothing for padding that merely fits the length cap", () => {
@@ -158,16 +170,30 @@ describe("lookups", () => {
     expect(suggestSkillNames("heal sig")[0]).toBe("Healing Signet");
   });
 
-  it("does not let prefix matching reopen the French or padding cases", () => {
-    expect(suggestSkillNames("Signet de guérison")).toEqual([]);
-    expect(suggestSkillNames("Souffle mystique")).toEqual([]);
+  it("does not let prefix matching or the French pass reopen the padding cases", () => {
+    // The French pass is a SECOND O(n*m) scan, so every DoS guard has to hold on it
+    // too — it runs precisely when the English pass found nothing, which is what a
+    // padding attack looks like. Measured after wiring it: 0.48 ms for the 64-char
+    // case and 1.83 ms for the worst real query (both passes running), against the
+    // 10 ms per-request cap.
     expect(suggestSkillNames("z".repeat(64))).toEqual([]);
+    expect(suggestSkillNames("q".repeat(32))).toEqual([]);
+    expect(suggestSkillNames("zzzzzzzz")).toEqual([]);
   });
 
-  it("keeps a French form that resolves correctly by cognate", () => {
-    // The threshold is calibrated to keep this one (d=5) while dropping the
-    // wrong matches above — it is the boundary case that fixes the cap at 5.
-    expect(suggestSkillNames("Vœu de piété")[0]).toBe("Vow of Piety");
+  it("resolves the cognate case EXACTLY now, which is what the cap used to stretch for", () => {
+    // MAX_SUGGEST_DISTANCE is 5 because of this one query: "Vœu de piété" was 5
+    // edits from "Vow of Piety" and the cap was set to the widest value that kept
+    // it while still dropping French noise. With the French names indexed it is not
+    // a suggestion at all any more — it is an exact hit — so the boundary case the
+    // cap was calibrated on has evaporated.
+    //
+    // The cap is deliberately NOT tightened on that news: the value was measured
+    // against real English misspellings too, and re-picking it from this one datum
+    // is how a calibrated number becomes a guessed one. Recorded here so whoever
+    // does measure it again knows the constraint is gone.
+    expect(getSkillByName("Vœu de piété")?.name).toBe("Vow of Piety");
+    expect(getSkillByName("Voeu de piété")?.name).toBe("Vow of Piety");
   });
 
   it("suggests nothing for a query that normalises to nothing (audit M2)", () => {
@@ -283,5 +309,73 @@ describe("entity lookups (both twins per entity)", () => {
 
   it("suggests close attribute names on a misspelling (LLM self-correction path)", () => {
     expect(suggestAttributeNames("Mystiscism")).toContain("Mysticism");
+  });
+});
+
+describe("French skill names (data/skill-names-fr.json)", () => {
+  const frenchNames = frenchNamesJson as Record<string, string>;
+
+  it("resolves a French name, diacritics and ligature spellings alike", () => {
+    expect(getSkillByName("Sceau de guérison")?.name).toBe("Healing Signet");
+    // normalizeName strips diacritics, so an unaccented keyboard works.
+    expect(getSkillByName("sceau de guerison")?.name).toBe("Healing Signet");
+    expect(getSkillByName("Mantra de la terre")?.id).toBe(6);
+    // NFD does not decompose "œ", so before the ligature fold this normalised to
+    // "vu de revolution" and missed while upstream spells it "Voeu".
+    expect(getSkillByName("Vœu de révolution")?.name).toBe("Vow of Revolution");
+    expect(getSkillByName("Voeu de révolution")?.name).toBe("Vow of Revolution");
+  });
+
+  it("NEVER changes what an English name resolves to (whole dataset)", () => {
+    // The load-bearing invariant. English names are the primary key, so this sweep
+    // is what makes "French can only ADD a way to reach a skill" a fact rather than
+    // an intention — one alias overwriting one English key would be a silently
+    // wrong answer in the tool everything else is built on.
+    for (const skill of skills) {
+      expect(getSkillByName(skill.name)?.id, `"${skill.name}"`).toBe(skill.id);
+    }
+  });
+
+  it("keeps the English skill when a French name IS an English name", () => {
+    // "Récupération" is the French name of Recovery (1748) and normalises to
+    // `recuperation`, the English name of a DIFFERENT skill (981). English wins.
+    // The cost is real and accepted: a caller typing the French name of Recovery
+    // receives Recuperation, because a single-answer lookup cannot serve both and
+    // silently redefining an English name is the worse of the two failures.
+    expect(normalizeName(frenchNames["1748"]!)).toBe(normalizeName("Recuperation"));
+    expect(getSkillByName("Récupération")?.id).toBe(981);
+    expect(getSkillByName("Recuperation")?.id).toBe(981);
+  });
+
+  it("refuses to guess when several skills share a French name, and suggests all of them", () => {
+    // "Rafale" is the French name of BOTH Flurry (344) and Gust (843). A Map would
+    // have kept whichever was inserted last — a coin flip presented as a fact.
+    expect(frenchNames["344"]).toBe("Rafale");
+    expect(frenchNames["843"]).toBe("Rafale");
+    expect(getSkillByName("Rafale")).toBeUndefined();
+    expect(suggestSkillNames("Rafale")).toEqual(["Flurry", "Gust"]);
+    expect(suggestSkillNames("Attaque féroce")).toEqual(["Ferocious Strike", "Fierce Blow"]);
+  });
+
+  it("names every committed skill, and nothing that is not one", () => {
+    // A stale table is the expected failure mode, not a corrupt one: only the Pages
+    // and clone channels serve French, so an npm-fallback run refreshes skills.json
+    // and leaves this table alone (by design — see import.ts). This asserts the two
+    // stay in step, which is what catches that drift instead of leaving it to be
+    // noticed by a French lookup quietly returning nothing.
+    const ids = new Set(skills.map((s) => s.id));
+    for (const id of Object.keys(frenchNames)) {
+      expect(ids.has(Number(id)), `id ${id} has a French name but no skill`).toBe(true);
+    }
+    expect(Object.keys(frenchNames).length).toBe(skills.length);
+  });
+
+  it("suffixes every French PvP name, like the English transform does", () => {
+    // Without the suffix a PvP name collides with its own PvE form and BOTH skills
+    // lose their exact lookup. Upstream currently gets this right on its own; the
+    // English side already had to repair one missing suffix.
+    for (const skill of skills.filter((s) => s.isPvpVersion)) {
+      expect(frenchNames[String(skill.id)], `${skill.name}`).toContain("(PvP)");
+    }
   });
 });

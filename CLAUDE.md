@@ -996,7 +996,7 @@ the code, so they are not a surprise:
   registered on `/mcp` — one middleware that skipped it is the reason.
 - The suggesters and `searchSkills` return nothing for a query that normalises
   to nothing, instead of the whole dataset or three plausible wrong names.
-- Suite is 419 tests (107 / 113 / 127 / 72) as of 2026-08-31.
+- Suite is 420 tests (107 / 114 / 127 / 72) as of 2026-08-31.
 
 A SELF-audit followed on 2026-08-11 — probes and sweeps rather than reading — and
 its lesson is where to look next. The core did not yield: ~1900 generated cases
@@ -1503,7 +1503,30 @@ dashboard, not a smaller suite.
   can never masquerade as a data decision; and `provenance-cli.test.ts` runs the
   script as a SUBPROCESS from a foreign cwd and statically asserts the workflow
   still passes absolute paths. That last test was verified non-vacuous by
-  restoring the run #20 line and watching it fail. Consequence worth knowing: while provenance reads `npm:`,
+  restoring the run #20 line and watching it fail.
+  **Run #23 (2026-08-31) then found the SAME shape one layer out: the two-job split
+  carries changes through ONE path-scoped `git diff`, and README.md was not in the
+  path list.** So `syncReadmeSkillCount` rewrote the advertised count in the import
+  job, the patch dropped the file, and the open-pr job opened a PR whose data carried
+  the new upstream count next to a README still advertising the old one — failing
+  `repository.test.ts` three packages from the cause. (Both figures are deliberately
+  absent: the sibling lock reads "<number> skills" as a CURRENT claim and fired on
+  this very paragraph while it was being written, for the third time in this file's
+  history. Naming the numbers here would make the prose stale the moment the next
+  import lands, which is the whole point of not hand-keeping derived numbers.) Two details make this worth remembering. The import job was
+  **GREEN**: `pnpm -r test` runs there, where the rewrite still exists, so only the
+  PR ever sees the loss — the same "green means nothing happened" trap as the npm
+  fallback, in mirror image. And it made the 2026-08-10 fix HALF-WIRED for three
+  weeks: the generator owned the number, the pipeline did not carry it, and "the
+  generator owns it" was true and useless. Fixed by adding README.md to the diff, and
+  locked statically by `provenance-cli.test.ts`, which asserts all three generated
+  paths reach the open-pr job. The count assertion's failure MESSAGE now names this
+  cause too: it has fired twice for a reason three packages away, both times reading
+  as a counterproductive lock and both times being right, so it points at the patch
+  path list before anything else. When adding a generated output, the path list in
+  `update-data.yml` is a second place to update — the artifact boundary is not
+  something the unit tests can see.
+  Consequence worth knowing: while provenance reads `npm:`,
   the shipped data carries none of the GW1-06 content hashes, deliberately (the
   npm path relies on lockfile SHA-512 integrity instead).
 - **The npm fallback in update-data.yml has now masked a persistent Pages break

@@ -241,10 +241,26 @@ describe("documented counts stay true (mechanical lock)", () => {
 
   // README advertises the count on purpose, so here the count must exist AND be
   // right — that also keeps the check non-vacuous.
+  //
+  // The message matters as much as the assertion. This check has now fired twice on
+  // a data PR for a cause three packages away — 2026-08-10 (README was hand-kept, so
+  // the first legitimate count change red the weekly job) and 2026-08-31 (the import
+  // rewrites README, but update-data.yml's path-scoped patch dropped the file before
+  // the open-pr job saw it). Both times the reasonable reading was "this lock is
+  // counterproductive", and both times the lock was right and the PIPELINE was half
+  // wired. So it now names the two things to check, in order of likelihood.
   it("README.md quotes the real skill count", () => {
     const quoted = quotedCounts(read("../../../README.md"));
     expect(quoted.length).toBeGreaterThan(0);
-    for (const count of quoted) expect(count).toBe(skills.length);
+    for (const count of quoted) {
+      expect(
+        count,
+        "README.md is GENERATED for this number (syncReadmeSkillCount) — do not edit it by hand. " +
+          "On a data PR this failing means the rewrite did not survive the pipeline: check that " +
+          "README.md is in the `git diff` path list that update-data.yml turns into data-update.patch " +
+          "(locked by provenance-cli.test.ts). Locally, re-run the import.",
+      ).toBe(skills.length);
+    }
   });
 
   // Everywhere else the rule is only "if you quote it, be right". Requiring a

@@ -796,7 +796,11 @@ were still real. Check the claim, not the citation.
       nameless in French until the next Pages-backed run. Bounded, not silent:
       `repository.test.ts` asserts the table and `skills.json` cover the same ids,
       so the drift reds the suite instead of being discovered by a lookup quietly
-      returning nothing. Trigger: that test failing, or npm publishing a version
+      returning nothing. The runtime side of that scenario is tested too
+      (`french-stale-table.test.ts`, which mocks a table naming an id no skill
+      has): the guard that skips it is not paranoia — removing it throws
+      `Cannot read properties of undefined (reading 'name')` in the suggester,
+      verified by sabotage. Trigger: that test failing, or npm publishing a version
       that exports `SkillLangFrench` (the loader already picks it up with no code
       change — it asks `typeof SkillLangFrench === "function"` rather than
       hard-coding today's absence).
@@ -992,7 +996,7 @@ the code, so they are not a surprise:
   registered on `/mcp` — one middleware that skipped it is the reason.
 - The suggesters and `searchSkills` return nothing for a query that normalises
   to nothing, instead of the whole dataset or three plausible wrong names.
-- Suite is 418 tests (107 / 112 / 127 / 72) as of 2026-08-31.
+- Suite is 419 tests (107 / 113 / 127 / 72) as of 2026-08-31.
 
 A SELF-audit followed on 2026-08-11 — probes and sweeps rather than reading — and
 its lesson is where to look next. The core did not yield: ~1900 generated cases

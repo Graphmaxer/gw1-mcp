@@ -10,8 +10,23 @@ import {
 /**
  * The repository is the CPU floor of every tool call: name resolution runs
  * 10 times for a single encode_template, and the suggestion path is the one
- * documented amplification risk in the codebase (GW1-AUD-01, O(n*m) over 1485
- * names). Both are measured here on the real dataset.
+ * documented amplification risk in the codebase (GW1-AUD-01, O(n*m) over every
+ * name). Both are measured here on the real dataset.
+ *
+ * WHICH MEANS EVERY BENCHMARK HERE MOVES ON A DATA-ONLY PR. They scan the whole
+ * committed dataset, so importing new skills shifts them with no code change at
+ * all — read a CodSpeed regression on `chore/update-game-data` against the size of
+ * the import before looking for a cause in the diff, because there is no diff.
+ * Measured on the 2026-08-31 import (+31 skills, +2%): "heal sig" went 0.2026 ms ->
+ * 0.2295 ms, and the other two suggestion queries +8% and +24%. CodSpeed reported
+ * -72.24% on that same query for that same import, with its "different runtime
+ * environments" warning attached — the signature of the false positive the CodSpeed
+ * section in CLAUDE.md documents. The `benchmarks` JOB was green; only the
+ * dashboard-side check was red.
+ *
+ * The count is deliberately not written into this comment (the doc-count lock reads
+ * "<number> skills" as a current claim, and a benchmark file is the last place that
+ * should need editing after an import).
  */
 
 /** Longest query the suggester accepts — the worst case it is bounded to. */

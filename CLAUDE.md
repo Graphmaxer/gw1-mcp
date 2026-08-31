@@ -968,10 +968,23 @@ is not a surprise:
   English first answered ["Gale", "Recall", "Impale"] for a query whose real
   meaning was sitting in the French table. Exact evidence outranks a fuzzy match.
   Note the cap's calibration lost its boundary case in the process — 5 was the
-  widest value that kept "Vœu de piété" -> Vow of Piety (d=5), which is now an
-  exact hit — and it was deliberately NOT re-picked from that one datum. The
+  widest value that kept "Vœu de piété" -> Vow of Piety (d=5), and that query now
+  matches the FRENCH name at d=2 instead — and it was deliberately NOT re-picked
+  from that one obsolete datum. The
   distance kernel is `fastest-levenshtein` — gw-data's first and only runtime
   dependency, taken on purpose to delete a hand-written banded matrix.
+- **No œ -> oe fold in `normalizeName`, decided by measurement.** The ligature is
+  what a French speaker actually types ("Vœu", "Cœur", "Œil"), NFD does not
+  decompose it, so the strip deletes it and the exact lookup misses. Folding it
+  shipped for one commit and CodSpeed priced it: ~10% on the hottest function in
+  the package, whichever form (+10.3% inline in the strip, +7.9% guarded), paid by
+  every caller forever including the ~97.5% of traffic that never types French.
+  What it bought: 18 names carry the "oe" digraph and upstream spells all 18
+  without a ligature, and every one of them lands at d=2 from its own French name
+  WITHOUT the fold — so the suggester already answers all 18 correctly. One round
+  trip on 18 skills beats a permanent tax on everyone, and `repository.test.ts`
+  asserts the right answer really comes back. Reopen with a measurement, not a
+  preference.
 - Validator: `forPvp` mirrors `forHero` in both directions; `UNUSED_ATTRIBUTE`
   exists but never fires on a primary attribute (a primary is never wasted).
 - HTTP surface: CORS is open (`*`) because the service is public, read-only and
@@ -996,7 +1009,7 @@ the code, so they are not a surprise:
   registered on `/mcp` — one middleware that skipped it is the reason.
 - The suggesters and `searchSkills` return nothing for a query that normalises
   to nothing, instead of the whole dataset or three plausible wrong names.
-- Suite is 420 tests (107 / 114 / 127 / 72) as of 2026-08-31.
+- Suite is 421 tests (107 / 115 / 127 / 72) as of 2026-08-31.
 
 A SELF-audit followed on 2026-08-11 — probes and sweeps rather than reading — and
 its lesson is where to look next. The core did not yield: ~1900 generated cases

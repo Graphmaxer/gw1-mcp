@@ -181,19 +181,24 @@ describe("lookups", () => {
     expect(suggestSkillNames("zzzzzzzz")).toEqual([]);
   });
 
-  it("resolves the cognate case EXACTLY now, which is what the cap used to stretch for", () => {
+  it("still reaches the cognate case, now through the French names", () => {
     // MAX_SUGGEST_DISTANCE is 5 because of this one query: "Vœu de piété" was 5
-    // edits from "Vow of Piety" and the cap was set to the widest value that kept
-    // it while still dropping French noise. With the French names indexed it is not
-    // a suggestion at all any more — it is an exact hit — so the boundary case the
-    // cap was calibrated on has evaporated.
+    // edits from the ENGLISH "Vow of Piety", and the cap was set to the widest value
+    // that kept it while still dropping French noise. That reasoning is obsolete —
+    // the query now matches the FRENCH name at distance 2, so the cap no longer has
+    // to stand in for a dictionary.
     //
-    // The cap is deliberately NOT tightened on that news: the value was measured
-    // against real English misspellings too, and re-picking it from this one datum
-    // is how a calibrated number becomes a guessed one. Recorded here so whoever
-    // does measure it again knows the constraint is gone.
-    expect(getSkillByName("Vœu de piété")?.name).toBe("Vow of Piety");
+    // The cap is deliberately NOT tightened on that news: it was measured against
+    // real English misspellings too, and re-picking it from this one datum is how a
+    // calibrated number becomes a guessed one.
+    //
+    // The unaccented spelling resolves EXACTLY, the ligature spelling resolves via
+    // one suggestion. See normalize.ts for why there is no œ -> oe fold: it costs
+    // ~10% on the hottest function in the package and buys an exact hit on 18 names
+    // that already come back correctly here.
     expect(getSkillByName("Voeu de piété")?.name).toBe("Vow of Piety");
+    expect(getSkillByName("Vœu de piété")).toBeUndefined();
+    expect(suggestSkillNames("Vœu de piété")).toContain("Vow of Piety");
   });
 
   it("suggests nothing for a query that normalises to nothing (audit M2)", () => {
@@ -331,15 +336,33 @@ describe("entity lookups (both twins per entity)", () => {
 describe("French skill names (data/skill-names-fr.json)", () => {
   const frenchNames = frenchNamesJson as Record<string, string>;
 
-  it("resolves a French name, diacritics and ligature spellings alike", () => {
+  it("resolves a French name, accented or not", () => {
     expect(getSkillByName("Sceau de guérison")?.name).toBe("Healing Signet");
     // normalizeName strips diacritics, so an unaccented keyboard works.
     expect(getSkillByName("sceau de guerison")?.name).toBe("Healing Signet");
     expect(getSkillByName("Mantra de la terre")?.id).toBe(6);
-    // NFD does not decompose "œ", so before the ligature fold this normalised to
-    // "vu de revolution" and missed while upstream spells it "Voeu".
-    expect(getSkillByName("Vœu de révolution")?.name).toBe("Vow of Revolution");
     expect(getSkillByName("Voeu de révolution")?.name).toBe("Vow of Revolution");
+  });
+
+  it("hands the 18 ligature names to the suggester rather than taxing every lookup", () => {
+    // Upstream writes all 18 "oe" names with the digraph and none with a ligature
+    // (Vœu, Cœur, Chœur, Œil, bœuf, Mœbius). A caller typing the typographically
+    // correct ligature therefore MISSES the exact index — NFD does not decompose œ,
+    // so the strip deletes it — and lands 2 edits from the French name instead.
+    //
+    // This is the trade normalize.ts documents, asserted rather than assumed: the
+    // right answer must actually come back, or dropping the fold would be a
+    // regression rather than a cost saving.
+    for (const [typed, expected] of [
+      ["Vœu du silence", "Vow of Silence"],
+      ["œil critique", "Critical Eye"],
+      ["Frappe de Mœbius", "Moebius Strike"],
+      ["Cœur de furie", "Heart of Fury"],
+      ["Cornes du bœuf", "Horns of the Ox"],
+    ] as const) {
+      expect(getSkillByName(typed), typed).toBeUndefined();
+      expect(suggestSkillNames(typed), typed).toContain(expected);
+    }
   });
 
   it("NEVER changes what an English name resolves to (whole dataset)", () => {

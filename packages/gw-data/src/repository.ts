@@ -186,9 +186,16 @@ const MAX_SUGGEST_LEN = 64;
  *  round: genuine misspellings land at d<=2 ("mystik regenaration" -> 2,
  *  "Vow of Revoltion" -> 1), French skill names at 7-11 ("Signet de guérison" ->
  *  7 from the WRONG "Signet of Creation"), and padding attacks at d>=7 with a
- *  distance/length ratio above 0.85. 5 is the widest cap that still drops the
- *  French noise while keeping the one French form that resolves CORRECTLY by
+ *  distance/length ratio above 0.85. 5 was the widest cap that still dropped the
+ *  French noise while keeping the one French form that resolved CORRECTLY by
  *  cognate ("Vœu de piété" -> "Vow of Piety", d=5).
+ *
+ *  That boundary case is GONE, and the cap was deliberately not re-picked. With the
+ *  French names indexed, a French query no longer needs a cognate to land: the same
+ *  "Vœu de piété" matches the FRENCH name at d=2 (see the ligature reasoning in
+ *  normalize.ts), so the cap is no longer standing in for a dictionary. It stays at
+ *  5 because it was measured against real English misspellings too, and re-deriving
+ *  a calibrated number from one obsolete datum is how it becomes a guessed one.
  *
  *  Returning nothing is the better answer for the caller: an LLM handed no
  *  suggestion asks, whereas an LLM handed a confidently wrong one encodes a

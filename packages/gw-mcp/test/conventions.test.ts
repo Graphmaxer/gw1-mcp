@@ -362,10 +362,19 @@ describe("upstream pins live in .github/pins.env, not in workflow YAML", () => {
  * that claim.
  */
 describe("tools/list size is a locked, deliberate number (debt #10)", () => {
-  // Measured 2026-08-17. Keep this and the figure in CLAUDE.md in the same commit.
-  // 19 358 at the moment of measurement; +60 for the decode_template description
-  // gaining its whitespace-tolerance sentence in the same change as this lock.
-  const TOOLS_LIST_CHARS = 19_418;
+  // Measured 2026-08-31. Keep this and the figure in CLAUDE.md in the same commit.
+  // 19 358 measured 2026-08-17; +60 for the decode_template description gaining its
+  // whitespace-tolerance sentence in the same change as this lock; -323 for zod 4.5
+  // emitting the 17 nullable output fields as the JSON Schema type-array form
+  // ({"type":["string","null"]}) instead of 4.4's anyOf pair — the lock catching a
+  // DEPENDENCY, which is what it is for, accepted only after proving the two forms
+  // normalise to the same schema; +213 for saying WHERE French names are accepted
+  // (get_skill's `name`) and where they are not (search_skills' `nameContains`).
+  // That last one is ours and deliberate: a caveat that lives only in the server
+  // `instructions` is invisible to the many clients that never forward them, and a
+  // French substring silently matching nothing is exactly the trap audit L-series
+  // told us to document on the field itself.
+  const TOOLS_LIST_CHARS = 19_308;
 
   it("has not drifted, from our side or a dependency's", async () => {
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();

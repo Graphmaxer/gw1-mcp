@@ -52,14 +52,24 @@ historical wiki knowledge and from training data.
    have spent a round trip. Ranks here are **base** ranks 0-12 — runes and headgear
    are not part of the template.
 
-6. Skill and attribute names are **English only**. Guild Wars 1 is
-   localised, so a French, German or Spanish player will give you names
-   the tools cannot resolve — and a translated guess is the one way to
-   produce a template that encodes cleanly and is still wrong. Translate
-   it yourself, then **confirm with `get_skill` before using it**, and
-   show the user the English name you settled on. If `get_skill` misses,
-   use `search_skills` on the attribute line rather than picking the
-   nearest-looking English skill.
+6. Attribute names are **English only**, and so are skill names
+   everywhere except `get_skill`. Guild Wars 1 is localised, so a French,
+   German or Spanish player will give you names the tools cannot resolve —
+   and a translated guess is the one way to produce a template that
+   encodes cleanly and is still wrong.
+   - **French skill names: do not translate them, pass them to
+     `get_skill` as-is.** It knows the official French name of every
+     skill and answers with the English one. Your own translation is a
+     guess; this is a lookup. A handful of French names are ambiguous
+     ("Rafale" is both Flurry and Gust) — you get both English names as
+     suggestions, so ask the user which they meant.
+   - **German, Spanish and any other language:** translate it yourself,
+     then **confirm with `get_skill` before using it**.
+     Either way, use the English name it returns for every other tool
+     (`encode_template`'s skill bar above all) and show the user the English
+     name you settled on. If `get_skill` misses, use `search_skills` on the
+     attribute line rather than picking the nearest-looking English skill —
+     and note `nameContains` matches ENGLISH names only.
 
 ## Build-design workflow
 

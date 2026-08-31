@@ -39,6 +39,25 @@ describe("gw1-mcp server", () => {
     expect(ko.error.suggestions).toContain("Mystic Regeneration");
   });
 
+  it("get_skill resolves a French skill name, and answers in English", async () => {
+    // End-to-end through the tool, not just the repository: the table is only useful
+    // if it reaches a caller, and this is the surface an LLM actually holds. The
+    // ANSWER stays English on purpose — every other tool (encode_template's skill
+    // bar above all) takes English names only, so a French answer would hand the
+    // model a name it cannot spend.
+    const client = await connectedClient();
+    const fr = payload(
+      await client.callTool({ name: "get_skill", arguments: { name: "Sceau de guérison" } }),
+    );
+    expect(fr.name).toBe("Healing Signet");
+    // Two skills claim "Rafale", so the tool refuses to pick and returns both as
+    // suggestions rather than a coin flip presented as a fact.
+    const ambiguous = payload(
+      await client.callTool({ name: "get_skill", arguments: { name: "Rafale" } }),
+    );
+    expect(ambiguous.error.suggestions).toEqual(["Flurry", "Gust"]);
+  });
+
   it("get_skill rejects name and id together instead of silently favoring id (GW1-09)", async () => {
     const client = await connectedClient();
     const res = await client.callTool({

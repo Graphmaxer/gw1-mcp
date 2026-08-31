@@ -5,7 +5,12 @@ import attributesJson from "../data/attributes.json";
 import skillTypesJson from "../data/skill-types.json";
 import skillsJson from "../data/skills.json";
 import heroesJson from "../data/heroes.json";
+import frenchNamesJson from "../data/skill-names-fr.json";
 import type { Attribute, Campaign, Hero, Profession, Skill, SkillType } from "./types.js";
+// Re-exported so this module stays the single entry point for name lookup even
+// though the normaliser had to move (see normalize.ts for why it is separate).
+export { normalizeName } from "./normalize.js";
+import { normalizeName } from "./normalize.js";
 
 export const campaigns: Campaign[] = campaignsJson;
 export const professions: Profession[] = professionsJson;
@@ -20,17 +25,6 @@ const attributeById = new Map(attributes.map((a) => [a.id, a]));
 const campaignById = new Map(campaigns.map((c) => [c.id, c]));
 const skillTypeById = new Map(skillTypes.map((t) => [t.id, t]));
 
-/** Lowercase, strip diacritics and punctuation — tolerant name matching. */
-export function normalizeName(name: string): string {
-  return name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9 ]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 const heroByNormalizedName = new Map(heroes.map((h) => [normalizeName(h.name), h]));
 const heroById = new Map(heroes.map((h) => [h.id, h]));
 
@@ -40,8 +34,104 @@ const campaignByNormalizedName = new Map(campaigns.map((c) => [normalizeName(c.n
 const attributeByNormalizedName = new Map(attributes.map((a) => [normalizeName(a.name), a]));
 
 export const getSkillById = (id: number): Skill | undefined => skillById.get(id);
-export const getSkillByName = (name: string): Skill | undefined =>
-  skillByNormalizedName.get(normalizeName(name));
+
+/**
+ * The generated French name of every skill (data/skill-names-fr.json).
+ *
+ * Unfiltered on purpose — it states each skill's French name, which is a fact
+ * about that skill. Merging it with the English namespace is a POLICY, and this
+ * module is the one place that policy lives (see frenchNameIndex below).
+ */
+const frenchNames = frenchNamesJson as Record<string, string>;
+
+/**
+ * French name -> skill, for EXACT lookup. Two classes of French name are refused.
+ *
+ *  - a French name whose normalised form is already an English name. English names
+ *    are the primary key (see the naming conventions in CLAUDE.md), so no alias may
+ *    change what an English name resolves to. Real case: "Récupération" is the
+ *    French name of Recovery (1748) and normalises to `recuperation`, the English
+ *    name of Recuperation (981). Consequence, accepted knowingly: a caller typing
+ *    the French name of Recovery gets Recuperation. A single-answer lookup cannot
+ *    serve both, and silently redefining an English name is the worse failure.
+ *
+ *    Worth being precise about what enforces that, because it is NOT this filter:
+ *    getSkillByName consults the English map FIRST, so English would win even with
+ *    every colliding key left in here — removing this line breaks no test, which was
+ *    checked rather than assumed. It stays as defence in depth, so the invariant
+ *    survives a future refactor that reorders the lookup, and so this map means
+ *    exactly "keys that unambiguously resolve to one skill". The whole-dataset sweep
+ *    in repository.test.ts is what actually guards the ordering; it fails on a flip.
+ *  - a normalised French name claimed by several skills. "Rafale" is both Flurry
+ *    (344) and Gust (843); a Map would keep whichever was inserted last, i.e. a
+ *    coin flip presented as a fact. Refusing sends the caller to the suggester,
+ *    which answers with both English names — the outcome MAX_SUGGEST_DISTANCE's
+ *    docblock argues for: no answer beats a confidently wrong one.
+ *
+ * Built on FIRST MISS, not at module load, for the reason the suggestion indexes
+ * are lazy: normalising ~1485 names costs real milliseconds against a 10 ms CPU
+ * cap, and an exact English lookup — the overwhelmingly common case — must not pay
+ * for a fallback it never reaches.
+ */
+let frenchIndex: Searchable<Skill>[] | undefined;
+let frenchClaimants: Map<string, Skill[]> | undefined;
+let skillByFrenchName: Map<string, Skill> | undefined;
+
+/**
+ * The ONE French index. Everything French derives from it — exact lookup, the
+ * ambiguity rule, and the suggester — so the ~1485 French names are normalised once
+ * per isolate rather than once per consumer.
+ *
+ * That is not premature: the first version built a claimant Map here and a separate
+ * Searchable list in the suggester, each normalising every name, and CodSpeed
+ * measured the worst-case suggestion doubling (1.7 ms -> 3.5 ms). Normalising is the
+ * cost, and it was being paid twice for the same 1485 strings. `Searchable` carries
+ * the normalised form and the tokens the suggester needs, so it is the shape that
+ * serves both; the Map is grouped from it without normalising anything again.
+ */
+function frenchSearchIndex(): Searchable<Skill>[] {
+  frenchIndex ??= indexFor(
+    skills.filter((s) => frenchNames[String(s.id)] !== undefined),
+    (s) => frenchNames[String(s.id)]!,
+  );
+  return frenchIndex;
+}
+
+/** Every skill claiming a given normalised French name — one, or several. */
+function frenchClaimantIndex(): Map<string, Skill[]> {
+  if (frenchClaimants === undefined) {
+    const claimants = new Map<string, Skill[]>();
+    for (const { item, normalized } of frenchSearchIndex()) {
+      claimants.set(normalized, [...(claimants.get(normalized) ?? []), item]);
+    }
+    frenchClaimants = claimants;
+  }
+  return frenchClaimants;
+}
+
+function frenchNameIndex(): Map<string, Skill> {
+  skillByFrenchName ??= new Map(
+    [...frenchClaimantIndex()].flatMap(([key, claiming]) =>
+      claiming.length === 1 && !skillByNormalizedName.has(key)
+        ? [[key, claiming[0]!] as const]
+        : [],
+    ),
+  );
+  return skillByFrenchName;
+}
+
+/**
+ * English name first, then the French name table.
+ *
+ * The order IS the contract: a French name can add a way to reach a skill, never
+ * change which skill an English name reaches. Note that
+ * `searchSkills({ nameContains })` stays English-only on purpose — this adds a way
+ * to look a skill UP, not a French substring search.
+ */
+export const getSkillByName = (name: string): Skill | undefined => {
+  const key = normalizeName(name);
+  return skillByNormalizedName.get(key) ?? frenchNameIndex().get(key);
+};
 export const getProfessionById = (id: number): Profession | undefined => professionById.get(id);
 export const getProfessionByName = (name: string): Profession | undefined =>
   professionByNormalizedName.get(normalizeName(name));
@@ -96,9 +186,16 @@ const MAX_SUGGEST_LEN = 64;
  *  round: genuine misspellings land at d<=2 ("mystik regenaration" -> 2,
  *  "Vow of Revoltion" -> 1), French skill names at 7-11 ("Signet de guérison" ->
  *  7 from the WRONG "Signet of Creation"), and padding attacks at d>=7 with a
- *  distance/length ratio above 0.85. 5 is the widest cap that still drops the
- *  French noise while keeping the one French form that resolves CORRECTLY by
+ *  distance/length ratio above 0.85. 5 was the widest cap that still dropped the
+ *  French noise while keeping the one French form that resolved CORRECTLY by
  *  cognate ("Vœu de piété" -> "Vow of Piety", d=5).
+ *
+ *  That boundary case is GONE, and the cap was deliberately not re-picked. With the
+ *  French names indexed, a French query no longer needs a cognate to land: the same
+ *  "Vœu de piété" matches the FRENCH name at d=2 (see the ligature reasoning in
+ *  normalize.ts), so the cap is no longer standing in for a dictionary. It stays at
+ *  5 because it was measured against real English misspellings too, and re-deriving
+ *  a calibrated number from one obsolete datum is how it becomes a guessed one.
  *
  *  Returning nothing is the better answer for the caller: an LLM handed no
  *  suggestion asks, whereas an LLM handed a confidently wrong one encodes a
@@ -218,10 +315,43 @@ export function suggestAttributeNames(name: string, count = 3): string[] {
   return closest(attributeSearchIndex, name, count).map((a) => a.name);
 }
 
+/**
+ * English candidates for a name that did not resolve — including for a FRENCH one.
+ *
+ * The French pass runs only when the English pass finds nothing, and it always
+ * answers with ENGLISH names, because those are what every tool accepts. It exists
+ * for two cases the exact index deliberately refuses:
+ *
+ *  - an ambiguous French name: "Rafale" is indexed for BOTH Flurry and Gust, so it
+ *    comes back as two candidates and the caller picks, instead of the server
+ *    guessing or answering nothing.
+ *  - a misspelled or half-remembered French name, which the English index cannot
+ *    help with at all. This is what MAX_SUGGEST_DISTANCE's docblock was working
+ *    around when it calibrated the cap to DROP French noise: "Signet de guérison"
+ *    was 7 edits from the wrong "Signet of Creation", so the honest answer then was
+ *    nothing. With the French names indexed the same query matches the real French
+ *    name of Healing Signet and the cap no longer has to stand in for a dictionary.
+ *
+ * The cap still applies, and still on the French side: a query that is 6 edits from
+ * every French name gets no answer rather than a plausible-looking wrong one.
+ */
 export function suggestSkillNames(name: string, count = 3): string[] {
   if (name.length > MAX_SUGGEST_LEN) return [];
+  // An EXACT French name outranks any fuzzy English match, and the ordering is not
+  // cosmetic: "Rafale" is 2 edits from "Gale", so ranking English first answered
+  // ["Gale", "Recall", "Impale"] for a query whose real meaning — Flurry or Gust —
+  // was sitting in the French table. Wrong-but-plausible is the failure mode this
+  // whole path exists to avoid, so exact evidence goes first.
+  const exactFrench = frenchClaimantIndex().get(normalizeName(name));
+  if (exactFrench !== undefined) return exactFrench.slice(0, count).map((s) => s.name);
+
   skillSearchIndex ??= indexFor(skills, (s) => s.name);
-  return closest(skillSearchIndex, name, count).map((s) => s.name);
+  const english = closest(skillSearchIndex, name, count);
+  if (english.length > 0) return english.map((s) => s.name);
+  // The same index the exact-French check above already built: same cap, same
+  // length-based early exit, so the residual cost of French here is one extra SCAN
+  // and never a second index build.
+  return closest(frenchSearchIndex(), name, count).map((s) => s.name);
 }
 
 /**

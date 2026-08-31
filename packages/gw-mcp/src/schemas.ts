@@ -231,7 +231,9 @@ const getSkillInput = {
     .string()
     .max(64)
     .optional()
-    .describe('Exact English skill name, e.g. "Mystic Regeneration"'),
+    .describe(
+      'Exact skill name, e.g. "Mystic Regeneration". The official French name also resolves ("Sceau de guérison" -> Healing Signet); every other name field on every other tool is English-only.',
+    ),
   id: z.number().int().min(0).max(65535).optional().describe("Template skill id"),
 };
 
@@ -276,7 +278,7 @@ const searchSkillsInput = {
     .max(64)
     .optional()
     .describe(
-      "Case-insensitive substring match on the skill name, e.g. \"heal\" matches every skill with 'heal' in its name.",
+      "Case-insensitive substring match on the ENGLISH skill name, e.g. \"heal\" matches every skill with 'heal' in its name. A French substring matches nothing — use get_skill for a French name.",
     ),
   includePvpVersions: z
     .boolean()

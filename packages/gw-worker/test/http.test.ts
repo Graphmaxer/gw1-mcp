@@ -423,7 +423,12 @@ describe("tool outcome points", () => {
   it("records the error code when a lookup misses", async () => {
     // The blob5 column is what the 'Name lookups' and 'Top validation failures'
     // panels read; an unresolvable name must land here rather than vanish.
-    const blobs = await call("get_skill", { name: "Régénération mystique" });
+    //
+    // The example used to be "Régénération mystique" — unresolvable at the time, and
+    // the very kind of miss the dashboard was watching to decide whether French was
+    // worth supporting. It resolves now, so this needs a name that is in no
+    // language; the same substitution was made in gw-mcp's tool-events test.
+    const blobs = await call("get_skill", { name: "Sortilège du Vide Absolu" });
     expect(blobs?.[3]).toBe("error");
     expect(blobs?.[4]).toBe("NOT_FOUND");
     expect(blobs?.[5]).toBe("");

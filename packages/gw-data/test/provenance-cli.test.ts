@@ -131,4 +131,34 @@ describe("the workflow invokes the CLI in a cwd-independent way", () => {
     );
     expect(invocation).toContain("$GITHUB_WORKSPACE");
   });
+
+  it("carries every path the import writes into the PR, README included", async () => {
+    // The import job and the open-pr job are split so the privileged half never
+    // runs upstream code, and they communicate through ONE path-scoped `git diff`.
+    // Any file the import writes that is missing from that path list is silently
+    // dropped: on 2026-08-31 README.md was, so the data PR carried 1516 skills next
+    // to a README still advertising 1485, and the failure surfaced as a gw-data test
+    // three packages from the cause. Worse, the import job was GREEN — `pnpm -r test`
+    // runs there, where the rewrite still exists.
+    //
+    // Static, like the assertion above, and for the same reason: every unit test of
+    // syncReadmeSkillCount passes while the patch that transports its output omits
+    // the file. The three paths are the three things the import generates.
+    const { readFileSync } = await import("node:fs");
+    const yaml = readFileSync(join(REPO_ROOT, ".github/workflows/update-data.yml"), "utf8");
+    const patchLine = yaml
+      .split("\n")
+      .find((line) => line.includes("git diff") && line.includes("data-update.patch"));
+    expect(
+      patchLine,
+      "the workflow must still build the patch with a scoped git diff",
+    ).toBeDefined();
+    for (const path of [
+      "packages/gw-data/data",
+      "gwtoolbox-plugin/AccountExport/hero-names.generated.h",
+      "README.md",
+    ]) {
+      expect(patchLine, `${path} must reach the open-pr job`).toContain(path);
+    }
+  });
 });

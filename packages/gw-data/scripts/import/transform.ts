@@ -1,5 +1,8 @@
 /** Upstream shapes -> our committed data shapes. Pure functions, no I/O. */
 import type { Upstream } from "./load.ts";
+// The SAME normaliser the runtime lookup uses, not a copy of the rule — see
+// normalize.ts. The alias map's only safety guarantee is stated in its terms.
+import { normalizeName } from "../../src/normalize.ts";
 
 // Upstream constant shapes (informal, mirrored from es6/constants.js).
 type LangName = { en: string; de: string };
@@ -63,7 +66,12 @@ const INSTRUCTION_PATTERN =
  * punctuation, so a charset and a length bound do nearly all the work. Anything
  * structurally novel stops the import rather than being merged unread.
  */
-export function assertPlausibleName(kind: string, id: number | string, name: string): void {
+function assertPlausibleNameAgainst(
+  kind: string,
+  id: number | string,
+  name: string,
+  allowed: RegExp,
+): void {
   const fail = (why: string) => {
     throw new Error(
       `Implausible ${kind} name at ${id}: ${why}. ` +
@@ -75,11 +83,39 @@ export function assertPlausibleName(kind: string, id: number | string, name: str
   if (name.length > MAX_NAME_LENGTH) {
     fail(`${name.length} characters, over the ${MAX_NAME_LENGTH} limit`);
   }
-  if (!ALLOWED_NAME_CHARS.test(name)) {
-    const offenders = [...new Set([...name].filter((c) => !ALLOWED_NAME_CHARS.test(c)))].join("");
+  if (!allowed.test(name)) {
+    const offenders = [...new Set([...name].filter((c) => !allowed.test(c)))].join("");
     fail(`unexpected characters ${JSON.stringify(offenders)}`);
   }
   if (INSTRUCTION_PATTERN.test(name)) fail("reads as an instruction to a model");
+}
+
+export function assertPlausibleName(kind: string, id: number | string, name: string): void {
+  assertPlausibleNameAgainst(kind, id, name, ALLOWED_NAME_CHARS);
+}
+
+/**
+ * The same gate, widened to the French alphabet — and ONLY to it.
+ *
+ * French names travel into an LLM's context exactly like English ones (they are
+ * what get_skill resolves), so skipping the gate for them would reopen audit L1 on
+ * the new channel. But the English charset rejects every accent, so it cannot be
+ * reused as-is.
+ *
+ * Measured across the 1485 French names actually served: the only characters
+ * beyond the English set are `Âàâèéêîïôöû`, and the longest name is 49 characters
+ * ("Tireur d'élite de soutien de l'Avant-garde d'Ebon"), comfortably inside the
+ * shared 80-character bound. The allowed set below is nonetheless the full French
+ * repertoire rather than those eleven, for the same reason the English bounds are
+ * loose against their own figures: a balance patch that adds the first name
+ * carrying `ç` or `œ` is a legitimate change, and a gate that reds the auto-merging
+ * weekly job on it would train someone to widen it unread. Anything outside Latin-1
+ * French — Cyrillic, CJK, control characters, markup — still stops the import.
+ */
+const ALLOWED_FR_NAME_CHARS = /^[A-Za-z0-9 !"'(),.\-\u00C0-\u00FF\u0152\u0153]+$/;
+
+export function assertPlausibleFrenchName(id: number | string, name: string): void {
+  assertPlausibleNameAgainst("French skill", id, name, ALLOWED_FR_NAME_CHARS);
 }
 
 /** The name we ship, after the gate above. */
@@ -209,3 +245,97 @@ export const transformSkills = (upstream: Upstream) =>
       overcast: s.overcast,
     }))
     .sort((a, b) => a.id - b.id);
+
+// --- French names ------------------------------------------------------------
+/** One entry of upstream's skilldesc-fr.json (same shape as the English file). */
+type UpstreamFrenchDesc = { id: number; name: string };
+
+/** The French table, plus the three classes a reviewer of the weekly PR wants named. */
+export interface FrenchNamesResult {
+  /** id (as a string key) -> French name, for EVERY skill upstream names, ascending by id. */
+  names: Record<string, string>;
+  /** French name normalises to the skill's own English name (proper nouns, cognates). */
+  identical: number[];
+  /** French name of one skill IS the English name of another; the runtime keeps English. */
+  shadowed: { id: number; frenchName: string; englishIds: number[] }[];
+  /** One normalised French name claimed by several skills; the runtime refuses to guess. */
+  ambiguous: { normalized: string; ids: number[] }[];
+}
+
+/**
+ * Build the complete French name table, and report what makes it interesting.
+ *
+ * The table is deliberately UNFILTERED: it records the French name of every skill,
+ * because that is a fact about each skill and stays true on its own terms. The
+ * policy question — what happens when a French name and an English name claim the
+ * same normalised key — is answered once, in repository.ts, where the two
+ * namespaces are actually merged. Pre-filtering here instead would put the same
+ * rule in two places, and would also throw away the names the SUGGESTER needs: an
+ * ambiguous French name should come back as several English candidates rather than
+ * vanishing.
+ *
+ * What this function does own is the GATE and the report. Every French name is
+ * checked (audit L1 applies to this channel exactly as it does to English names —
+ * they reach an LLM by the same route), and the three classes below are logged by
+ * the importer so the auto-merging weekly PR shows them instead of hiding them:
+ *
+ *  - `shadowed` (2 today): "Récupération", the French name of Recovery (1748),
+ *    normalises to `recuperation` — the ENGLISH name of a different skill,
+ *    Recuperation (981). English wins at lookup, so a caller typing the French name
+ *    of Recovery receives Recuperation. Unavoidable in a single-answer lookup, and
+ *    strictly better than the alternative of an English name changing meaning.
+ *  - `ambiguous` (5 today): "Rafale" is the French name of BOTH Flurry (344) and
+ *    Gust (843); likewise Attaque féroce, Attaque sournoise and Coup enragé (twice,
+ *    counting the PvP pair). Exact resolution would be a coin flip presented as a
+ *    fact, so the runtime declines and the suggester offers both.
+ *  - `identical` (31 today): "Diversion", "Echo", "Rigor Mortis" — the English index
+ *    already resolves these, so the French entry adds nothing at lookup time.
+ *
+ * PvP versions get the same "(PvP)" suffix discipline as the English transform.
+ * Upstream currently suffixes all its French PvP names itself (measured: 0 missing),
+ * but the English side already had to repair one, and an unsuffixed French PvP name
+ * would collide with its own PvE form and cost BOTH skills their exact lookup.
+ */
+export function transformFrenchNames(
+  skilldescFr: Record<string, unknown>,
+  skills: readonly { id: number; name: string; isPvpVersion: boolean }[],
+): FrenchNamesResult {
+  const englishIdsByNormalized = new Map<string, number[]>();
+  for (const skill of skills) {
+    const key = normalizeName(skill.name);
+    englishIdsByNormalized.set(key, [...(englishIdsByNormalized.get(key) ?? []), skill.id]);
+  }
+
+  const result: FrenchNamesResult = { names: {}, identical: [], shadowed: [], ambiguous: [] };
+  const frenchNameById = new Map<number, string>();
+  for (const skill of skills) {
+    const entry = skilldescFr[String(skill.id)] as UpstreamFrenchDesc | undefined;
+    if (entry?.name === undefined) continue;
+    assertPlausibleFrenchName(skill.id, entry.name);
+    const name =
+      skill.isPvpVersion && !entry.name.includes("(PvP)") ? `${entry.name} (PvP)` : entry.name;
+    frenchNameById.set(skill.id, name);
+    result.names[String(skill.id)] = name;
+  }
+
+  const idsByNormalizedFrench = new Map<string, number[]>();
+  for (const [id, name] of frenchNameById) {
+    const key = normalizeName(name);
+    idsByNormalizedFrench.set(key, [...(idsByNormalizedFrench.get(key) ?? []), id]);
+  }
+  for (const [normalized, ids] of idsByNormalizedFrench) {
+    if (ids.length > 1) {
+      result.ambiguous.push({ normalized, ids });
+      continue;
+    }
+    const id = ids[0]!;
+    const englishIds = englishIdsByNormalized.get(normalized);
+    if (englishIds === undefined) continue;
+    if (englishIds.length === 1 && englishIds[0] === id) result.identical.push(id);
+    else result.shadowed.push({ id, frenchName: frenchNameById.get(id)!, englishIds });
+  }
+  result.identical.sort((a, b) => a - b);
+  result.shadowed.sort((a, b) => a.id - b.id);
+  result.ambiguous.sort((a, b) => a.ids[0]! - b.ids[0]!);
+  return result;
+}

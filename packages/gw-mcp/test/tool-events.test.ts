@@ -55,10 +55,15 @@ describe("tool call events", () => {
   });
 
   it("reports a miss with its code, which is how unresolvable names get measured", async () => {
-    // This is the signal that decides whether a French alias table is worth
-    // building: how often real callers ask for something we cannot resolve.
+    // The name here used to be "Régénération mystique", chosen because it was
+    // unresolvable, and the comment said this event was "the signal that decides
+    // whether a French alias table is worth building". That question is answered and
+    // the table exists, so the old example now resolves to Mystic Regeneration and
+    // would be measured as a SUCCESS. Replaced with a name that is genuinely in no
+    // language, which is what the counter is for; the French miss it was built to
+    // count is no longer a miss.
     const events = await collect((c) =>
-      c.callTool({ name: "get_skill", arguments: { name: "Régénération mystique" } }),
+      c.callTool({ name: "get_skill", arguments: { name: "Sortilège du Vide Absolu" } }),
     );
     expect(events).toEqual([{ tool: "get_skill", ok: false, code: "NOT_FOUND" }]);
   });

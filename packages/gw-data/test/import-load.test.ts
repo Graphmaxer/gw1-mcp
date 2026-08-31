@@ -33,6 +33,12 @@ const strictSkilldataSchema = JSON.stringify({
   required: ["skilldata"],
   properties: { skilldata: { type: "object" } },
 });
+/** Upstream ships ONE description schema, used for the English and French files alike. */
+const strictSkilldescSchema = JSON.stringify({
+  type: "object",
+  required: ["skilldesc"],
+  properties: { skilldesc: { type: "object" } },
+});
 
 // A stand-in for upstream's node bundle: same contract (CJS exporting the four
 // constant tables), no upstream code involved.
@@ -141,6 +147,75 @@ describe("loadUpstream (Pages source)", () => {
       expect(upstream.version).toContain(`skilldata:${digest(skilldataText)}`);
       expect(upstream.version).toContain(`desc:${digest(descText)}`);
       expect(upstream.version).toContain(`bundle:${digest(bundleSource)}`);
+    },
+    BUNDLE_EVAL_TIMEOUT_MS,
+  );
+
+  /**
+   * French is served by Pages and by a clone, but NOT by npm 2.0.0 — the latest
+   * published version and the weekly job's fallback. So every one of these asserts
+   * a behaviour on the ABSENCE path as much as the presence one: a channel without
+   * French must load fine and say so, because the alternative (treating it as an
+   * error) would red a weekly job whose whole point is to run unattended.
+   */
+  const descFrText = JSON.stringify({ skilldesc: { 1: { name: "Essai" } } });
+
+  it(
+    "picks up the French names when the channel serves them, and hashes those bytes",
+    async () => {
+      stubPages({ "json/skilldesc-fr.json": { body: descFrText } });
+      const upstream = await loadUpstream(PAGES);
+      expect(upstream.skilldescFr).toEqual({ 1: { name: "Essai" } });
+      const digest = (t: string) => createHash("sha256").update(t).digest("hex").slice(0, 16);
+      expect(upstream.version).toContain(`descFr:${digest(descFrText)}`);
+    },
+    BUNDLE_EVAL_TIMEOUT_MS,
+  );
+
+  it(
+    "treats a missing French file as 'this channel has no French', not as a broken deploy",
+    async () => {
+      // 404 is the DEFAULT here: the stub table does not list the French file, and
+      // upstream does not link it from its index page either.
+      stubPages();
+      const upstream = await loadUpstream(PAGES);
+      expect(upstream.skilldescFr).toBeUndefined();
+      // Recorded rather than omitted, so a reader can tell "this run had no French"
+      // from "this record predates French support".
+      expect(upstream.version).toContain("descFr:absent");
+    },
+    BUNDLE_EVAL_TIMEOUT_MS,
+  );
+
+  it("aborts when the French file describes a different snapshot", async () => {
+    // The aliases are keyed by skill id, so a French file from another build would
+    // attach the right name to the WRONG skill — the one failure mode here that
+    // produces a confidently wrong lookup instead of a missing one.
+    stubPages({
+      "json/skilldesc-fr.json": { body: JSON.stringify({ skilldesc: { 99: { name: "Essai" } } }) },
+    });
+    await expect(loadUpstream(PAGES)).rejects.toThrow(/Incoherent upstream snapshot/);
+  });
+
+  it(
+    "validates the French file against the schema upstream ships for descriptions",
+    async () => {
+      // Non-vacuity: the strict schema alone must NOT be what fails, so the same
+      // stub with a well-formed French file has to load. Otherwise this test would
+      // pass while the French file was never validated at all.
+      stubPages({
+        "json/skilldesc-fr.json": { body: descFrText },
+        "schemas/skilldesc.schema.json": { body: strictSkilldescSchema },
+      });
+      await expect(loadUpstream(PAGES)).resolves.toBeTruthy();
+
+      stubPages({
+        "json/skilldesc-fr.json": { body: JSON.stringify({ wrong: true }) },
+        "schemas/skilldesc.schema.json": { body: strictSkilldescSchema },
+      });
+      // validateAgainstSchema exits the process rather than throwing; vitest turns
+      // that into a rejection, which is how the English-side test above reads too.
+      await expect(loadUpstream(PAGES)).rejects.toThrow();
     },
     BUNDLE_EVAL_TIMEOUT_MS,
   );

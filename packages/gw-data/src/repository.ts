@@ -73,18 +73,36 @@ const frenchNames = frenchNamesJson as Record<string, string>;
  * cap, and an exact English lookup — the overwhelmingly common case — must not pay
  * for a fallback it never reaches.
  */
+let frenchIndex: Searchable<Skill>[] | undefined;
 let frenchClaimants: Map<string, Skill[]> | undefined;
 let skillByFrenchName: Map<string, Skill> | undefined;
+
+/**
+ * The ONE French index. Everything French derives from it — exact lookup, the
+ * ambiguity rule, and the suggester — so the ~1485 French names are normalised once
+ * per isolate rather than once per consumer.
+ *
+ * That is not premature: the first version built a claimant Map here and a separate
+ * Searchable list in the suggester, each normalising every name, and CodSpeed
+ * measured the worst-case suggestion doubling (1.7 ms -> 3.5 ms). Normalising is the
+ * cost, and it was being paid twice for the same 1485 strings. `Searchable` carries
+ * the normalised form and the tokens the suggester needs, so it is the shape that
+ * serves both; the Map is grouped from it without normalising anything again.
+ */
+function frenchSearchIndex(): Searchable<Skill>[] {
+  frenchIndex ??= indexFor(
+    skills.filter((s) => frenchNames[String(s.id)] !== undefined),
+    (s) => frenchNames[String(s.id)]!,
+  );
+  return frenchIndex;
+}
 
 /** Every skill claiming a given normalised French name — one, or several. */
 function frenchClaimantIndex(): Map<string, Skill[]> {
   if (frenchClaimants === undefined) {
     const claimants = new Map<string, Skill[]>();
-    for (const [id, frenchName] of Object.entries(frenchNames)) {
-      const skill = skillById.get(Number(id));
-      if (skill === undefined) continue;
-      const key = normalizeName(frenchName);
-      claimants.set(key, [...(claimants.get(key) ?? []), skill]);
+    for (const { item, normalized } of frenchSearchIndex()) {
+      claimants.set(normalized, [...(claimants.get(normalized) ?? []), item]);
     }
     frenchClaimants = claimants;
   }
@@ -310,8 +328,6 @@ export function suggestAttributeNames(name: string, count = 3): string[] {
  * The cap still applies, and still on the French side: a query that is 6 edits from
  * every French name gets no answer rather than a plausible-looking wrong one.
  */
-let frenchSuggestIndex: Searchable<Skill>[] | undefined;
-
 export function suggestSkillNames(name: string, count = 3): string[] {
   if (name.length > MAX_SUGGEST_LEN) return [];
   // An EXACT French name outranks any fuzzy English match, and the ordering is not
@@ -325,14 +341,10 @@ export function suggestSkillNames(name: string, count = 3): string[] {
   skillSearchIndex ??= indexFor(skills, (s) => s.name);
   const english = closest(skillSearchIndex, name, count);
   if (english.length > 0) return english.map((s) => s.name);
-  // Skills indexed by their FRENCH name: same Searchable machinery, same cap, same
-  // length-based early exit, so the worst case is one extra pass (~1.4 ms measured
-  // for the English one) and only for a query that already found no English match.
-  frenchSuggestIndex ??= indexFor(
-    skills.filter((s) => frenchNames[String(s.id)] !== undefined),
-    (s) => frenchNames[String(s.id)]!,
-  );
-  return closest(frenchSuggestIndex, name, count).map((s) => s.name);
+  // The same index the exact-French check above already built: same cap, same
+  // length-based early exit, so the residual cost of French here is one extra SCAN
+  // and never a second index build.
+  return closest(frenchSearchIndex(), name, count).map((s) => s.name);
 }
 
 /**

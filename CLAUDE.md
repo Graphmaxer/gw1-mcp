@@ -732,7 +732,7 @@ were still real. Check the claim, not the citation.
    the margin improved rather than eroded. `limits.cpu_ms` stays unset
    deliberately: it has no effect under Free and a rejected value would fail a
    deploy.
-10. tools/list costs 19 418 characters (~4 900 tokens) of FIXED context
+10. tools/list costs 19 095 characters (~4 800 tokens) of FIXED context
     in every conversation, outputSchemas being ~42% of it (8 128 chars). That is
     a deliberate trade — the schemas carry real contracts locked by the golden
     fixtures — but it is paid by every session, including ones that call a
@@ -744,6 +744,15 @@ were still real. Check the claim, not the citation.
     `"execution":{"taskSupport":"forbidden"}` to all eight tools, +312
     characters, and this entry went stale without a commit touching it. This
     debt is only trackable if a dependency cannot move it silently.
+    It EARNED that on 2026-08-31, on a Dependabot PR: zod 4.5 emits a nullable
+    field as the JSON Schema type-array form (`{"type":["string","null"]}`) where
+    4.4 emitted an `anyOf` pair, which is -323 characters across the 17 nullable
+    output fields. The lock is the only reason anyone looked. Accepted after
+    proving it was a NOTATION change and not a lost contract — normalising the
+    two forms makes the schemas deep-equal, and all eight tools keep their
+    outputSchema, strict input and description. That is the bar for accepting a
+    dependency-driven move: show the delta is cosmetic, never just re-baseline
+    the constant because CI is red.
     Trigger: if a client's
     context budget ever matters, check whether that client forwards
     outputSchema to the model at all before optimising further.
@@ -1109,7 +1118,7 @@ the sentence is literally true — check it rather than trusting it when adding 
 Verified byte-identical at the time: `tools/list` was 18 577 characters, and strictness
 survives — an extra property in a structured result is still rejected. It went to 18 809
 when inputs became `.strict()` (see the third-audit entry in the debt register), and is
-**19 418 today, LOCKED by a test** — `conventions.test.ts` asserts the exact character
+**19 095 today, LOCKED by a test** — `conventions.test.ts` asserts the exact character
 count and fails on any movement in either direction.
 
 The lock exists because of how the number drifted. Between 18 809 and the audit of
@@ -1124,6 +1133,13 @@ it fails, either you changed the surface (update the constant and this figure in
 same commit, as the failure message says) or something upstream did, and you want to
 know which. The remaining 60 characters are decode_template's description gaining its
 whitespace-tolerance sentence, in the same change that added the lock.
+
+It has since fired exactly as designed, on a dependency and in the SHRINKING direction
+(2026-08-31, zod 4.4 -> 4.5, -323 characters — see debt #10). Worth noting because an
+upper bound would have let it through silently, and because smaller is not automatically
+safe: the same delta would fit a schema that had quietly lost a constraint. What made it
+acceptable was normalising both notations and finding the schemas deep-equal, not the
+sign of the number.
 
 ## Workflow: push straight to main
 

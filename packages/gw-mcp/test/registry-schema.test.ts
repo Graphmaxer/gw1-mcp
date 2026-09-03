@@ -20,7 +20,10 @@ describe("MCP Registry server.json", () => {
   it("conforms to the official registry schema (live), or to the critical floors offline", async () => {
     let schema: object | undefined;
     try {
-      const res = await fetch(server.$schema, { signal: AbortSignal.timeout(10_000) });
+      // Stay below Vitest's five-second test timeout. The old ten-second abort
+      // could never reach the documented offline fallback: Vitest killed the
+      // test first whenever the registry accepted a connection but stalled.
+      const res = await fetch(server.$schema, { signal: AbortSignal.timeout(3_000) });
       schema = (await res.json()) as object;
     } catch {
       console.warn("registry schema unreachable — falling back to critical hardcoded checks");

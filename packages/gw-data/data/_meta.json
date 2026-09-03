@@ -1,7 +1,7 @@
 {
  "skills": {
   "source": "https://github.com/build-wars/gw-skilldata (npm: @buildwars/gw-skilldata)",
-  "sourceVersion": "pages@f6557a1671f4 (sha256 skilldata:ec14093cc03d9514 desc:a71e6897c78c9875 skilldataSchema:0e1cb51189d0dd8c descSchema:5779171e35e6f56c bundle:6bb896d25bab1a6c)",
+  "sourceVersion": "pages@f6557a1671f4 (sha256 skilldata:ec14093cc03d9514 desc:a71e6897c78c9875 descFr:2d6bbda52aeae944 skilldataSchema:0e1cb51189d0dd8c descSchema:5779171e35e6f56c bundle:6bb896d25bab1a6c)",
   "importedAt": "2026-08-31",
   "freshness": "Upstream is actively maintained and tracks Guild Wars Reforged balance updates (stat changes and newly added skills). Data is only as fresh as the installed package version; run the update workflow or `pnpm update @buildwars/gw-skilldata` to refresh. Recent balance notes: https://wiki.guildwars.com/wiki/Game_updates"
  },
@@ -12,8 +12,8 @@
  },
  "skillNamesFr": {
   "source": "https://github.com/build-wars/gw-skilldata (json/skilldesc-fr.json — French NAMES only; no French descriptions are shipped)",
-  "sourceVersion": "pages@f6557a1671f4 (sha256 descFr:2d6bbda52aeae944)",
-  "importedAt": "2026-08-31",
-  "freshness": "Its OWN key because availability is independent of the skills pipeline: only the Pages and clone channels serve French (npm 2.0.0 exports English and German only), so an npm-fallback run refreshes skills.json and leaves this table untouched. A sourceVersion older than the skills entry means the last import ran without a French channel, not that anything failed. This first record covers ONE fetched artifact rather than the importer's usual six, because the table was generated against the committed skills.json on purpose — upstream carries 31 skills not yet imported (ids 3443-3473) and refreshing those belongs to the weekly data PR. The next full import rewrites this entry in the standard six-hash form."
+  "sourceVersion": "git:2.0.0",
+  "importedAt": "2026-09-03",
+  "freshness": "Its OWN key because availability is independent of the skills pipeline: only the Pages and clone channels serve French (npm 2.0.0 exports English and German only), so an npm-fallback run refreshes skills.json and leaves this table untouched. A sourceVersion older than the skills entry means the last import ran without a French channel, not that anything failed."
  }
 }

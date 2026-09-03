@@ -11,6 +11,11 @@ name: Build GWToolbox plugin
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Existing release tag to repair (leave empty for an artifact-only build)."
+        type: string
+        required: false
   push:
     branches: [main]
     paths:
@@ -56,6 +61,15 @@ jobs:
           git clone --filter=blob:none --no-checkout https://github.com/gwdevhub/GWToolboxpp.git GWToolboxpp
           cd GWToolboxpp
           git checkout "$GWTOOLBOX_COMMIT"
+
+      - name: Verify vcpkg pin matches GWToolboxpp baseline
+        shell: pwsh
+        run: |
+          $baseline = (Get-Content GWToolboxpp/vcpkg-configuration.json -Raw |
+            ConvertFrom-Json).'default-registry'.baseline
+          if ($baseline -ne $env:VCPKG_COMMIT) {
+            throw "VCPKG_COMMIT $env:VCPKG_COMMIT does not match GWToolboxpp baseline $baseline"
+          }
 
       - name: Inject AccountExport plugin
         shell: pwsh

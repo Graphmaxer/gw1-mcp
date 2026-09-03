@@ -17,9 +17,16 @@ overrides:
   # vulnerable fast-uri (GHSA-v2hh-gcrm-f6hx, host confusion via a literal
   # backslash authority delimiter — a URI-parsing/SSRF-adjacent bug). Same
   # not-ours-to-bump situation as @hono/node-server above.
-  # Bumped 2026-08-02: 3.1.4 is itself vulnerable now (High), fixed in 3.1.5. An
-  # override is a floor, not a fix — it needs raising when the floor moves.
-  "fast-uri": "^3.1.5"
+  # Bumped 2026-09-03: 3.1.5 gained four High advisories covering malformed
+  # authority/host normalization (GHSA-5jgf-p345-68v8, GHSA-f65p-4m7j-42xc,
+  # GHSA-fph4-wmhf-6fwf, GHSA-jqff-g426-hqxp); all are fixed in 3.1.6.
+  # An override is a floor, not a fix — it needs raising when the floor moves.
+  "fast-uri": "^3.1.6"
+  # qs <= 6.15.3 has an array-limit bypass (GHSA-x5fp-wj9c-mxmx), while every
+  # version below 6.16.0 also allows an attacker-controlled isBuffer property to
+  # trigger denial of service (GHSA-4mjr-xmp4-gh2g). Both arrive through the
+  # SDK's unused Express transports, but we keep build/publish machines clean too.
+  "qs": "^6.16.0"
   # sharp is pulled in by miniflare (wrangler's local Workers simulator,
   # dev-only — never runs in the deployed Cloudflare Worker) and inherits
   # several libvips CVEs below 0.35.0 (GHSA-f88m-g3jw-g9cj). Production

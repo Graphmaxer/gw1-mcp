@@ -7,6 +7,13 @@ import fixtureFile from "../test/fixtures/templates.json";
  * encode/decode tool call, so it is measured on the same corpus the
  * correctness tests use: real codes from the game client, PvXwiki and
  * @buildwars/gw-templates, not synthetic bit patterns.
+ *
+ * A red CodSpeed comparison is not itself evidence that this path changed.
+ * PR #56 touched generated French names, one network-only test and transitive
+ * Express/URI packages, but reported this file's round-trip 22.93% slower while
+ * also warning that the base and head used different runtime environments. No
+ * codec source or dependency moved. Re-run/backtest that comparison; do not
+ * distort this workload (or delete it) to make an environment mismatch green.
  */
 const CORPUS: readonly string[] = fixtureFile.fixtures.map((f) => f.code);
 

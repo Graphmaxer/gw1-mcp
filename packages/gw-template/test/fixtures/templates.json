@@ -1,5 +1,5 @@
 {
- "_comment": "Golden fixtures. 'roundtrip: true' asserts encode(decode(code)) === code (modern-format codes only). TODO(maintainer): add 10-15 real codes from live Nightfall builds (player + heroes), including an empty slot, a no-elite bar, and a no-secondary bar.",
+ "_comment": "Golden fixtures. 'roundtrip: true' asserts encode(decode(code)) === code (modern-format codes only). The corpus includes player, hero, empty-slot, no-elite, no-secondary and byte-exact in-game emissions; add fixtures only for a new dialect or an uncovered regression boundary.",
  "fixtures": [
   {
    "name": "Critical Scythe Assassin (wiki example, modern format)",

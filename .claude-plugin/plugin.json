@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "gw1-mcp",
   "displayName": "Guild Wars 1 Build Compiler",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Guild Wars 1 build compiler: real skill and hero data, plus an encoder that turns a build into an official in-game template code after validating it against the game's rules.",
   "author": {
     "name": "Graphmaxer",

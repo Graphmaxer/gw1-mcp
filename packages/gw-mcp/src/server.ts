@@ -92,7 +92,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
   const server = new McpServer(
     {
       name: "gw1-mcp",
-      version: "1.1.1", // x-release-please-version
+      version: "1.1.2", // x-release-please-version
     },
     {
       // Imported by clients (including the ChatGPT plugin scan) as server-level

@@ -12,8 +12,8 @@
  },
  "skillNamesFr": {
   "source": "https://github.com/build-wars/gw-skilldata (json/skilldesc-fr.json — French NAMES only; no French descriptions are shipped)",
-  "sourceVersion": "pages@f6557a1671f4 (sha256 skilldata:ec14093cc03d9514 desc:a71e6897c78c9875 descFr:2d6bbda52aeae944 skilldataSchema:0e1cb51189d0dd8c descSchema:5779171e35e6f56c bundle:6bb896d25bab1a6c)",
-  "importedAt": "2026-08-31",
+  "sourceVersion": "git:2.0.0",
+  "importedAt": "2026-09-03",
   "freshness": "Its OWN key because availability is independent of the skills pipeline: only the Pages and clone channels serve French (npm 2.0.0 exports English and German only), so an npm-fallback run refreshes skills.json and leaves this table untouched. A sourceVersion older than the skills entry means the last import ran without a French channel, not that anything failed."
  }
 }

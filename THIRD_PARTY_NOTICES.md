@@ -113,11 +113,12 @@ Note also that the published package `@buildwars/gw-skilldata` ships under
 The attribution above is recovered from the build tooling in its repository, not
 from anything the package itself declares.
 
-This project also does not distinguish, field by field, which English skill
-descriptions would trace to the Guild Wars Wiki versus GuildWiki — that
-attribution lives further upstream than this repository controls. Treat the
-whole `skilldata`/`skilldesc` import as subject to BOTH licenses' obligations
-until a field-level provenance split is established.
+The upstream builder therefore provides a field-level source split: English
+names and descriptions come from the official Guild Wars Wiki, while the seven
+numeric stat fields listed above come from GuildWiki.de. This is provenance,
+not a legal conclusion. In particular, it does not settle whether copyright
+subsists in individual numeric facts or whether either wiki license governs
+verbatim material originating in the game.
 
 ### Hero roster is a SEPARATE source, not gw-skilldata
 
@@ -133,12 +134,16 @@ apply the GFDL/CC-BY-NC-SA notice above to the hero roster.
 ### What this means in practice
 
 - The skill descriptions are **not** covered by this project's MIT license.
-- **CC BY-NC-SA 2.5 is a NonCommercial license.** Redistribution or reuse of
-  the affected descriptions in a commercial context may require permission or a
-  different data source. This project makes no claim that the bundled data is
-  freely usable for any purpose — only the code is MIT.
-- ShareAlike and attribution obligations may apply to derivative uses of the
-  affected text.
+- GuildWiki.de's stated NonCommercial and ShareAlike terms may apply to the
+  seven numeric fields its fetcher contributes. Whether those individual facts
+  are copyrightable, and which stated license version controls, are unresolved
+  questions rather than reasons to misattribute the English descriptions.
+- GFDL attribution and ShareAlike obligations may apply to material contributed
+  by official-wiki editors; ArenaNet/NCsoft or fansite terms may instead govern
+  the underlying in-game names and text.
+- This project makes no claim that the bundled data is freely usable for every
+  purpose. Commercial redistributors should obtain qualified advice or use a
+  data source whose terms cover their intended use.
 
 This is a good-faith notice, **not legal advice**. Anyone redistributing this
 project or using it commercially should independently verify the licensing of

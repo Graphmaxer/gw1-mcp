@@ -29,7 +29,11 @@ const COMMITTED_META = resolve(import.meta.dirname, "../data/_meta.json");
 const meta = (sourceVersion: string) => JSON.stringify({ skills: { sourceVersion } });
 
 /**
- * Invoke exactly as a caller would: tsx + two path arguments.
+ * Invoke exactly as the workflow does: Node's native type stripping + two path
+ * arguments. Calling `npx tsx` here used to start a package-manager process for
+ * every assertion even though this script has no runtime dependencies. Besides
+ * testing a different command from production, three serial npx startups could
+ * exhaust Vitest's five-second timeout on a loaded runner.
  *
  * spawnSync rather than execFileSync because BOTH streams are needed on BOTH
  * outcomes — execFileSync returns stdout alone on success and only exposes
@@ -37,7 +41,7 @@ const meta = (sourceVersion: string) => JSON.stringify({ skills: { sourceVersion
  * on the passing paths.
  */
 function run(args: string[], cwd: string): { status: number; stdout: string; stderr: string } {
-  const result = spawnSync("npx", ["tsx", SCRIPT, ...args], { cwd, encoding: "utf8" });
+  const result = spawnSync(process.execPath, [SCRIPT, ...args], { cwd, encoding: "utf8" });
   return {
     status: result.status ?? 1,
     stdout: (result.stdout ?? "").trim(),

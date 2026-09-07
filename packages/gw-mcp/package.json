@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@codspeed/vitest-plugin": "^5.7.1",
-    "@types/node": "^26.4.0",
+    "@types/node": "^26.4.1",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1"
   }

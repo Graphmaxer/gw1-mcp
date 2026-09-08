@@ -49,10 +49,12 @@ function upstreamSkill(overrides: Record<string, unknown> = {}) {
   };
 }
 
-const asUpstream = (skill: Record<string, unknown>) =>
-  ({ skilldata: { 1: skill }, skilldesc: { 1: {} } }) as unknown as Parameters<
-    typeof transformSkills
-  >[0];
+/** Any number of upstream rows, keyed by their id like the real files are. */
+const asUpstream = (...rows: Record<string, unknown>[]) =>
+  ({
+    skilldata: Object.fromEntries(rows.map((row) => [row["id"], row])),
+    skilldesc: Object.fromEntries(rows.map((row) => [row["id"], {}])),
+  }) as unknown as Parameters<typeof transformSkills>[0];
 
 describe("every transform routes names through the plausibility gate", () => {
   it("accepts plausible tables", () => {
@@ -102,14 +104,89 @@ describe("every transform routes names through the plausibility gate", () => {
   });
 });
 
+describe("shipped skill names are unique, and tidy", () => {
+  it("tells the Luxon/Kurzick title-track pairs apart the way Guild Wars Wiki does", () => {
+    // Weekly run #25 (2026-09-07): upstream dropped its own "(Luxon)"/"(Kurzick)"
+    // suffixes and shipped the in-game name for both members of all ten pairs. The
+    // import must keep the committed names — they are the primary key downstream.
+    const names = transformSkills(
+      asUpstream(
+        upstreamSkill({ id: 1948, name: "Shadow Sanctuary", attribute: 104, is_rp: true }),
+        upstreamSkill({ id: 2091, name: "Shadow Sanctuary", attribute: 105, is_rp: true }),
+      ),
+    ).map((s) => s.name);
+    expect(names).toEqual(["Shadow Sanctuary (Luxon)", "Shadow Sanctuary (Kurzick)"]);
+  });
+
+  it("leaves a pair alone when upstream disambiguates it itself (idempotent)", () => {
+    // Which is what upstream did until 2026-09-07: the committed names must not
+    // gain a second suffix if it ever goes back.
+    const names = transformSkills(
+      asUpstream(
+        upstreamSkill({ id: 1948, name: "Shadow Sanctuary (Luxon)", attribute: 104 }),
+        upstreamSkill({ id: 2091, name: "Shadow Sanctuary (Kurzick)", attribute: 105 }),
+      ),
+    ).map((s) => s.name);
+    expect(names).toEqual(["Shadow Sanctuary (Luxon)", "Shadow Sanctuary (Kurzick)"]);
+  });
+
+  it("refuses to ship two skills under one English name, naming both", () => {
+    // Any collision the faction rule cannot resolve stops the IMPORT with both
+    // skills in the message — not `pnpm -r test` three steps later with two ids
+    // and no explanation, which is how run #25 actually failed.
+    const sameLine = () =>
+      transformSkills(
+        asUpstream(
+          upstreamSkill({ id: 10, name: "Aegis", attribute: 15 }),
+          upstreamSkill({ id: 11, name: "aegis", attribute: 15 }),
+        ),
+      );
+    expect(sameLine).toThrow(/Skill name collision: 10 "Aegis" and 11 "aegis"/);
+    // Two members on the SAME title track are not a faction pair either.
+    expect(() =>
+      transformSkills(
+        asUpstream(
+          upstreamSkill({ id: 10, name: "Shadow Sanctuary", attribute: 104 }),
+          upstreamSkill({ id: 11, name: "Shadow Sanctuary", attribute: 104 }),
+        ),
+      ),
+    ).toThrow(/Skill name collision/);
+    // A third claimant off the title tracks leaves the whole group unresolved.
+    expect(() =>
+      transformSkills(
+        asUpstream(
+          upstreamSkill({ id: 10, name: "Shadow Sanctuary", attribute: 104 }),
+          upstreamSkill({ id: 11, name: "Shadow Sanctuary", attribute: 105 }),
+          upstreamSkill({ id: 12, name: "Shadow Sanctuary", attribute: 35 }),
+        ),
+      ),
+    ).toThrow(/Skill name collision/);
+  });
+
+  it("collapses the whitespace upstream ships around its own PvP suffix", () => {
+    // Real rows from 2026-09-07: "Aegis  (PvP)" (2857), "Assassin's Remedy  (PvP)"
+    // (2869), "\"Never Give Up!\"  (PvP)" (3035). normalizeName hides the double
+    // space from lookups; the shipped display name must not carry it either.
+    const [aegis, remedy] = transformSkills(
+      asUpstream(
+        upstreamSkill({ id: 2857, name: "Aegis  (PvP)", is_pvp: true }),
+        upstreamSkill({ id: 2869, name: " Assassin's Remedy ", is_pvp: true }),
+      ),
+    );
+    expect(aegis?.name).toBe("Aegis (PvP)");
+    // A trailing space must not defeat the "(PvP)" check into a double suffix.
+    expect(remedy?.name).toBe("Assassin's Remedy (PvP)");
+  });
+});
+
 describe("the French name table", () => {
   /** Five skills, enough to exercise every class the builder reports. */
   const skills = [
-    { id: 1, name: "Healing Signet", isPvpVersion: false },
-    { id: 2, name: "Flurry", isPvpVersion: false },
-    { id: 3, name: "Gust", isPvpVersion: false },
-    { id: 4, name: "Echo", isPvpVersion: false },
-    { id: 5, name: "Flurry (PvP)", isPvpVersion: true },
+    { id: 1, name: "Healing Signet", isPvpVersion: false, attributeId: 0 },
+    { id: 2, name: "Flurry", isPvpVersion: false, attributeId: 0 },
+    { id: 3, name: "Gust", isPvpVersion: false, attributeId: 0 },
+    { id: 4, name: "Echo", isPvpVersion: false, attributeId: 0 },
+    { id: 5, name: "Flurry (PvP)", isPvpVersion: true, attributeId: 0 },
   ];
   const french = (names: Record<number, string>) =>
     Object.fromEntries(Object.entries(names).map(([id, name]) => [id, { id: Number(id), name }]));
@@ -167,5 +244,34 @@ describe("the French name table", () => {
   it("skips a skill upstream has no French name for, rather than inventing one", () => {
     const result = transformFrenchNames(french({ 1: "Sceau de guérison" }), skills);
     expect(Object.keys(result.names)).toEqual(["1"]);
+  });
+
+  it("mirrors the faction disambiguation, so those twenty resolve exactly in French too", () => {
+    // Upstream's French names for the Luxon/Kurzick pairs are identical as well
+    // ("Sanctuaire de l'ombre" twice). Without the mirror they would sit in the
+    // ambiguous class and a French caller would get a two-way suggestion for a
+    // skill the English side resolves exactly.
+    const pair = [
+      { id: 1948, name: "Shadow Sanctuary (Luxon)", isPvpVersion: false, attributeId: 104 },
+      { id: 2091, name: "Shadow Sanctuary (Kurzick)", isPvpVersion: false, attributeId: 105 },
+    ];
+    const result = transformFrenchNames(
+      french({ 1948: "Sanctuaire de l'ombre", 2091: "Sanctuaire de l'ombre" }),
+      pair,
+    );
+    expect(result.names).toEqual({
+      "1948": "Sanctuaire de l'ombre (Luxon)",
+      "2091": "Sanctuaire de l'ombre (Kurzick)",
+    });
+    expect(result.ambiguous).toEqual([]);
+  });
+
+  it("tidies whitespace like the English side (the French 3035 had the double space too)", () => {
+    const result = transformFrenchNames(
+      french({ 5: "Rafale  (PvP)", 1: " Sceau de guérison " }),
+      skills,
+    );
+    expect(result.names["5"]).toBe("Rafale (PvP)");
+    expect(result.names["1"]).toBe("Sceau de guérison");
   });
 });

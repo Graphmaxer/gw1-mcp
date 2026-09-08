@@ -877,7 +877,14 @@ since 2019; see Data maintenance.)
     Gust). These do not resolve at all; the suggester returns BOTH English names,
     so the caller picks instead of the server guessing.
 
-## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-08-31)
+## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-09-08)
+
+**2026-09-08: weekly run #25 failed because upstream renamed twenty skills onto ten
+names, and the import now owns the Luxon/Kurzick suffix** the way it already owned
+"(PvP)" — plus an import-time uniqueness gate that names both skills, so the next
+collision fails at the import step instead of in a test three steps later. Details
+under Data maintenance, run #25. The data itself was deliberately left to the weekly
+job (its gates, its PR); the code fix was verified against the live upstream bytes.
 
 **2026-08-31: French skill names resolve, and a Dependabot PR earned the tools/list
 lock its keep.** Two unrelated things landed together.
@@ -1009,7 +1016,7 @@ the code, so they are not a surprise:
   registered on `/mcp` — one middleware that skipped it is the reason.
 - The suggesters and `searchSkills` return nothing for a query that normalises
   to nothing, instead of the whole dataset or three plausible wrong names.
-- Suite is 421 tests (107 / 115 / 127 / 72) as of 2026-08-31.
+- Suite is 427 tests (107 / 121 / 127 / 72) as of 2026-09-08.
 
 A SELF-audit followed on 2026-08-11 — probes and sweeps rather than reading — and
 its lesson is where to look next. The core did not yield: ~1900 generated cases
@@ -1553,6 +1560,29 @@ dashboard, not a smaller suite.
   issue thread. `if: failure()` could never have caught this — the fallback makes
   the job SUCCEED. When a green scheduled run is the failure mode, the
   notification has to hang off the degradation, not off the exit code.
+- **Run #25 (2026-09-07) failed on a NAME collision upstream introduced, and the
+  fix made the name rules ours.** Upstream dropped its "(Luxon)"/"(Kurzick)"
+  suffixes from the ten faction title-track pairs (Shadow Sanctuary, Ether
+  Nightmare, "Save Yourselves!", Summon Spirits… — ids 1948-1957 and 2051
+  against 2091-2100), which are DISTINCT skills the game gives one name; twenty
+  skills landed on ten keys and the import job died on the bijectivity lock in
+  `repository.test.ts` with "expected 2091 to be 1948" — the right failure,
+  naming neither skill, three steps after the cause. `transform.ts` now applies
+  the GWW suffix itself whenever shipped names collide and the faction tracks
+  tell every member apart (`disambiguateFactionPairs`, a no-op when upstream
+  disambiguates, so the committed names did not move), mirrors it into the
+  French table (those pairs were ten of the fourteen "ambiguous" French groups; a
+  French caller now gets an exact answer), collapses whitespace runs (upstream
+  also shipped "Aegis (PvP)" with two spaces on three PvP names in the same
+  deploy), and refuses ANY other collision at import time with both skills named
+  (`assertUniqueSkillNames`). Same pattern as "(PvP)" on Mighty Throw: a naming
+  rule upstream applies inconsistently becomes one we enforce. Verified against
+  the live Pages bytes rather than the stubs: the re-import reproduces every
+  committed English name byte-for-byte and the whole suite passes on the
+  resulting data, so the next weekly run is expected green. It will carry a
+  wholesale description reword upstream made in the same window (every
+  description now opens with its skill type — well under the +80 growth gate,
+  which answered `changed=false` on it locally).
 - Pages also serves combined JSON, paw-ned2 CSVs, and per-skill JSON at
   /json/skills/[SKILL_ID].json should a lightweight runtime lookup ever be
   wanted. npm release may lag the Pages/tip by a release.

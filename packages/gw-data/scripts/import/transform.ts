@@ -124,6 +124,114 @@ function checkedName(kind: string, id: number | string, name: string): string {
   return name;
 }
 
+/**
+ * Whitespace as upstream sometimes ships it: "Aegis  (PvP)", two spaces (ids 2857,
+ * 2869 and 3035, plus the French 3035, first seen 2026-09-07) — the wiki-side name
+ * carries a trailing space and upstream appends its own " (PvP)". normalizeName
+ * collapses runs, so LOOKUP never noticed; the shipped display name would have, and
+ * so would every string compare downstream of it. Collapsed before anything else
+ * reads the name, so the "(PvP)" check and the collision rule see one spelling.
+ */
+const tidyName = (name: string): string => name.replace(/\s+/g, " ").trim();
+
+/**
+ * Upstream almost always disambiguates the PvP-side name with a "(PvP)" suffix
+ * (155/156 split pairs do), but occasionally forgets on a newly added skill (id
+ * 3442 "Mighty Throw" shipped with the exact same name as its PvE counterpart
+ * 1547, breaking the name-uniqueness invariant repository.test.ts checks). Enforce
+ * the suffix ourselves so a future upstream naming gap never silently collides a
+ * skill name. Shared by the English and the French transform.
+ */
+const pvpSuffixed = (name: string, isPvp: boolean): string =>
+  isPvp && !name.includes("(PvP)") ? `${name} (PvP)` : name;
+
+/**
+ * The ten Luxon/Kurzick title-track pairs — Shadow Sanctuary, Ether Nightmare,
+ * Signet of Corruption, Elemental Lord, Selfless Spirit, Triple Shot, "Save
+ * Yourselves!", Aura of Holy Might, Spear of Fury, Summon Spirits — are DISTINCT
+ * skills (ids 1948-1957 and 2051 against 2091-2100) that the game gives the SAME
+ * name; only the title track they scale with tells them apart. Guild Wars Wiki
+ * titles its pages "Shadow Sanctuary (Luxon)" / "Shadow Sanctuary (Kurzick)"
+ * (https://wiki.guildwars.com/wiki/Shadow_Sanctuary_(Luxon)), and upstream shipped
+ * exactly those names until 2026-09-07, when it switched to the in-game name and
+ * twenty skills collapsed onto ten keys. English names are this repo's primary key
+ * — get_skill, every name-level encode, the whole gw-mcp test corpus — so weekly
+ * run #25 died on the bijectivity lock in repository.test.ts with "expected 2091 to
+ * be 1948": the right failure, three steps after the cause and naming neither
+ * skill.
+ *
+ * So the suffix is OURS now, like the "(PvP)" one: applied whenever two shipped
+ * names collide and the faction tracks tell every member apart, and a no-op when
+ * upstream disambiguates itself (a one-member group is never touched, so the rule
+ * is idempotent by construction and the committed names did not move). Any OTHER
+ * collision is refused by assertUniqueSkillNames below, at import time and naming
+ * both skills — a suffix invented here for a shape nobody has seen would be a guess
+ * presented as a name.
+ *
+ * Keyed by attribute ID, not attribute name: 104/105 are upstream's stable id
+ * convention (CLAUDE.md, "Attribute id conventions"), every skill's attributeId is
+ * a tested foreign key, and the labels are GWW's — not derivable from "Friend of the
+ * Luxons Title Track" without string surgery that would be its own bug.
+ */
+const FACTION_TITLE_TRACK_LABEL: Readonly<Record<number, string>> = {
+  104: "Luxon",
+  105: "Kurzick",
+};
+
+interface NamedSkill {
+  id: number;
+  name: string;
+  attributeId: number;
+}
+
+/**
+ * id -> disambiguated name, for exactly the colliding faction pairs and nothing
+ * else. Pure; the caller decides what an unresolved collision means (the English
+ * transform refuses to ship it, the French one reports it as ambiguous).
+ */
+export function disambiguateFactionPairs(entries: readonly NamedSkill[]): Map<number, string> {
+  const groups = new Map<string, NamedSkill[]>();
+  for (const entry of entries) {
+    const key = normalizeName(entry.name);
+    groups.set(key, [...(groups.get(key) ?? []), entry]);
+  }
+  const renamed = new Map<number, string>();
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    const labels = group.map((entry) => FACTION_TITLE_TRACK_LABEL[entry.attributeId]);
+    const tellsApart =
+      labels.every((label) => label !== undefined) && new Set(labels).size === labels.length;
+    if (!tellsApart) continue;
+    group.forEach((entry, i) => renamed.set(entry.id, `${entry.name} (${labels[i]})`));
+  }
+  return renamed;
+}
+
+/**
+ * The import's own statement of the invariant repository.test.ts locks at runtime,
+ * made HERE so the weekly job fails at "Import latest upstream data" with both
+ * skills named, not at `pnpm -r test` with two ids and no explanation. The runtime
+ * lock stays: it guards the committed bytes, this guards what is about to become
+ * them.
+ */
+export function assertUniqueSkillNames(skills: readonly { id: number; name: string }[]): void {
+  const byKey = new Map<string, { id: number; name: string }>();
+  for (const skill of skills) {
+    const key = normalizeName(skill.name);
+    const other = byKey.get(key);
+    if (other !== undefined) {
+      throw new Error(
+        `Skill name collision: ${other.id} ${JSON.stringify(other.name)} and ${skill.id} ` +
+          `${JSON.stringify(skill.name)} would ship under the same English name. English names ` +
+          `are the primary key, so this cannot be imported: either upstream stopped ` +
+          `disambiguating a pair (see disambiguateFactionPairs in transform.ts) or a new skill ` +
+          `reuses an existing name — review upstream by hand before extending the rule.`,
+      );
+    }
+    byKey.set(key, skill);
+  }
+}
+
 // --- campaigns / professions / attributes / types ---------------------------
 export const transformCampaigns = (CAMPAIGNS: unknown) =>
   (CAMPAIGNS as unknown as UpstreamCampaign[]).map((c, id) => ({
@@ -200,8 +308,8 @@ function checkedDescription(s: UpstreamSkill): string {
 }
 
 // --- skills ------------------------------------------------------------------
-export const transformSkills = (upstream: Upstream) =>
-  Object.keys(upstream.skilldata)
+export const transformSkills = (upstream: Upstream) => {
+  const rows = Object.keys(upstream.skilldata)
     .map(
       (id) =>
         ({
@@ -209,20 +317,22 @@ export const transformSkills = (upstream: Upstream) =>
           ...(upstream.skilldesc[id] as object),
         }) as UpstreamSkill,
     )
-    .filter((s) => s.id !== 0) // id 0 = "No Skill" (empty-slot sentinel)
+    .filter((s) => s.id !== 0); // id 0 = "No Skill" (empty-slot sentinel)
+
+  // Names first, in three steps, each of which exists because upstream once
+  // shipped the case it handles: collapse whitespace runs, repair a missing
+  // "(PvP)", then tell the faction pairs apart. The plausibility gate runs on the
+  // FINAL value, so what it checks is what gets shipped.
+  const shippedName = new Map(rows.map((s) => [s.id, pvpSuffixed(tidyName(s.name), s.is_pvp)]));
+  const renamed = disambiguateFactionPairs(
+    rows.map((s) => ({ id: s.id, name: shippedName.get(s.id)!, attributeId: s.attribute })),
+  );
+  for (const [id, name] of renamed) shippedName.set(id, name);
+
+  const skills = rows
     .map((s) => ({
       id: s.id,
-      // Upstream almost always disambiguates the PvP-side name with a
-      // "(PvP)" suffix (155/156 split pairs do), but occasionally forgets on
-      // a newly added skill (id 3442 "Mighty Throw" shipped with the exact
-      // same name as its PvE counterpart 1547, breaking the name-uniqueness
-      // invariant repository.test.ts checks). Enforce the suffix ourselves
-      // so a future upstream naming gap never silently collides a skill name.
-      name: checkedName(
-        "skill",
-        s.id,
-        s.is_pvp && !s.name.includes("(PvP)") ? `${s.name} (PvP)` : s.name,
-      ),
+      name: checkedName("skill", s.id, shippedName.get(s.id)!),
       description: checkedDescription(s),
       campaignId: s.campaign,
       professionId: s.profession,
@@ -245,6 +355,9 @@ export const transformSkills = (upstream: Upstream) =>
       overcast: s.overcast,
     }))
     .sort((a, b) => a.id - b.id);
+  assertUniqueSkillNames(skills);
+  return skills;
+};
 
 // --- French names ------------------------------------------------------------
 /** One entry of upstream's skilldesc-fr.json (same shape as the English file). */
@@ -284,21 +397,27 @@ export interface FrenchNamesResult {
  *    Recuperation (981). English wins at lookup, so a caller typing the French name
  *    of Recovery receives Recuperation. Unavoidable in a single-answer lookup, and
  *    strictly better than the alternative of an English name changing meaning.
- *  - `ambiguous` (5 today): "Rafale" is the French name of BOTH Flurry (344) and
- *    Gust (843); likewise Attaque féroce, Attaque sournoise and Coup enragé (twice,
- *    counting the PvP pair). Exact resolution would be a coin flip presented as a
- *    fact, so the runtime declines and the suggester offers both.
+ *  - `ambiguous`: "Rafale" is the French name of BOTH Flurry (344) and Gust (843);
+ *    likewise Attaque féroce, Attaque sournoise and Coup enragé. Exact resolution
+ *    would be a coin flip presented as a fact, so the runtime declines and the
+ *    suggester offers both. The ten Luxon/Kurzick pairs used to be the bulk of this
+ *    class (their French names are identical too, "Sanctuaire de l'ombre" twice)
+ *    until the English disambiguation was mirrored here — see
+ *    disambiguateFactionPairs; a French speaker now gets an exact answer for those
+ *    twenty instead of a two-way suggestion.
  *  - `identical` (31 today): "Diversion", "Echo", "Rigor Mortis" — the English index
  *    already resolves these, so the French entry adds nothing at lookup time.
  *
  * PvP versions get the same "(PvP)" suffix discipline as the English transform.
  * Upstream currently suffixes all its French PvP names itself (measured: 0 missing),
  * but the English side already had to repair one, and an unsuffixed French PvP name
- * would collide with its own PvE form and cost BOTH skills their exact lookup.
+ * would collide with its own PvE form and cost BOTH skills their exact lookup. The
+ * whitespace tidy and the faction suffix are shared for the same reason: a name
+ * rule that exists on one side only is a collision waiting on the other.
  */
 export function transformFrenchNames(
   skilldescFr: Record<string, unknown>,
-  skills: readonly { id: number; name: string; isPvpVersion: boolean }[],
+  skills: readonly { id: number; name: string; isPvpVersion: boolean; attributeId: number }[],
 ): FrenchNamesResult {
   const englishIdsByNormalized = new Map<string, number[]>();
   for (const skill of skills) {
@@ -308,14 +427,20 @@ export function transformFrenchNames(
 
   const result: FrenchNamesResult = { names: {}, identical: [], shadowed: [], ambiguous: [] };
   const frenchNameById = new Map<number, string>();
+  const attributeOf = new Map(skills.map((skill) => [skill.id, skill.attributeId]));
   for (const skill of skills) {
     const entry = skilldescFr[String(skill.id)] as UpstreamFrenchDesc | undefined;
     if (entry?.name === undefined) continue;
-    assertPlausibleFrenchName(skill.id, entry.name);
-    const name =
-      skill.isPvpVersion && !entry.name.includes("(PvP)") ? `${entry.name} (PvP)` : entry.name;
-    frenchNameById.set(skill.id, name);
-    result.names[String(skill.id)] = name;
+    frenchNameById.set(skill.id, pvpSuffixed(tidyName(entry.name), skill.isPvpVersion));
+  }
+  const renamed = disambiguateFactionPairs(
+    [...frenchNameById].map(([id, name]) => ({ id, name, attributeId: attributeOf.get(id)! })),
+  );
+  for (const [id, name] of renamed) frenchNameById.set(id, name);
+  // Gated on the FINAL name, like the English side: what is checked is what ships.
+  for (const [id, name] of frenchNameById) {
+    assertPlausibleFrenchName(id, name);
+    result.names[String(id)] = name;
   }
 
   const idsByNormalizedFrench = new Map<string, number[]>();

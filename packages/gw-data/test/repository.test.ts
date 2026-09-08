@@ -307,8 +307,18 @@ describe("name uniqueness invariant", () => {
     // The name Maps overwrite on collision; nothing else would fail loudly if
     // the weekly upstream import ever introduced two names that normalize to
     // the same key. This makes that invariant a test failure instead.
+    //
+    // It fired for real on 2026-09-07 (weekly run #25): upstream dropped its
+    // "(Luxon)"/"(Kurzick)" suffixes and twenty skills shipped under ten names.
+    // The import now refuses that itself (assertUniqueSkillNames in transform.ts,
+    // naming both skills) and re-applies the suffix for the faction pairs
+    // (disambiguateFactionPairs), so a failure HERE means either the committed
+    // data was edited by hand or the import-time gate was bypassed.
     for (const skill of skills) {
-      expect(getSkillByName(skill.name)?.id, `"${skill.name}"`).toBe(skill.id);
+      expect(
+        getSkillByName(skill.name)?.id,
+        `"${skill.name}" (id ${skill.id}) is shadowed by another skill with the same normalised name — the import's assertUniqueSkillNames should have refused this`,
+      ).toBe(skill.id);
     }
   });
 

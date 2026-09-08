@@ -1,19 +1,19 @@
 {
  "skills": {
   "source": "https://github.com/build-wars/gw-skilldata (npm: @buildwars/gw-skilldata)",
-  "sourceVersion": "pages@f6557a1671f4 (sha256 skilldata:ec14093cc03d9514 desc:a71e6897c78c9875 descFr:2d6bbda52aeae944 skilldataSchema:0e1cb51189d0dd8c descSchema:5779171e35e6f56c bundle:6bb896d25bab1a6c)",
-  "importedAt": "2026-08-31",
+  "sourceVersion": "pages@790c6d4ff779 (sha256 skilldata:1f21424c0459eae6 desc:7d11714ec29d2589 descFr:2920faee82fe8553 skilldataSchema:c9a7dcf2f460db42 descSchema:250f463803844b02 bundle:506f9bcd951971a7)",
+  "importedAt": "2026-09-08",
   "freshness": "Upstream is actively maintained and tracks Guild Wars Reforged balance updates (stat changes and newly added skills). Data is only as fresh as the installed package version; run the update workflow or `pnpm update @buildwars/gw-skilldata` to refresh. Recent balance notes: https://wiki.guildwars.com/wiki/Game_updates"
  },
  "heroes": {
   "source": "https://raw.githubusercontent.com/gwdevhub/GWToolboxpp/master/Dependencies/GWCA/include/GWCA/Constants/Constants.h (GWCA HeroID enum, vendored in GWToolboxpp — the living source; standalone gwdevhub/GWCA is gone)",
-  "generatedAt": "2026-08-31",
+  "generatedAt": "2026-09-08",
   "curatedOverlay": "data/heroes-overlay.json (professionId/campaignId/unlock — human knowledge, no machine-readable source exists)"
  },
  "skillNamesFr": {
   "source": "https://github.com/build-wars/gw-skilldata (json/skilldesc-fr.json — French NAMES only; no French descriptions are shipped)",
-  "sourceVersion": "git:2.0.0",
-  "importedAt": "2026-09-03",
+  "sourceVersion": "pages@790c6d4ff779 (sha256 skilldata:1f21424c0459eae6 desc:7d11714ec29d2589 descFr:2920faee82fe8553 skilldataSchema:c9a7dcf2f460db42 descSchema:250f463803844b02 bundle:506f9bcd951971a7)",
+  "importedAt": "2026-09-08",
   "freshness": "Its OWN key because availability is independent of the skills pipeline: only the Pages and clone channels serve French (npm 2.0.0 exports English and German only), so an npm-fallback run refreshes skills.json and leaves this table untouched. A sourceVersion older than the skills entry means the last import ran without a French channel, not that anything failed."
  }
 }

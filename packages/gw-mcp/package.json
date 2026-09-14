@@ -18,11 +18,11 @@
     "@gw1-mcp/gw-data": "workspace:*",
     "@gw1-mcp/gw-template": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.30.0",
-    "zod": "^4.5.4"
+    "zod": "^4.6.4"
   },
   "devDependencies": {
     "@codspeed/vitest-plugin": "^5.7.1",
-    "@types/node": "^26.4.1",
+    "@types/node": "^26.5.1",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1"
   }

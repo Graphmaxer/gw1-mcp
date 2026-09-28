@@ -18,10 +18,10 @@
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.11",
-    "knip": "^6.37.0",
-    "oxfmt": "^0.68.0",
-    "oxlint": "^1.83.0",
-    "tsx": "^4.23.14",
+    "knip": "^6.38.0",
+    "oxfmt": "^0.70.0",
+    "oxlint": "^1.85.0",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   },

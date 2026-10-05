@@ -17,9 +17,10 @@ overrides:
   # sharp) or a range that still admits a vulnerable major (the SDK takes
   # @hono/node-server ^1.19.9 || ^2.0.5). Otherwise do NOT add one. A caret parent
   # already lets the lockfile move to the patched version, and an override only adds
-  # a floor someone has to keep raising by hand. It also appears to stop
-  # Dependabot's own transitive security updates: on 2026-09-29 it reported fast-uri
-  # 3.1.6 as "latest resolvable" while the override allowed 3.1.7, out 27 days.
+  # a floor someone has to keep raising by hand. (An override does NOT stop Dependabot
+  # from opening a security update: it opened one for hono, which keeps its override,
+  # on 2026-10-05. The 2026-09-29 fast-uri failure therefore has another cause,
+  # still unknown.)
   # Six such floors (fast-uri, qs, postcss, nanoid, ip-address, axios) were removed
   # that day, and every one of their parents declares a caret range that admits the
   # patched version. To fix a transitive advisory, re-resolve the lockfile entry

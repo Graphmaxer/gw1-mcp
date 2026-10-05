@@ -897,10 +897,11 @@ Same day, dependencies: `pnpm audit` went from 20 advisories to 1 (hono, fixed b
 the pending Dependabot PR) by re-resolving `fast-uri`, `ip-address` and `axios` in
 the lockfile — and SIX override floors were then DELETED, not raised, because every
 one of their parents declares a caret range that already admits the fix. A floor on
-such a package buys nothing and must be raised by hand at every new advisory; it also
-appears to block Dependabot's transitive security updates (on 2026-09-29 it called
-fast-uri 3.1.6 "latest resolvable" while our `^3.1.6` floor permitted 3.1.7, out 27
-days — an inference, not a confirmed Dependabot behaviour). The rule now heads the
+such a package buys nothing and must be raised by hand at every new advisory. (The same
+day this was written it also claimed overrides block Dependabot's security updates,
+inferred from the 2026-09-29 fast-uri failure. Refuted within the hour: Dependabot
+opened a hono security PR, and hono keeps its override. That failure's cause is still
+unknown, and nothing here should be read as explaining it.) The rule now heads the
 `overrides:` block in pnpm-workspace.yaml: an override only where the parent's range
 CANNOT reach the fix (an exact pin, or a range admitting a vulnerable major). Four
 remain on that basis.

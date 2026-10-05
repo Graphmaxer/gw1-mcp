@@ -165,4 +165,33 @@ describe("the workflow invokes the CLI in a cwd-independent way", () => {
       expect(patchLine, `${path} must reach the open-pr job`).toContain(path);
     }
   });
+
+  it("never lets the npm fallback downgrade Pages-sourced data (run #26)", async () => {
+    // Run #26 (2026-09-28): the Pages import was refused, the fallback rewrote
+    // skills.json from npm 2.0.0 — 31 skills behind Pages — and the job died on a
+    // French-table assertion naming neither cause. The guard is a shell `if` around
+    // an inline node predicate, so no unit test can reach it: this extracts the
+    // predicate from the workflow and EXECUTES it, so a typo in the JSON path (which
+    // would make the predicate throw, i.e. exit non-zero, i.e. "keep the downgrade")
+    // fails here instead of in the next degraded run.
+    const { readFileSync } = await import("node:fs");
+    const yaml = readFileSync(join(REPO_ROOT, ".github/workflows/update-data.yml"), "utf8");
+    const lines = yaml.split("\n");
+    const guard = lines.find((l) => l.includes("git show HEAD:packages/gw-data/data/_meta.json |"));
+    expect(guard, "the fallback branch must still check the committed provenance").toBeDefined();
+    const script = /node -e '([^']+)'/.exec(guard!)?.[1];
+    expect(script, "the guard must still be an inline node predicate").toBeDefined();
+    const decide = (input: string) =>
+      spawnSync(process.execPath, ["-e", script!], { input, encoding: "utf8" }).status;
+    expect(decide(meta("pages@8495ca2c6125 (sha256 skilldata:e6342516cb033f1e)"))).toBe(0);
+    expect(decide(meta("npm:2.0.0"))).toBe(1);
+    expect(decide(readFileSync(COMMITTED_META, "utf8")), "the real committed record").toBe(
+      JSON.parse(readFileSync(COMMITTED_META, "utf8")).skills.sourceVersion.startsWith("pages")
+        ? 0
+        : 1,
+    );
+    // The revert must cover everything the import writes (heroes run after it).
+    const revert = lines.find((l) => l.trim().startsWith("git checkout -- packages/gw-data/data"));
+    expect(revert, "the fallback must still revert its data").toContain("README.md");
+  });
 });

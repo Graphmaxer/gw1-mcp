@@ -381,12 +381,30 @@ export function normaliseConstantTables(module_: Record<string, unknown>): {
 
   const byId = <T>(table: Record<string, T>): [string, T][] =>
     Object.entries(table).sort(([a], [b]) => Number(a) - Number(b));
+  // CAMPAIGNS and PROFESSIONS become POSITIONAL arrays below, so their ids must be
+  // exactly 0..n-1. Upstream's 2026-09 deploy added a -1 "No Attribute" and a -1
+  // "No Skill" (see canonicaliseUpstreamIds). The same move on either of these
+  // tables would shift every profession or campaign id by one, and nothing
+  // downstream could tell: the foreign keys would all still resolve, just to the
+  // wrong rows. So refuse the shape here, by name, instead of importing it.
+  const dense = <T>(name: string, table: Record<string, T>): [string, T][] => {
+    const entries = byId(table);
+    entries.forEach(([id], index) => {
+      if (Number(id) !== index) {
+        throw new Error(
+          `upstream ${name} ids are not 0..${entries.length - 1} (found ${entries.map(([k]) => k).join(", ")}); ` +
+            `they are indexed by position, so a renumbering would shift every id — map it explicitly in scripts/import/load.ts first.`,
+        );
+      }
+    });
+    return entries;
+  };
 
   return {
     // The transforms index CAMPAIGNS and PROFESSIONS positionally (`.map((c, id) =>`),
     // so these must be dense arrays ordered by id, not objects.
-    CAMPAIGNS: byId(Campaign.NAME).map(([, name]) => ({ name })),
-    PROFESSIONS: byId(Profession.NAME).map(([id, name]) => ({
+    CAMPAIGNS: dense("campaign", Campaign.NAME).map(([, name]) => ({ name })),
+    PROFESSIONS: dense("profession", Profession.NAME).map(([id, name]) => ({
       name,
       abbr: Profession.NAME_ABBR[id] ?? name,
     })),

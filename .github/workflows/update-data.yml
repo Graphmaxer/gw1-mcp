@@ -48,6 +48,18 @@ jobs:
         # tables (run #18). Both times the run was green and the pinned npm package
         # produced a zero diff, so no PR appeared and the quiet looked like a quiet
         # week upstream.
+        #
+        # And the fallback must NEVER replace Pages-sourced data (run #26, 2026-09-28).
+        # npm 2.0.0 lags Pages by every skill upstream added since, so when the
+        # committed record already came from Pages, whatever the npm import writes is a
+        # DOWNGRADE. That run is the proof: the Pages import was refused (upstream had
+        # renumbered its attribute ids, see canonicaliseUpstreamIds), the fallback
+        # rewrote skills.json 31 skills short while the French table kept them, and the
+        # job died on a French-table assertion that named neither cause. So the fallback
+        # data is discarded in that case — the run ends with the committed data intact,
+        # and notify-degraded below reports the real failure. The check reads the
+        # COMMITTED record (HEAD), not the file the npm import just overwrote.
+        # provenance-cli.test.ts locks this branch statically.
         run: |
           if pnpm --filter @gw1-mcp/gw-data run import:data -- https://build-wars.github.io/gw-skilldata; then
             echo "fallback=false" >> "$GITHUB_OUTPUT"
@@ -55,6 +67,10 @@ jobs:
             echo "::warning::Pages import failed; importing from the pinned npm package"
             echo "fallback=true" >> "$GITHUB_OUTPUT"
             pnpm --filter @gw1-mcp/gw-data run import:data
+            if git show HEAD:packages/gw-data/data/_meta.json | node -e 'process.exit(JSON.parse(require("fs").readFileSync(0, "utf8")).skills.sourceVersion.startsWith("pages") ? 0 : 1)'; then
+              echo "::warning::Committed data came from Pages, which npm lags — discarding the fallback import so it cannot downgrade it"
+              git checkout -- packages/gw-data/data README.md
+            fi
           fi
       - name: Regenerate heroes.json from the GWCA HeroID enum + curated overlay
         run: pnpm --filter @gw1-mcp/gw-data import:heroes

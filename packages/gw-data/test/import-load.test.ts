@@ -269,6 +269,34 @@ describe("loadUpstream (Pages source)", () => {
   );
 });
 
+describe("positional constant tables refuse a renumbering", () => {
+  // Upstream's 2026-09 deploy gave attributes and skill types a -1 "none" entry.
+  // CAMPAIGNS and PROFESSIONS are indexed by POSITION, so the same move there would
+  // shift every id by one while every foreign key still resolved — to the wrong row.
+  const module2x = (professionIds: number[]) => ({
+    Profession: {
+      NAME: Object.fromEntries(professionIds.map((id) => [id, { en: `P${id}`, de: `P${id}` }])),
+      NAME_ABBR: {},
+      PRIMARY_ATTRIBUTE: {},
+    },
+    Campaign: { NAME: { 0: { en: "Core", de: "Basis" } } },
+    Attribute: { NAME: {}, PROFESSION: {}, MAX_VALUE: {} },
+    Type: { NAME: {} },
+  });
+
+  it("accepts the dense 0..n-1 shape upstream ships today", () => {
+    expect(normaliseConstantTables(module2x([0, 1, 2])).PROFESSIONS).toHaveLength(3);
+  });
+
+  it("refuses a -1 entry instead of shifting every profession id", () => {
+    expect(() => normaliseConstantTables(module2x([-1, 0, 1]))).toThrow(/profession ids/);
+  });
+
+  it("refuses a gap, which would shift every id after it", () => {
+    expect(() => normaliseConstantTables(module2x([0, 2]))).toThrow(/profession ids/);
+  });
+});
+
 describe("upstream description plausibility gate (audit C1)", () => {
   const ok = (text: string) => () => assertPlausibleDescription(1, "Test Skill", text);
 

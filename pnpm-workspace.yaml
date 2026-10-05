@@ -12,32 +12,24 @@ allowBuilds:
 # already ~nil, but there's no reason to leave a known-vulnerable transitive
 # copy sitting in the tree when our own dependency is already >=2.0.10.
 overrides:
+  # WHEN AN OVERRIDE BELONGS HERE (rule set 2026-10-05). Only when the parent's own
+  # declared range cannot reach the fix: an exact pin (miniflare pins undici and
+  # sharp) or a range that still admits a vulnerable major (the SDK takes
+  # @hono/node-server ^1.19.9 || ^2.0.5). Otherwise do NOT add one. A caret parent
+  # already lets the lockfile move to the patched version, and an override only adds
+  # a floor someone has to keep raising by hand. It also appears to stop
+  # Dependabot's own transitive security updates: on 2026-09-29 it reported fast-uri
+  # 3.1.6 as "latest resolvable" while the override allowed 3.1.7, out 27 days.
+  # Six such floors (fast-uri, qs, postcss, nanoid, ip-address, axios) were removed
+  # that day, and every one of their parents declares a caret range that admits the
+  # patched version. To fix a transitive advisory, re-resolve the lockfile entry
+  # instead (`pnpm update --recursive --depth Infinity <pkg>`), or let Dependabot do it.
   "@hono/node-server": "^2.0.10"
-  # ajv@8.20.0 pulled in by @modelcontextprotocol/sdk itself pins a
-  # vulnerable fast-uri (GHSA-v2hh-gcrm-f6hx, host confusion via a literal
-  # backslash authority delimiter — a URI-parsing/SSRF-adjacent bug). Same
-  # not-ours-to-bump situation as @hono/node-server above.
-  # Bumped 2026-09-03: 3.1.5 gained four High advisories covering malformed
-  # authority/host normalization (GHSA-5jgf-p345-68v8, GHSA-f65p-4m7j-42xc,
-  # GHSA-fph4-wmhf-6fwf, GHSA-jqff-g426-hqxp); all are fixed in 3.1.6.
-  # An override is a floor, not a fix — it needs raising when the floor moves.
-  "fast-uri": "^3.1.6"
-  # qs <= 6.15.3 has an array-limit bypass (GHSA-x5fp-wj9c-mxmx), while every
-  # version below 6.16.0 also allows an attacker-controlled isBuffer property to
-  # trigger denial of service (GHSA-4mjr-xmp4-gh2g). Both arrive through the
-  # SDK's unused Express transports, but we keep build/publish machines clean too.
-  "qs": "^6.16.0"
   # sharp is pulled in by miniflare (wrangler's local Workers simulator,
   # dev-only — never runs in the deployed Cloudflare Worker) and inherits
   # several libvips CVEs below 0.35.0 (GHSA-f88m-g3jw-g9cj). Production
   # exposure is nil either way, but no reason to leave it unpatched locally.
   "sharp": "^0.35.0"
-  # postcss <= 8.5.17 is reachable only through vitest -> vite (
-  # GHSA-r28c-9q8g-f849, path traversal via a crafted previous source map).
-  # Dev-only, zero production exposure — same reasoning as the three above, and
-  # the same conclusion: no reason to keep a vulnerable copy in the tree.
-  # Bumped 2026-08-02 for the same reason: 8.5.18 fell behind, fixed in 8.5.23.
-  "postcss": "^8.5.23"
   # hono < 4.12.34 has GHSA / Dependabot #9: ReDoS in the CORS middleware via
   # Access-Control-Request-Headers. Unlike the four above, this one is REACHABLE IN
   # PRODUCTION: hono is a direct runtime dependency, app.ts calls cors() on /mcp, and
@@ -53,20 +45,3 @@ overrides:
   # exposure is nil. GitHub labels the scope "runtime", which is wrong here; the graph
   # and the bundle both say dev. Overridden anyway, same reasoning as sharp and postcss.
   "undici": "^7.29.0"
-  # ip-address <= 10.3.0 has three advisories (one High) and arrives through
-  # @modelcontextprotocol/sdk -> express-rate-limit. The SDK ships Express-based
-  # transports we never use — the worker serves MCP through @hono/mcp — and
-  # `grep -c ip-address dist/index.js` is 0, so production exposure is nil. Floored
-  # anyway, because a dev-only vulnerability is still a vulnerability on the machine
-  # that builds and publishes.
-  "ip-address": "^10.3.1"
-  # nanoid < 3.3.17 (High): custom generators loop indefinitely when size is zero. It
-  # reaches us only through @vitest/coverage-v8 -> vitest -> vite -> postcss, so it is
-  # dev-only. Floored on the same reasoning as the entries above: a dev-only
-  # vulnerability is still a vulnerability on the machine that builds and publishes.
-  #
-  # Note for the next person grepping the bundle: `grep -c nanoid dist/index.js` returns
-  # 131, and every one of them is ZOD. `z.nanoid()` is a string-format validator — a
-  # regex /^[a-zA-Z0-9_-]{21}$/ plus a label — so the NAME appears while the package does
-  # not. Checking presence by name alone would have concluded the opposite.
-  "nanoid": "^3.3.17"

@@ -168,8 +168,10 @@ const pvpSuffixed = (name: string, isPvp: boolean): string =>
  * both skills — a suffix invented here for a shape nobody has seen would be a guess
  * presented as a name.
  *
- * Keyed by attribute ID, not attribute name: 104/105 are upstream's stable id
- * convention (CLAUDE.md, "Attribute id conventions"), every skill's attributeId is
+ * Keyed by attribute ID, not attribute name: 104/105 are OUR stable ids
+ * (CLAUDE.md, "Attribute id conventions") — upstream renumbered them to 906/905 in
+ * 2026-09, and canonicaliseUpstreamIds maps them back before this rule ever runs,
+ * which is what run #26 lacked. Every skill's attributeId is
  * a tested foreign key, and the labels are GWW's — not derivable from "Friend of the
  * Luxons Title Track" without string surgery that would be its own bug.
  */
@@ -305,6 +307,111 @@ function checkedDescription(s: UpstreamSkill): string {
   const description = s.concise || s.description;
   assertPlausibleDescription(s.id, s.name, description);
   return description;
+}
+
+// --- attribute ids -------------------------------------------------------------
+/**
+ * Our public ids for the attributes that are NOT template attributes, keyed by
+ * upstream's English name.
+ *
+ * Upstream renumbered exactly these on its 2026-09 deploy: "No Attribute" went
+ * 101 -> -1 and the eight title tracks 102-109 -> the game's own ids (905, 906,
+ * 917, 920, 938-941); template attributes 0-44 did not move. Ours did not move
+ * either, on purpose: `attributeId` ships in every get_skill / search_skills
+ * result and in gw1://meta, and the server is live on the registry, so renumbering
+ * would be a breaking change bought with nothing — no template code can carry
+ * these ids at all. Weekly run #26 (2026-09-28) is what the drift cost before this
+ * existed: the Luxon/Kurzick rule above keys on 104/105, saw 905/906, stood down,
+ * and the collision gate refused the import — correctly, but the npm fallback then
+ * DOWNGRADED the data, which is the other half of that run's fix (update-data.yml).
+ *
+ * Keyed by NAME because the name is the one thing both conventions share; an id
+ * table would need to know every upstream convention in advance. Idempotent: a
+ * pre-renumbering source (npm 2.0.0) already uses these ids, so it maps to itself.
+ */
+const STABLE_NON_TEMPLATE_ATTRIBUTE_IDS: Readonly<Record<string, number>> = {
+  "No Attribute": 101,
+  "Sunspear Title Track": 102,
+  "Lightbringer Title Track": 103,
+  "Friend of the Luxons Title Track": 104,
+  "Friend of the Kurzicks Title Track": 105,
+  "Asura Title Track": 106,
+  "Deldrimor Title Track": 107,
+  "Ebon Vanguard Title Track": 108,
+  "Norn Title Track": 109,
+};
+/** Template attribute ids: the 6-bit-or-less range a template code can carry. */
+const isTemplateAttributeId = (id: number) => Number.isInteger(id) && id >= 0 && id <= 44;
+
+/**
+ * Rewrite upstream's attribute ids into our stable convention, in the constant
+ * table AND in every skill row, so nothing downstream (the faction rule, the
+ * foreign-key tests, the validator) ever sees upstream's numbering. Throws on a
+ * non-template attribute it has no stable id for: a new title track is a real
+ * addition that needs a deliberate id, not a silently invented one.
+ */
+export function canonicaliseUpstreamIds(upstream: Upstream): Upstream {
+  const table = upstream.ATTRIBUTES as Record<string, UpstreamAttribute>;
+  const toStable = new Map<number, number>();
+  for (const [key, attribute] of Object.entries(table)) {
+    const id = Number(key);
+    if (isTemplateAttributeId(id)) {
+      toStable.set(id, id);
+      continue;
+    }
+    const stable = STABLE_NON_TEMPLATE_ATTRIBUTE_IDS[attribute.name.en];
+    if (stable === undefined) {
+      throw new Error(
+        `Upstream attribute ${id} ${JSON.stringify(attribute.name.en)} is outside the template ` +
+          `range (0-44) and has no stable id in STABLE_NON_TEMPLATE_ATTRIBUTE_IDS (transform.ts). ` +
+          `A new title track needs a deliberate public id — add it there, after 109.`,
+      );
+    }
+    toStable.set(id, stable);
+  }
+  const targets = [...toStable.values()];
+  if (new Set(targets).size !== targets.length) {
+    throw new Error("Two upstream attributes map onto the same stable id — review by hand.");
+  }
+  const remap = (id: number): number => {
+    const stable = toStable.get(id);
+    if (stable === undefined) throw new Error(`Skill attribute ${id} is not in upstream's table`);
+    return stable;
+  };
+  const skilldata = Object.fromEntries(
+    Object.entries(upstream.skilldata).map(([id, row]) => {
+      const skill = row as UpstreamSkill;
+      // id 0 is the empty-slot sentinel, dropped by transformSkills; upstream gives
+      // it attribute -1 now and it carried 0 before, so it is not worth a lookup.
+      return [id, skill.id === 0 ? skill : { ...skill, attribute: remap(skill.attribute) }];
+    }),
+  );
+  const attributes = Object.fromEntries(
+    Object.entries(table)
+      .map(([id, attribute]) => [toStable.get(Number(id))!, attribute] as const)
+      .sort(([a], [b]) => a - b),
+  );
+  return { ...upstream, ATTRIBUTES: attributes, SKILLTYPES: stableSkillTypes(upstream), skilldata };
+}
+
+/**
+ * The same 2026-09 renumbering moved the "No Skill" type 0 -> -1. Only the id-0
+ * sentinel skill (never shipped) carries it, so it is cosmetic in practice, but
+ * skill-types.json is public through gw1://meta and a weekly PR should not churn
+ * it. Every other type id is untouched, and an unexpected negative id is refused.
+ */
+function stableSkillTypes(upstream: Upstream): Record<string, UpstreamSkillType> {
+  const entries = Object.entries(upstream.SKILLTYPES as Record<string, UpstreamSkillType>).map(
+    ([key, type]) => {
+      const id = Number(key);
+      if (id >= 0) return [id, type] as const;
+      if (type.name.en === "No Skill") return [0, type] as const;
+      throw new Error(
+        `Upstream skill type ${id} ${JSON.stringify(type.name.en)} has a negative id`,
+      );
+    },
+  );
+  return Object.fromEntries(entries.sort(([a], [b]) => a - b));
 }
 
 // --- skills ------------------------------------------------------------------

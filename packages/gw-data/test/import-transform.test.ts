@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  canonicaliseUpstreamIds,
   transformAttributes,
   transformCampaigns,
   transformProfessions,
@@ -101,6 +102,82 @@ describe("every transform routes names through the plausibility gate", () => {
     expect(
       transformSkills(asUpstream(upstreamSkill({ name: "Mighty Throw", is_pvp: true })))[0]?.name,
     ).toBe("Mighty Throw (PvP)");
+  });
+});
+
+describe("upstream ids are mapped back onto our stable convention", () => {
+  // Upstream's 2026-09 deploy renumbered "No Attribute" 101 -> -1, the title tracks
+  // 102-109 -> game ids (905/906 for Kurzick/Luxon), and the "No Skill" type 0 -> -1.
+  // Weekly run #26 is what that cost: the faction rule keyed on 104/105 stood down
+  // and the collision gate refused the import. These are upstream's REAL new ids.
+  const attr = (en: string, prof = 0) => ({ name: lang(en), prof, pri: false, max: 12 });
+  const renumbered = (...rows: Record<string, unknown>[]) => ({
+    ...asUpstream(...rows),
+    ATTRIBUTES: {
+      "-1": attr("No Attribute"),
+      15: attr("Protection Prayers", 3),
+      905: attr("Friend of the Kurzicks Title Track"),
+      906: attr("Friend of the Luxons Title Track"),
+    },
+    SKILLTYPES: { "-1": { name: lang("No Skill") }, 1: { name: lang("Skill") } },
+    CAMPAIGNS: [],
+    PROFESSIONS: [],
+    version: "test",
+  });
+
+  it("restores the Luxon/Kurzick split that run #26 lost", () => {
+    const upstream = canonicaliseUpstreamIds(
+      renumbered(
+        upstreamSkill({ id: 1948, name: "Shadow Sanctuary", attribute: 906, is_rp: true }),
+        upstreamSkill({ id: 2091, name: "Shadow Sanctuary", attribute: 905, is_rp: true }),
+        upstreamSkill({ id: 5, name: "Signet of Capture", attribute: -1 }),
+      ),
+    );
+    const skills = transformSkills(upstream);
+    expect(skills.map((s) => [s.name, s.attributeId])).toEqual([
+      ["Signet of Capture", 101],
+      ["Shadow Sanctuary (Luxon)", 104],
+      ["Shadow Sanctuary (Kurzick)", 105],
+    ]);
+    expect(transformAttributes(upstream.ATTRIBUTES).map((a) => a.id)).toEqual([15, 101, 104, 105]);
+    expect(transformSkillTypes(upstream.SKILLTYPES)).toEqual([
+      { id: 0, name: "No Skill" },
+      { id: 1, name: "Skill" },
+    ]);
+  });
+
+  it("is the identity on a source that already uses our ids (npm 2.0.0)", () => {
+    const legacy = {
+      ...renumbered(upstreamSkill({ id: 1948, name: "Shadow Sanctuary (Luxon)", attribute: 104 })),
+      ATTRIBUTES: {
+        15: attr("Protection Prayers", 3),
+        101: attr("No Attribute"),
+        104: attr("Friend of the Luxons Title Track"),
+      },
+      SKILLTYPES: { 0: { name: lang("No Skill") } },
+    };
+    const out = canonicaliseUpstreamIds(legacy);
+    expect(out.ATTRIBUTES).toEqual(legacy.ATTRIBUTES);
+    expect(out.skilldata).toEqual(legacy.skilldata);
+    expect(out.SKILLTYPES).toEqual(legacy.SKILLTYPES);
+  });
+
+  it("refuses a new non-template attribute rather than inventing an id for it", () => {
+    const withNewTrack = {
+      ...renumbered(),
+      ATTRIBUTES: { 950: attr("Hypothetical Title Track") },
+    };
+    expect(() => canonicaliseUpstreamIds(withNewTrack)).toThrow(/Hypothetical Title Track/);
+  });
+
+  it("refuses a skill whose attribute upstream's own table does not define", () => {
+    const dangling = renumbered(upstreamSkill({ id: 7, attribute: 999 }));
+    expect(() => canonicaliseUpstreamIds(dangling)).toThrow(/999/);
+  });
+
+  it("refuses an unknown negative skill type", () => {
+    const odd = { ...renumbered(), SKILLTYPES: { "-2": { name: lang("Mystery") } } };
+    expect(() => canonicaliseUpstreamIds(odd)).toThrow(/Mystery/);
   });
 });
 

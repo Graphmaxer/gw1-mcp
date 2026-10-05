@@ -21,7 +21,12 @@ overrides:
   # authority/host normalization (GHSA-5jgf-p345-68v8, GHSA-f65p-4m7j-42xc,
   # GHSA-fph4-wmhf-6fwf, GHSA-jqff-g426-hqxp); all are fixed in 3.1.6.
   # An override is a floor, not a fix — it needs raising when the floor moves.
-  "fast-uri": "^3.1.6"
+  # Raised 2026-10-05: 3.1.6 gained GHSA-58mr-gqgx-xq4g and GHSA-qw65-cvwx-89v3
+  # (High, fixed in 3.1.7) and GHSA-hrr3-gc8f-f4qj (fixed in 3.1.8). This override is
+  # also why Dependabot's security update for it FAILED (2026-09-29,
+  # security_update_not_possible): Dependabot never edits overrides, so a floor
+  # here is a bump only a human can make. Check `pnpm audit` when it fails like that.
+  "fast-uri": "^3.1.8"
   # qs <= 6.15.3 has an array-limit bypass (GHSA-x5fp-wj9c-mxmx), while every
   # version below 6.16.0 also allows an attacker-controlled isBuffer property to
   # trigger denial of service (GHSA-4mjr-xmp4-gh2g). Both arrive through the
@@ -58,8 +63,15 @@ overrides:
   # transports we never use — the worker serves MCP through @hono/mcp — and
   # `grep -c ip-address dist/index.js` is 0, so production exposure is nil. Floored
   # anyway, because a dev-only vulnerability is still a vulnerability on the machine
-  # that builds and publishes.
-  "ip-address": "^10.3.1"
+  # that builds and publishes. Raised 2026-10-05 to 10.7.3 for four more moderate
+  # advisories (GHSA-rpw4-54j3-4h4q, GHSA-h3mg-xc3c-68pw, GHSA-j6r3-76f7-8jcv,
+  # GHSA-2vr4-cq9g-pvrc).
+  "ip-address": "^10.7.3"
+  # axios < 1.20.0 carries twelve advisories (seven High). It arrives only through
+  # @codspeed/core, the benchmark uploader — dev-only, and @codspeed/core's own range
+  # (^1.4.0) already admits the fix, so this is a floor and not a fork. Without it the
+  # lockfile keeps 1.19.0 until something else happens to re-resolve it.
+  "axios": "^1.20.0"
   # nanoid < 3.3.17 (High): custom generators loop indefinitely when size is zero. It
   # reaches us only through @vitest/coverage-v8 -> vitest -> vite -> postcss, so it is
   # dev-only. Floored on the same reasoning as the entries above: a dev-only

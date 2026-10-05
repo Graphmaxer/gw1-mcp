@@ -888,11 +888,22 @@ table assertion that named neither cause (issues #74/#75). Two fixes: the import
 upstream ids back onto ours (see Data maintenance), verified against the live Pages
 bytes (every data file byte-identical), and the fallback now discards its own output
 whenever the committed record came from Pages, so it can never downgrade — locked by
-a test that EXECUTES the workflow's inline predicate (sabotage-verified). Same day:
-three override floors raised (`fast-uri` 3.1.8, `ip-address` 10.7.3, new `axios`
-1.20.0), taking `pnpm audit` from 20 advisories to 1 (hono, fixed by the pending
-Dependabot PR). The `fast-uri` floor is also why Dependabot's security update for it
-failed: it never edits overrides, so a floor is a bump only a human makes.
+a test that EXECUTES the workflow's inline predicate (sabotage-verified). A third
+guard for the same family: the CAMPAIGNS/PROFESSIONS tables are positional, so the
+normaliser now refuses ids that are not exactly 0..n-1 — a -1 there would have
+shifted every profession id with every foreign key still resolving.
+
+Same day, dependencies: `pnpm audit` went from 20 advisories to 1 (hono, fixed by
+the pending Dependabot PR) by re-resolving `fast-uri`, `ip-address` and `axios` in
+the lockfile — and SIX override floors were then DELETED, not raised, because every
+one of their parents declares a caret range that already admits the fix. A floor on
+such a package buys nothing and must be raised by hand at every new advisory; it also
+appears to block Dependabot's transitive security updates (on 2026-09-29 it called
+fast-uri 3.1.6 "latest resolvable" while our `^3.1.6` floor permitted 3.1.7, out 27
+days — an inference, not a confirmed Dependabot behaviour). The rule now heads the
+`overrides:` block in pnpm-workspace.yaml: an override only where the parent's range
+CANNOT reach the fix (an exact pin, or a range admitting a vulnerable major). Four
+remain on that basis.
 
 **2026-09-08: weekly run #25 failed because upstream renamed twenty skills onto ten
 names, and the import now owns the Luxon/Kurzick suffix** the way it already owned
@@ -1031,7 +1042,7 @@ the code, so they are not a surprise:
   registered on `/mcp` — one middleware that skipped it is the reason.
 - The suggesters and `searchSkills` return nothing for a query that normalises
   to nothing, instead of the whole dataset or three plausible wrong names.
-- Suite is 433 tests (107 / 127 / 127 / 72) as of 2026-10-05.
+- Suite is 436 tests (107 / 130 / 127 / 72) as of 2026-10-05.
 
 A SELF-audit followed on 2026-08-11 — probes and sweeps rather than reading — and
 its lesson is where to look next. The core did not yield: ~1900 generated cases

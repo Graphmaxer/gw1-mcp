@@ -19,6 +19,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { loadUpstream } from "./import/load.ts";
 import {
+  canonicaliseUpstreamIds,
   transformAttributes,
   transformCampaigns,
   transformFrenchNames,
@@ -43,7 +44,12 @@ export function resolveSourceArg(argv: string[]): string | undefined {
 }
 
 async function main(): Promise<void> {
-  const upstream = await loadUpstream(resolveSourceArg(process.argv.slice(2)));
+  // Every source mode goes through the id canonicaliser (attributes and skill types), for the same reason all
+  // three go through normaliseConstantTables: which convention arrives is decided
+  // by upstream's deploy, not by our lockfile.
+  const upstream = canonicaliseUpstreamIds(
+    await loadUpstream(resolveSourceArg(process.argv.slice(2))),
+  );
 
   const outDir = join(dirname(fileURLToPath(import.meta.url)), "..", "data");
   mkdirSync(outDir, { recursive: true });

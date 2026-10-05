@@ -877,7 +877,33 @@ since 2019; see Data maintenance.)
     Gust). These do not resolve at all; the suggester returns BOTH English names,
     so the caller picks instead of the server guessing.
 
-## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-09-08)
+## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-10-05)
+
+**2026-10-05: weekly run #26 (2026-09-28) failed because upstream RENUMBERED its
+non-template attribute ids, and the npm fallback then tried to downgrade the data.**
+Luxon/Kurzick moved 104/105 -> 906/905, so the faction rule stood down and the
+collision gate refused the Pages import — correctly. The fallback then imported npm
+2.0.0, 31 skills behind Pages, over Pages-sourced data, and the job died on a French
+table assertion that named neither cause (issues #74/#75). Two fixes: the import maps
+upstream ids back onto ours (see Data maintenance), verified against the live Pages
+bytes (every data file byte-identical), and the fallback now discards its own output
+whenever the committed record came from Pages, so it can never downgrade — locked by
+a test that EXECUTES the workflow's inline predicate (sabotage-verified). A third
+guard for the same family: the CAMPAIGNS/PROFESSIONS tables are positional, so the
+normaliser now refuses ids that are not exactly 0..n-1 — a -1 there would have
+shifted every profession id with every foreign key still resolving.
+
+Same day, dependencies: `pnpm audit` went from 20 advisories to 1 (hono, fixed by
+the pending Dependabot PR) by re-resolving `fast-uri`, `ip-address` and `axios` in
+the lockfile — and SIX override floors were then DELETED, not raised, because every
+one of their parents declares a caret range that already admits the fix. A floor on
+such a package buys nothing and must be raised by hand at every new advisory; it also
+appears to block Dependabot's transitive security updates (on 2026-09-29 it called
+fast-uri 3.1.6 "latest resolvable" while our `^3.1.6` floor permitted 3.1.7, out 27
+days — an inference, not a confirmed Dependabot behaviour). The rule now heads the
+`overrides:` block in pnpm-workspace.yaml: an override only where the parent's range
+CANNOT reach the fix (an exact pin, or a range admitting a vulnerable major). Four
+remain on that basis.
 
 **2026-09-08: weekly run #25 failed because upstream renamed twenty skills onto ten
 names, and the import now owns the Luxon/Kurzick suffix** the way it already owned
@@ -1016,7 +1042,7 @@ the code, so they are not a surprise:
   registered on `/mcp` — one middleware that skipped it is the reason.
 - The suggesters and `searchSkills` return nothing for a query that normalises
   to nothing, instead of the whole dataset or three plausible wrong names.
-- Suite is 427 tests (107 / 121 / 127 / 72) as of 2026-09-08.
+- Suite is 436 tests (107 / 130 / 127 / 72) as of 2026-10-05.
 
 A SELF-audit followed on 2026-08-11 — probes and sweeps rather than reading — and
 its lesson is where to look next. The core did not yield: ~1900 generated cases
@@ -1442,8 +1468,13 @@ dashboard, not a smaller suite.
   tip; the update workflow therefore imports from a git clone.
 - Old upstream build-wars/gw1-database (SQL dumps) is dead since 2019 and no
   longer used.
-- Attribute id conventions follow upstream: 0-44 are template attributes;
-  101 = No Attribute; 102-109 = PvE title tracks (NOT templatable). Skills
+- Attribute ids are OURS, and since 2026-09 no longer upstream's: 0-44 are
+  template attributes; 101 = No Attribute; 102-109 = PvE title tracks (NOT
+  templatable). Upstream renumbered the non-template ones (101 -> -1, title
+  tracks -> game ids 905/906/917/920/938-941, and the "No Skill" type 0 -> -1);
+  `canonicaliseUpstreamIds` in transform.ts maps them back by English name in
+  every source mode and refuses a non-template attribute it has no id for.
+  `attributeId` ships in tool output, so these stay frozen like the boolean trio. Skills
   carry isPvpVersion/splitId for the separate "(PvP)" variants; searchSkills
   excludes PvP versions by default.
 - Provenance in packages/gw-data/data/_meta.json, exposed via gw1://meta.

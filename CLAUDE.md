@@ -22,6 +22,7 @@ pnpm -r typecheck && pnpm -r test # must pass from a clean clone
 pnpm lint && pnpm fmt             # oxlint / oxfmt (CI runs fmt:check)
 pnpm test:coverage                # reference levels: see Coverage section
 pnpm bench                        # vitest bench in every package (see Performance)
+pnpm --filter @gw1-mcp/gw-worker smoke      # 22 HTTP checks against real workerd
 pnpm --filter @gw1-mcp/gw-worker dev        # local worker
 npx wrangler deploy --dry-run               # bundle check (in gw-worker)
 ```
@@ -1247,7 +1248,15 @@ The same test now also asserts every tool REJECTS an undeclared argument.
 
 ## workerd runs locally, and there are no compatibility flags
 
-`pnpm --filter @gw1-mcp/gw-worker exec wrangler dev --local` starts the REAL workerd.
+`pnpm --filter @gw1-mcp/gw-worker smoke` (added 2026-11-13, also a CI job) starts
+`wrangler dev --local` on a free port and runs 22 HTTP checks against REAL workerd:
+routes, the handshake, hardening headers on a streamed answer, a French lookup, an
+encode/decode round trip, and every refusal (batch 400, text/plain 415, 413 on both
+path spellings, unknown argument, hostile pwnd). It is the manual pass this section
+describes, kept. When adding a check, stay far below 100 requests — the limiter is
+emulated and 429s will look like bugs.
+
+`pnpm --filter @gw1-mcp/gw-worker exec wrangler dev --local` starts the REAL workerd by hand.
 Use it: any claim hedged with "measured under Node" can be checked properly, and the
 gap has been material twice — `tools/list` measured ~17 ms under Node against 7.66 ms
 in production, and an async benchmark reported 221 ms for the same call.

@@ -42,6 +42,23 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm knip
 
+  # The bundle wrangler really builds, on the runtime that really serves it. The
+  # test job runs createApp() under Node; this starts `wrangler dev --local` and
+  # speaks HTTP to real workerd (see scripts/smoke.ts for the three times the
+  # difference mattered). About twenty requests, well under the emulated rate limit.
+  smoke-workerd:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @gw1-mcp/gw-worker smoke
+
   test:
     runs-on: ubuntu-latest
     steps:

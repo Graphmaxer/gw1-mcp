@@ -11,7 +11,8 @@
     "check": "wrangler deploy --dry-run --outdir dist",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "bench": "vitest bench --run"
+    "bench": "vitest bench --run",
+    "smoke": "node scripts/smoke.ts"
   },
   "dependencies": {
     "@gw1-mcp/gw-mcp": "workspace:*",

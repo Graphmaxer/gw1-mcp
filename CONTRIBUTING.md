@@ -9,7 +9,7 @@ done this way" questions.
 
 ## Development setup
 
-Requirements: Node >= 22.18 (or 24) and pnpm 11.
+Requirements: Node >= 22.18 (or 24) and pnpm 12.
 
 ```bash
 pnpm install

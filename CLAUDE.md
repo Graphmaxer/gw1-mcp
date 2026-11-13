@@ -17,7 +17,7 @@ Never add a tool that "reasons" or "generates" a build from vague intent. If a t
 ## Commands
 
 ```bash
-pnpm install                      # Node >= 22.18 (or 24), pnpm 11
+pnpm install                      # Node >= 22.18 (or 24), pnpm 12
 pnpm -r typecheck && pnpm -r test # must pass from a clean clone
 pnpm lint && pnpm fmt             # oxlint / oxfmt (CI runs fmt:check)
 pnpm test:coverage                # reference levels: see Coverage section
@@ -309,10 +309,15 @@ Supply-chain posture (updated 2026-07-20 after an external audit): every
 third-party action is pinned by full commit SHA with a trailing # vX comment
 — a moved tag can no longer swap the code CI runs; Dependabot understands
 this format and bumps the SHAs weekly. packageManager carries the pnpm
-sha512 integrity hash (corepack verifies the binary itself). CI also runs
+sha512 integrity hash (corepack verifies the binary itself). Since pnpm 12
+(2026-11-13) the lockfile ALSO pins pnpm: it opens with a second YAML document,
+`packageManagerDependencies`, carrying the integrity of every platform binary of
+the pinned version. A pnpm bump therefore touches package.json AND pnpm-lock.yaml
+— run a plain `pnpm install` once after editing `packageManager`, or
+`--frozen-lockfile` refuses with FROZEN_LOCKFILE_WITH_OUTDATED_LOCKFILE. CI also runs
 actionlint, so invalid workflow expressions fail a PR check.
 
-pnpm 11 defaults `minimumReleaseAge` to 1440 minutes (1 day) — introduced
+pnpm (since 11; the repo is on 12 as of 2026-11-13) defaults `minimumReleaseAge` to 1440 minutes (1 day) — introduced
 platform-wide after the 2025 "Shai-Hulud" npm worm wave — and refuses to
 resolve any package version published more recently than that, lockfile
 entry or not. We never configured this; it is pnpm's own default and we

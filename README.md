@@ -144,7 +144,7 @@ under the GFDL and CC BY-NC-SA 2.5 (a NonCommercial license) — see
 pnpm install && pnpm -r test
 ```
 
-Node >= 22.18 (or 24), pnpm 11. Nothing builds to dist — exports point at the .ts
+Node >= 22.18 (or 24), pnpm 12. Nothing builds to dist — exports point at the .ts
 sources and the worker bundles via wrangler. See
 [CONTRIBUTING.md](./CONTRIBUTING.md) to get started and
 [CLAUDE.md](./CLAUDE.md) for the full architecture, conventions and the

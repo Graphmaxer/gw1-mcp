@@ -27,6 +27,7 @@ import { z } from "zod";
 import {
   getAttributeByName,
   suggestAttributeNames,
+  suggestHeroNames,
   suggestProfessionNames,
   getHeroById,
   getHeroByName,
@@ -433,7 +434,9 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
       const hero =
         name !== undefined ? getHeroByName(name) : id !== undefined ? getHeroById(id) : undefined;
       if (!hero) {
-        return jsonError("NOT_FOUND", `No hero matching ${JSON.stringify(name ?? id)}`);
+        return jsonError("NOT_FOUND", `No hero matching ${JSON.stringify(name ?? id)}`, {
+          suggestions: name !== undefined ? suggestHeroNames(name) : [],
+        });
       }
       return jsonStructured(fullHero(hero));
     },

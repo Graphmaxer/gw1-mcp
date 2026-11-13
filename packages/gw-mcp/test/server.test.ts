@@ -372,6 +372,12 @@ describe("resources and error surfaces", () => {
     const client = await connectedClient();
     const ko = await client.callTool({ name: "get_hero", arguments: { name: "Gandalf" } });
     expect(JSON.stringify(ko.content)).toMatch(/[Nn]o hero|not found|Unknown/);
+    // A near miss gets the name to retry with, like every other name lookup.
+    const typo = payload(
+      await client.callTool({ name: "get_hero", arguments: { name: "Master of Wispers" } }),
+    );
+    expect(typo.error.code).toBe("NOT_FOUND");
+    expect(typo.error.suggestions[0]).toBe("Master of Whispers");
     const nf = await client.callTool({
       name: "list_heroes",
       arguments: { campaignName: "Nightfall" },

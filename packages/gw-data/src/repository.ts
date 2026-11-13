@@ -308,6 +308,7 @@ function closest<T>(index: readonly Searchable<T>[], rawNeedle: string, count: n
 let skillSearchIndex: Searchable<Skill>[] | undefined;
 let attributeSearchIndex: Searchable<Attribute>[] | undefined;
 let professionSearchIndex: Searchable<Profession>[] | undefined;
+let heroSearchIndex: Searchable<Hero>[] | undefined;
 
 export function suggestAttributeNames(name: string, count = 3): string[] {
   if (name.length > MAX_SUGGEST_LEN) return [];
@@ -371,4 +372,15 @@ export function suggestProfessionNames(name: string, count = 3): string[] {
     (p) => p.name,
   );
   return closest(professionSearchIndex, name, count).map((p) => p.name);
+}
+
+/**
+ * Same machinery over the hero roster. The gap was found by using the live server:
+ * `get_hero "Master of Wispers"` answered NOT_FOUND with nothing to retry on, while
+ * the server's own instructions promise closest matches for misspelled names.
+ */
+export function suggestHeroNames(name: string, count = 3): string[] {
+  if (name.length > MAX_SUGGEST_LEN) return [];
+  heroSearchIndex ??= indexFor(heroes, (h) => h.name);
+  return closest(heroSearchIndex, name, count).map((h) => h.name);
 }

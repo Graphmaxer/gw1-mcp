@@ -15,6 +15,7 @@ import {
   searchSkills,
   skills,
   suggestAttributeNames,
+  suggestHeroNames,
   suggestProfessionNames,
   suggestSkillNames,
   normalizeName,
@@ -221,6 +222,17 @@ describe("lookups", () => {
     expect(suggestProfessionNames("necromancr")[0]).toBe("Necromancer");
     expect(suggestProfessionNames("Bard")).not.toContain("none");
     expect(suggestProfessionNames("Bard").length).toBeGreaterThan(0);
+  });
+
+  it("suggests hero names for a typo, and nothing for a name that is not close", () => {
+    // Found by using the live server: get_hero "Master of Wispers" came back
+    // NOT_FOUND and bare, while the server's own instructions promise suggestions
+    // for misspelled names. 31 names, several long and easy to get one letter off.
+    expect(suggestHeroNames("Master of Wispers")[0]).toBe("Master of Whispers");
+    expect(suggestHeroNames("Zhed Shadowhoof")[0]).toBe("Zhed Shadowhoof");
+    expect(suggestHeroNames("pyre")[0]).toBe("Pyre Fierceshot");
+    expect(suggestHeroNames("Gandalf the Grey of Middle-earth")).toEqual([]);
+    expect(suggestHeroNames("")).toEqual([]);
     expect(suggestProfessionNames("Возрождение")).toEqual([]);
     expect(suggestProfessionNames("z".repeat(5000))).toEqual([]);
   });

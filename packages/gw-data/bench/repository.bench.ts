@@ -1,4 +1,4 @@
-import { bench, describe } from "vitest";
+import { describe, test } from "vitest";
 import {
   getSkillByName,
   normalizeName,
@@ -6,6 +6,18 @@ import {
   skills,
   suggestSkillNames,
 } from "../src/index.js";
+
+/**
+ * vitest 5 turned `bench` from a top-level export into a test fixture: each
+ * benchmark is now a `test` that registers and runs it. This wrapper keeps the
+ * one-line call sites below, and keeps one benchmark per test so every name
+ * stays a separately tracked CodSpeed series.
+ */
+function bench(name: string, fn: () => void | Promise<void>): void {
+  test(name, async ({ bench: register }) => {
+    await register(name, fn).run();
+  });
+}
 
 /**
  * The repository is the CPU floor of every tool call: name resolution runs

@@ -17,13 +17,13 @@
     "verify": "pnpm -r typecheck && pnpm lint && pnpm fmt:check && pnpm -r test && pnpm knip"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.1.12",
+    "@vitest/coverage-v8": "^5.1.0",
     "knip": "^6.45.1",
     "oxfmt": "^0.78.0",
     "oxlint": "^1.93.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "vitest": "^4.1.12"
+    "vitest": "^5.1.0"
   },
   "engines": {
     "node": ">=22"

@@ -1,8 +1,20 @@
 import { decodeTemplate } from "@gw1-mcp/gw-template";
-import { bench, describe } from "vitest";
+import { describe, test } from "vitest";
 import { describeTemplate, resolveNamedBuild, type NamedBuild } from "../src/build-io.js";
 import { createServer } from "../src/server.js";
 import { validateBuild } from "../src/validate.js";
+
+/**
+ * vitest 5 turned `bench` from a top-level export into a test fixture: each
+ * benchmark is now a `test` that registers and runs it. This wrapper keeps the
+ * one-line call sites below, and keeps one benchmark per test so every name
+ * stays a separately tracked CodSpeed series.
+ */
+function bench(name: string, fn: () => void | Promise<void>): void {
+  test(name, async ({ bench: register }) => {
+    await register(name, fn).run();
+  });
+}
 
 /**
  * Two layers are measured: the pure compiler stages (resolve names -> ids,

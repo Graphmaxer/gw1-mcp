@@ -16,7 +16,7 @@
   "dependencies": {
     "@gw1-mcp/gw-mcp": "workspace:*",
     "@hono/mcp": "^0.3.2",
-    "hono": "^4.13.13"
+    "hono": "^4.13.16"
   },
   "devDependencies": {
     "@codspeed/vitest-plugin": "^5.7.1",

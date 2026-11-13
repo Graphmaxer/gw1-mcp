@@ -171,7 +171,7 @@ export function searchSkills(filters: SkillSearchFilters): Skill[] {
       (filters.attributeId === undefined || s.attributeId === filters.attributeId) &&
       (filters.campaignId === undefined || s.campaignId === filters.campaignId) &&
       (filters.elite === undefined || s.elite === filters.elite) &&
-      (needle === undefined || normalizeName(s.name).includes(needle)),
+      (needle === undefined || normalizedSkillName(s).includes(needle)),
   );
 }
 
@@ -310,6 +310,25 @@ let attributeSearchIndex: Searchable<Attribute>[] | undefined;
 let professionSearchIndex: Searchable<Profession>[] | undefined;
 let heroSearchIndex: Searchable<Hero>[] | undefined;
 
+function englishSearchIndex(): Searchable<Skill>[] {
+  skillSearchIndex ??= indexFor(skills, (s) => s.name);
+  return skillSearchIndex;
+}
+
+/**
+ * Normalised English name per skill, shared with the suggester's lazy index.
+ * `searchSkills({ nameContains })` used to re-normalise every name on every call
+ * (0.53 ms); reading them from the index the suggester builds anyway is 0.065 ms.
+ * Filter-only searches never touch it, so they never pay for the build.
+ */
+let normalizedNameBySkill: Map<Skill, string> | undefined;
+function normalizedSkillName(skill: Skill): string {
+  normalizedNameBySkill ??= new Map(
+    englishSearchIndex().map(({ item, normalized }) => [item, normalized]),
+  );
+  return normalizedNameBySkill.get(skill) ?? normalizeName(skill.name);
+}
+
 export function suggestAttributeNames(name: string, count = 3): string[] {
   if (name.length > MAX_SUGGEST_LEN) return [];
   attributeSearchIndex ??= indexFor(attributes, (a) => a.name);
@@ -346,8 +365,7 @@ export function suggestSkillNames(name: string, count = 3): string[] {
   const exactFrench = frenchClaimantIndex().get(normalizeName(name));
   if (exactFrench !== undefined) return exactFrench.slice(0, count).map((s) => s.name);
 
-  skillSearchIndex ??= indexFor(skills, (s) => s.name);
-  const english = closest(skillSearchIndex, name, count);
+  const english = closest(englishSearchIndex(), name, count);
   if (english.length > 0) return english.map((s) => s.name);
   // The same index the exact-French check above already built: same cap, same
   // length-based early exit, so the residual cost of French here is one extra SCAN

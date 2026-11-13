@@ -363,11 +363,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
       const resolution = resolveNamedBuild(build);
       if (!resolution.template) return jsonStructured({ errors: resolution.errors });
 
-      const validation = validateBuild(resolution.template, {
-        forHero,
-        forPvp,
-        ...(unlockedSkillIds !== undefined ? { unlockedSkillIds } : {}),
-      });
+      const validation = validateBuild(resolution.template, { forHero, forPvp, unlockedSkillIds });
       if (!validation.valid) return jsonStructured(validation);
 
       try {
@@ -400,11 +396,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
         return jsonStructured({ valid: false, errors: resolution.errors, warnings: [] });
       }
       return jsonStructured(
-        validateBuild(resolution.template, {
-          forHero,
-          forPvp,
-          ...(unlockedSkillIds !== undefined ? { unlockedSkillIds } : {}),
-        }),
+        validateBuild(resolution.template, { forHero, forPvp, unlockedSkillIds }),
       );
     },
   );

@@ -24,7 +24,10 @@ overrides:
   # that day, and every one of their parents declares a caret range that admits the
   # patched version. To fix a transitive advisory, re-resolve the lockfile entry
   # instead (`pnpm update --recursive --depth Infinity <pkg>`), or let Dependabot do it.
-  "@hono/node-server": "^2.0.10"
+  # Floors raised 2026-11-13 to the versions patching that week's advisories
+  # (@hono/node-server < 2.1.6, hono < 4.13.16, undici < 7.30.1), so a lockfile
+  # regeneration cannot resolve back below them.
+  "@hono/node-server": "^2.1.6"
   # sharp is pulled in by miniflare (wrangler's local Workers simulator,
   # dev-only — never runs in the deployed Cloudflare Worker) and inherits
   # several libvips CVEs below 0.35.0 (GHSA-f88m-g3jw-g9cj). Production
@@ -37,11 +40,11 @@ overrides:
   # backtracking there burns the 10 ms CPU budget, the same shape as the pwnd DoS.
   # gw-worker's own dependency is bumped to ^4.12.34; this override also collapses the
   # older copy that @modelcontextprotocol/sdk pulls in through @hono/node-server.
-  "hono": "^4.12.34"
+  "hono": "^4.13.16"
   # undici < 7.29.0 carries five advisories (Dependabot #4-#8, one High: cross-user
   # information disclosure and a parse-time crash via degenerate private cache
   # directives). It reaches us ONLY through miniflare -> wrangler, which is a
   # devDependency, and `grep undici dist/index.js` finds nothing — so production
   # exposure is nil. GitHub labels the scope "runtime", which is wrong here; the graph
   # and the bundle both say dev. Overridden anyway, same reasoning as sharp and postcss.
-  "undici": "^7.29.0"
+  "undici": "^7.30.1"

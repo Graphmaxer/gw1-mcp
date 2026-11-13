@@ -7,11 +7,12 @@ name: Release Please
 on:
   push:
     branches: [main]
-# release-please job only needs to open PRs / push tags; the reusable
-# publish-registry and plugin jobs declare their own (id-token, contents).
+# Read-only by default. The release-please job acts through the gw1-mcp-bot app
+# token, not GITHUB_TOKEN, so it needs nothing here; the two reusable jobs are
+# granted exactly what they need at their call site (a job-level grant may
+# exceed this default, and a callee can never exceed its caller's job).
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 jobs:
   release-please:
     runs-on: ubuntu-latest
@@ -43,9 +44,8 @@ jobs:
 
   # User-facing DLL: rebuilt and attached to every release so players
   # download it from the Releases page (Actions artifacts expire after 90
-  # days and require a GitHub login). Runs here because release-please
-  # creates releases with GITHUB_TOKEN, whose events cannot trigger the
-  # standalone plugin workflow.
+  # days and require a GitHub login). Chained here by needs/if rather than
+  # left to an on-release trigger, so the release run is self-contained.
   # Reuses the plugin build workflow (single source for the vcpkg toolchain)
   # and asks it to upload the DLL straight onto the freshly created release.
   attach-plugin-to-release:
@@ -57,7 +57,7 @@ jobs:
     with:
       release_tag: ${{ needs.release-please.outputs.tag_name }}
 
-  # Reuses the registry publish workflow (single source; best-effort inside).
+  # Reuses the registry publish workflow (single source).
   publish-registry:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created }}

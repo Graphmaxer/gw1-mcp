@@ -75,6 +75,28 @@ type AppEnv = {
   };
 };
 
+/**
+ * The one JSON-RPC error envelope every refusal on /mcp answers with. `id` is
+ * null because none of these refusals has parsed a request to echo an id from.
+ */
+function rpcError(
+  c: Context<AppEnv>,
+  status: 400 | 405 | 413 | 429,
+  code: number,
+  message: string,
+  headers?: Record<string, string>,
+) {
+  return c.json({ jsonrpc: "2.0", id: null, error: { code, message } }, status, headers);
+}
+
+/**
+ * Whether the transport will treat this body as JSON. Deliberately the same
+ * test the transport applies and nothing smarter: every middleware that reads
+ * the body gates on it, so none of them can act on (refuse, or count) a request
+ * the transport is about to answer 415 to.
+ */
+const isJsonRequest = (c: Context<AppEnv>): boolean =>
+  c.req.header("Content-Type")?.includes("application/json") === true;
 export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array()): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
@@ -343,15 +365,7 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
   useOnMcp(
     bodyLimit({
       maxSize: MAX_BODY_BYTES,
-      onError: (c) =>
-        c.json(
-          {
-            jsonrpc: "2.0",
-            id: null,
-            error: { code: -32600, message: "Request body too large (max 512 KiB)." },
-          },
-          413,
-        ),
+      onError: (c) => rpcError(c, 413, -32600, "Request body too large (max 512 KiB)."),
     }),
   );
 
@@ -373,16 +387,11 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
         console.error("rate limiter faulted, failing open:", err);
       }
       if (!allowed) {
-        return c.json(
-          {
-            jsonrpc: "2.0",
-            id: null,
-            error: {
-              code: -32000,
-              message: "Rate limit exceeded (100 requests/minute per IP). Retry shortly.",
-            },
-          },
+        return rpcError(
+          c,
           429,
+          -32000,
+          "Rate limit exceeded (100 requests/minute per IP). Retry shortly.",
           { "Retry-After": "60" },
         );
       }
@@ -442,22 +451,16 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
     // silently changing a documented response code. Measured under real workerd
     // 2026-08-11. Nothing is lost: a non-JSON batch never reaches any work,
     // because the transport refuses the content type before parsing.
-    if (c.req.header("Content-Type")?.includes("application/json") !== true) return next();
+    if (!isJsonRequest(c)) return next();
     // First non-whitespace character only — a body of up to 512 KiB does not
     // need JSON.parse to answer "is the top level an array?".
     const body = await c.req.raw.clone().text();
     if (/^\s*\[/.test(body)) {
-      return c.json(
-        {
-          jsonrpc: "2.0",
-          id: null,
-          error: {
-            code: -32600,
-            message:
-              "JSON-RPC batching is not supported: send one request object per HTTP POST. Batching was removed from MCP in revision 2025-06-18.",
-          },
-        },
+      return rpcError(
+        c,
         400,
+        -32600,
+        "JSON-RPC batching is not supported: send one request object per HTTP POST. Batching was removed from MCP in revision 2025-06-18.",
       );
     }
     await next();
@@ -469,17 +472,11 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
   // request) and a DELETE 200'd on a session that does not exist. The Streamable
   // HTTP spec explicitly allows 405 for both; that is the honest answer.
   const methodNotAllowed = (c: Context<AppEnv>) =>
-    c.json(
-      {
-        jsonrpc: "2.0",
-        id: null,
-        error: {
-          code: -32000,
-          message:
-            "This server is stateless: only POST /mcp is supported (no SSE stream, no sessions to delete).",
-        },
-      },
+    rpcError(
+      c,
       405,
+      -32000,
+      "This server is stateless: only POST /mcp is supported (no SSE stream, no sessions to delete).",
       { Allow: "POST, OPTIONS" },
     );
   for (const path of MCP_PATHS) {
@@ -493,7 +490,10 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
     // optional (absent in local dev/tests) and any parse error is swallowed;
     // analytics must never cost a request.
     const analytics = c.env?.MCP_ANALYTICS;
-    if (analytics && c.req.method === "POST") {
+    // JSON bodies only: the transport answers 415 to anything else, and counting a
+    // `tools/call` it is about to refuse inflated the public tool counters with
+    // calls that never ran (and JSON-parsed a body nothing would ever read).
+    if (analytics && c.req.method === "POST" && isJsonRequest(c)) {
       try {
         const rpc = (await c.req.raw.clone().json()) as {
           method?: string;

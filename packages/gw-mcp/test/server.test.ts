@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { TOOL_NAMES, type ToolName } from "../src/tool-names.js";
-import { pwndSlotLabel } from "../src/results.js";
+import { pwndSlotLabel, rejoinWrappedPwnd } from "../src/results.js";
 import { createServer } from "../src/server.js";
 
 async function connectedClient() {
@@ -16,6 +16,10 @@ function payload(result: Awaited<ReturnType<Client["callTool"]>>) {
   const content = result.content as Array<{ type: string; text: string }>;
   return JSON.parse(content[0]!.text);
 }
+
+/** Verbatim from the PvX page rendering, including wrap-induced spaces. */
+const PVX_DISCORDWAY =
+  "pwnd0001?download pawned2 @ Copyright 2008-2018 Redeemer >XOwBR4ZymcBaXMmEAAAAAAAAAAAAAABXUGxheWVyCmh0dHBzOi8vZ3dwdnguZ2FtZXBlZGlhLmNvbS9 CdWlsZDpUZWFtXy1fM19IZXJvX0Rpc2NvcmR3YXkZOAhjUoGYIPxsjaGTaO5GmjzLGAAAACEIAAKSGVy byAxCgbOAhkUsG3RFuTMzOgIkmTuhJ1+iBAAAACEJAAKSGVybyAyCgZOANDUshvSxMVBoBbhKg3V1DBE AAAACEIAAKSGVybyAzCg<";
 
 describe("gw1-mcp server", () => {
   it("registers exactly TOOL_NAMES — set equality in both directions", async () => {
@@ -42,9 +46,9 @@ describe("gw1-mcp server", () => {
   it("get_skill resolves a French skill name, and answers in English", async () => {
     // End-to-end through the tool, not just the repository: the table is only useful
     // if it reaches a caller, and this is the surface an LLM actually holds. The
-    // ANSWER stays English on purpose — every other tool (encode_template's skill
-    // bar above all) takes English names only, so a French answer would hand the
-    // model a name it cannot spend.
+    // ANSWER stays English on purpose: attribute and profession names, and
+    // search_skills, are English-only, so the English name is the one that works
+    // everywhere.
     const client = await connectedClient();
     const fr = payload(
       await client.callTool({ name: "get_skill", arguments: { name: "Sceau de guérison" } }),
@@ -56,6 +60,23 @@ describe("gw1-mcp server", () => {
       await client.callTool({ name: "get_skill", arguments: { name: "Rafale" } }),
     );
     expect(ambiguous.error.suggestions).toEqual(["Flurry", "Gust"]);
+  });
+
+  it("build tools resolve a French skill name too, as get_skill's description says", async () => {
+    // resolveNamedBuild goes through the same getSkillByName, so this was always
+    // true — while the description said "every other name field on every other
+    // tool is English-only". The behaviour is the useful one; the prose was wrong.
+    const client = await connectedClient();
+    const build = {
+      primary: "Warrior",
+      attributes: [],
+      skills: ["Sceau de guérison", null, null, null, null, null, null, null],
+    };
+    const encoded = payload(await client.callTool({ name: "encode_template", arguments: build }));
+    const decoded = payload(
+      await client.callTool({ name: "decode_template", arguments: { code: encoded.code } }),
+    );
+    expect(decoded.skills[0].name).toBe("Healing Signet");
   });
 
   it("get_skill rejects name and id together instead of silently favoring id (GW1-09)", async () => {
@@ -259,15 +280,20 @@ describe("paw-ned2 team decoding", () => {
     // `base64_chr(str.length)`, decode does `read(base64_ord(read(1)))` — so 63 is
     // the structural maximum, below any bound worth writing. A 128-character check
     // added here was unreachable, which is exactly why Codecov reported it uncovered.
+    //
+    // Asserted on a REAL team, and on how many codes were looked at: the filler
+    // blob this used until 2026-11-13 parsed into 67 slots, was refused with
+    // TOO_MANY_SLOTS, and so matched zero codes — a loop with no iterations.
     const client = await connectedClient();
     const res = await client.callTool({
       name: "decode_pawned_team",
-      arguments: { pwnd: `pwnd0001?download pawned2 >${"A".repeat(600)}<` },
+      arguments: { pwnd: PVX_DISCORDWAY },
     });
-    // Whatever the outcome, no slot may carry a code longer than the format allows.
-    const text = JSON.stringify(res);
-    for (const match of text.matchAll(/"skillsCode":"([^"]*)"/g)) {
-      expect((match[1] ?? "").length).toBeLessThanOrEqual(63);
+    const codes: string[] = payload(res).builds.map((b: { skillsCode: string }) => b.skillsCode);
+    expect(codes).toHaveLength(4);
+    for (const code of codes) {
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.length).toBeLessThanOrEqual(63);
     }
   });
 
@@ -292,8 +318,7 @@ describe("paw-ned2 team decoding", () => {
   it("decodes a real PvXwiki team blob (3 Hero Discordway) despite line wraps", async () => {
     const client = await connectedClient();
     // Verbatim from the PvX page rendering, including wrap-induced spaces.
-    const pwnd =
-      "pwnd0001?download pawned2 @ Copyright 2008-2018 Redeemer >XOwBR4ZymcBaXMmEAAAAAAAAAAAAAABXUGxheWVyCmh0dHBzOi8vZ3dwdnguZ2FtZXBlZGlhLmNvbS9 CdWlsZDpUZWFtXy1fM19IZXJvX0Rpc2NvcmR3YXkZOAhjUoGYIPxsjaGTaO5GmjzLGAAAACEIAAKSGVy byAxCgbOAhkUsG3RFuTMzOgIkmTuhJ1+iBAAAACEJAAKSGVybyAyCgZOANDUshvSxMVBoBbhKg3V1DBE AAAACEIAAKSGVybyAzCg<";
+    const pwnd = PVX_DISCORDWAY;
     const result = payload(
       await client.callTool({ name: "decode_pawned_team", arguments: { pwnd } }),
     );
@@ -355,6 +380,16 @@ describe("resources and error surfaces", () => {
     const client = await connectedClient();
     const ko = await client.callTool({ name: "get_hero", arguments: { name: "Gandalf" } });
     expect(JSON.stringify(ko.content)).toMatch(/[Nn]o hero|not found|Unknown/);
+    // A near miss gets the name to retry with, like every other name lookup.
+    const typo = payload(
+      await client.callTool({ name: "get_hero", arguments: { name: "Master of Wispers" } }),
+    );
+    expect(typo.error.code).toBe("NOT_FOUND");
+    expect(typo.error.suggestions[0]).toBe("Master of Whispers");
+    // A miss by ID has no name to be close to: same code, nothing to suggest.
+    const byId = payload(await client.callTool({ name: "get_hero", arguments: { id: 250 } }));
+    expect(byId.error.code).toBe("NOT_FOUND");
+    expect(byId.error.suggestions ?? []).toEqual([]);
     const nf = await client.callTool({
       name: "list_heroes",
       arguments: { campaignName: "Nightfall" },
@@ -525,6 +560,9 @@ describe("remaining tool surfaces", () => {
       }),
     );
     expect(JSON.stringify(res)).toContain("Avatar of Balthazar");
+    // "Contains the one I expect" passes with every filter deleted. That each
+    // filter actually narrows is asserted, exactly, in contract.test.ts.
+    expect(res.total).toBeLessThan(10);
   });
 
   it("search_skills paginates with offset without changing total", async () => {
@@ -752,5 +790,40 @@ describe("TOOL_NAMES compile-time lock", () => {
     // the unused @ts-expect-error: the lock guards itself.
     const bogus = "get_skil" satisfies ToolName;
     expect(bogus).toBe("get_skil");
+  });
+});
+
+describe("rejoinWrappedPwnd", () => {
+  // The implementation this replaced, kept ONLY as the oracle: same answers, but
+  // quadratic when no '<' follows (16 384 '>' cost 92 ms inside one tool call).
+  const viaRegex = (pwnd: string) =>
+    pwnd.replace(/>([^<]*)</s, (_, payload: string) => `>${payload.replace(/\s+/g, "")}<`);
+
+  it("strips whitespace only inside the first >...< payload", () => {
+    expect(rejoinWrappedPwnd("pwnd0001? note>AB\n CD\tEF< tail >x y<")).toBe(
+      "pwnd0001? note>ABCDEF< tail >x y<",
+    );
+  });
+
+  it.each([
+    "",
+    "no markers at all",
+    "only > an opener",
+    "only < a closer",
+    "< closer before > opener",
+    "a>b c<d",
+    ">><<",
+    "> a > b < c <",
+    ">\n<",
+    "pwnd0001?x>" + "A B\n".repeat(40) + "<",
+  ])("agrees with the regex it replaced on %j", (input) => {
+    expect(rejoinWrappedPwnd(input)).toBe(viaRegex(input));
+  });
+
+  it("does linear work on the input that made the regex quadratic", () => {
+    // Counted, not timed: a flood of '>' with no '<' must be returned untouched,
+    // and the old implementation rescanned to end-of-string from every one of them.
+    const flood = ">".repeat(16_384);
+    expect(rejoinWrappedPwnd(flood)).toBe(flood);
   });
 });

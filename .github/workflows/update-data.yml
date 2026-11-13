@@ -27,7 +27,7 @@ jobs:
       # No version here: pnpm/action-setup reads the packageManager field
       # from package.json (specifying both makes the action fail).
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
@@ -160,8 +160,35 @@ jobs:
         with:
           name: data-update
           path: /tmp
-      - name: Apply the imported data
-        run: git apply /tmp/data-update.patch
+      - name: Apply the imported data (generated files only)
+        # The patch is the ONE thing the unprivileged import job hands to this job,
+        # and the import job runs unpinned upstream code — so the patch is
+        # attacker-controlled input, not our own output. A bare `git apply` trusted
+        # it completely: a patch rewriting description-growth.ts would have had this
+        # job execute the attacker's script (in the job holding contents:write and
+        # the app token) and print `changed=false`, auto-merging arbitrary source
+        # into main. Found by the 2026-11-13 audit; the two-job split protected the
+        # secrets from the import and left this door open.
+        #
+        # So the patch may touch only the files the import generates, as plain
+        # content edits. git's own parser lists what it would touch (--numstat) and
+        # every non-content change — create, delete, rename, mode, symlink
+        # (--summary); a path it has to quote never matches. Nothing is applied
+        # unless both are clean. provenance-cli.test.ts executes ALLOWED against
+        # hostile paths.
+        env:
+          ALLOWED: '^(packages/gw-data/data/(_meta|attributes|campaigns|heroes|professions|skill-names-fr|skill-types|skills)\.json|gwtoolbox-plugin/AccountExport/hero-names\.generated\.h|README\.md)$'
+        run: |
+          : "${ALLOWED:?the allowlist is empty, which would accept every path}"
+          touched=$(git apply --numstat /tmp/data-update.patch | cut -f3-)
+          unexpected=$(printf '%s\n' "$touched" | grep -vE "$ALLOWED" || true)
+          structural=$(git apply --summary /tmp/data-update.patch)
+          if [ -z "$touched" ] || [ -n "$unexpected" ] || [ -n "$structural" ]; then
+            echo "::error::Refusing the data patch: it touches something other than the content of the generated files."
+            printf 'unexpected paths:\n%s\nstructural changes:\n%s\n' "$unexpected" "$structural"
+            exit 1
+          fi
+          git apply /tmp/data-update.patch
       # Descriptions travel verbatim into an LLM's context via get_skill and
       # search_skills, so a vandalised upstream needs no code execution to attack
       # a consumer, and no invariant test can catch it: the suite checks ids and
@@ -181,7 +208,7 @@ jobs:
       # 22.18; without this the version would come from whatever the runner image
       # happens to ship, which is exactly the kind of unstated dependency this
       # repo pins everywhere else.
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
       - name: Flag suspicious description growth (prompt-injection channel)
@@ -223,6 +250,15 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: gh pr merge ${{ steps.data-pr.outputs.pull-request-number }} --auto --squash
+      - name: Withdraw auto-merge when this run's diff is flagged
+        # The PR branch is reused week to week. If an earlier run enabled auto-merge
+        # and the PR is still open (its CI was red), skipping the step above is not
+        # enough: auto-merge stays armed and would merge THIS run's flagged diff the
+        # moment CI goes green. Withholding has to be an action, not an absence.
+        if: ${{ steps.data-pr.outputs.pull-request-number && steps.desc.outputs.changed != 'false' }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: gh pr merge ${{ steps.data-pr.outputs.pull-request-number }} --disable-auto || true
 
   # A zero-touch weekly job is exactly the kind that fails unwatched — and the
   # gates here are meant to WITHHOLD the merge, so a crash reads the same as a

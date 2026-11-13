@@ -19,22 +19,27 @@ export interface ValidationResult {
   warnings: ValidationIssue[];
 }
 
-/**
- * Validates a build against Guild Wars 1 rules.
- * Errors mean the template cannot legally exist; warnings mean it is
- * encodable but suspicious (e.g. PvE-only skills on a hero bar).
- */
 /** Cumulative attribute point cost to reach rank r (index = rank). */
 const RANK_COST = [0, 1, 3, 6, 10, 15, 21, 28, 37, 48, 61, 77, 97] as const;
 /** Max attribute points at level 20 including the two +15 point quests. */
 const MAX_ATTRIBUTE_POINTS = 200;
 
+/**
+ * Validates a build against Guild Wars 1 rules.
+ * Errors mean the template cannot legally exist; warnings mean it is
+ * encodable but suspicious (e.g. PvE-only skills on a hero bar).
+ */
 export function validateBuild(
   template: SkillTemplate,
-  options: { forHero?: boolean; forPvp?: boolean; unlockedSkillIds?: number[] } = {},
+  options: {
+    forHero?: boolean | undefined;
+    forPvp?: boolean | undefined;
+    unlockedSkillIds?: readonly number[] | undefined;
+  } = {},
 ): ValidationResult {
   const errors: ValidationIssue[] = [];
   const warnings: ValidationIssue[] = [];
+  const unlocked = options.unlockedSkillIds && new Set(options.unlockedSkillIds);
 
   // Attribute point budget: level 20 grants at most 200 points (170 base
   // + 30 from quests). The in-game panel physically prevents exceeding it,
@@ -139,21 +144,13 @@ export function validateBuild(
     resolved.push({ slot, skill });
   });
 
-  const seen = new Map<number, number[]>();
-  for (const { slot, skill } of resolved) {
-    const slots = seen.get(skill.id);
-    if (slots) {
-      slots.push(slot);
-    } else {
-      seen.set(skill.id, [slot]);
-    }
-  }
+  const slotsBySkillId = Map.groupBy(resolved, ({ skill }) => skill.id);
   // Signet of Capture is the one skill that may appear up to 3 times on a bar;
   // every other skill is unique. (GW1-AUD-03 POC2.)
   const SIGNET_OF_CAPTURE = "Signet of Capture";
   for (const { slot, skill } of resolved) {
-    const slots = seen.get(skill.id);
-    if (!slots || slots[0] !== slot) continue; // report once, at first occurrence
+    const slots = (slotsBySkillId.get(skill.id) ?? []).map((entry) => entry.slot);
+    if (slots[0] !== slot) continue; // report once, at first occurrence
     const limit = skill.name === SIGNET_OF_CAPTURE ? 3 : 1;
     if (slots.length > limit) {
       // Verified in game 2026-08-01, same silent failure as MULTIPLE_ELITES: the client
@@ -220,7 +217,7 @@ export function validateBuild(
     }
 
     // Availability against a GWToolbox account export (/exportaccount).
-    if (options.unlockedSkillIds !== undefined && !options.unlockedSkillIds.includes(skill.id)) {
+    if (unlocked !== undefined && !unlocked.has(skill.id)) {
       warnings.push({
         code: "SKILL_NOT_UNLOCKED",
         message: `Slot ${slot + 1}: "${skill.name}" is not in the provided unlocked skill list`,
@@ -403,30 +400,28 @@ export function validateBuild(
       });
     }
 
-    if (attributeId <= MAX_TEMPLATE_ATTRIBUTE_ID) {
-      // Regular profession attribute: must belong to primary or secondary.
-      // wiki.guildwars.com/wiki/Attribute_point: "Attribute points are used to improve
-      // attributes in either your primary or secondary profession." Verified in game
-      // 2026-08-01: a template carrying Fire Magic on a Mesmer is REFUSED outright —
-      // Load greyed, header "...". Same group as an out-of-profession skill.
-      if (
-        attribute.professionId !== template.primary &&
-        attribute.professionId !== template.secondary
-      ) {
-        errors.push({
-          code: "ATTRIBUTE_PROFESSION_MISMATCH",
-          message: `"${attribute.name}" does not belong to ${primary?.abbr ?? "?"}/${secondary?.abbr ?? "?"}`,
-        });
-        // guildwars.fandom.com/wiki/Skills_and_Attributes_panel: the panel lists "all of
-        // the ones available to your Primary profession, and all except the primary
-        // attribute of your Secondary profession"; wiki.guildwars.com/wiki/Primary_attribute
-        // confirms the mechanism — skills from that line still work, at reduced effect.
-      } else if (attribute.isPrimary && attribute.professionId !== template.primary) {
-        errors.push({
-          code: "PRIMARY_ATTRIBUTE_ON_SECONDARY",
-          message: `"${attribute.name}" is a primary attribute of ${getProfessionById(attribute.professionId)?.name ?? "?"} and requires it as primary profession`,
-        });
-      }
+    // Regular profession attribute: must belong to primary or secondary.
+    // wiki.guildwars.com/wiki/Attribute_point: "Attribute points are used to improve
+    // attributes in either your primary or secondary profession." Verified in game
+    // 2026-08-01: a template carrying Fire Magic on a Mesmer is REFUSED outright —
+    // Load greyed, header "...". Same group as an out-of-profession skill.
+    if (
+      attribute.professionId !== template.primary &&
+      attribute.professionId !== template.secondary
+    ) {
+      errors.push({
+        code: "ATTRIBUTE_PROFESSION_MISMATCH",
+        message: `"${attribute.name}" does not belong to ${primary?.abbr ?? "?"}/${secondary?.abbr ?? "?"}`,
+      });
+      // guildwars.fandom.com/wiki/Skills_and_Attributes_panel: the panel lists "all of
+      // the ones available to your Primary profession, and all except the primary
+      // attribute of your Secondary profession"; wiki.guildwars.com/wiki/Primary_attribute
+      // confirms the mechanism — skills from that line still work, at reduced effect.
+    } else if (attribute.isPrimary && attribute.professionId !== template.primary) {
+      errors.push({
+        code: "PRIMARY_ATTRIBUTE_ON_SECONDARY",
+        message: `"${attribute.name}" is a primary attribute of ${getProfessionById(attribute.professionId)?.name ?? "?"} and requires it as primary profession`,
+      });
     }
   }
 

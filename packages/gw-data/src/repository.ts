@@ -164,15 +164,19 @@ export function searchSkills(filters: SkillSearchFilters): Skill[] {
   // return the whole non-PvP dataset presented as search hits (audit L8, same
   // family as the empty-needle guard in closest() below).
   if (needle !== undefined && needle.length === 0) return [];
-  return skills.filter(
-    (s) =>
-      (filters.includePvpVersions === true || !s.isPvpVersion) &&
-      (filters.professionId === undefined || s.professionId === filters.professionId) &&
-      (filters.attributeId === undefined || s.attributeId === filters.attributeId) &&
-      (filters.campaignId === undefined || s.campaignId === filters.campaignId) &&
-      (filters.elite === undefined || s.elite === filters.elite) &&
-      (needle === undefined || normalizeName(s.name).includes(needle)),
-  );
+  const matches = (s: Skill) =>
+    (filters.includePvpVersions === true || !s.isPvpVersion) &&
+    (filters.professionId === undefined || s.professionId === filters.professionId) &&
+    (filters.attributeId === undefined || s.attributeId === filters.attributeId) &&
+    (filters.campaignId === undefined || s.campaignId === filters.campaignId) &&
+    (filters.elite === undefined || s.elite === filters.elite);
+  if (needle === undefined) return skills.filter(matches);
+  // A name search walks the suggester's lazy index, which already holds every
+  // normalised name in `skills` order: re-normalising all of them per call cost
+  // 0.53 ms against 0.065 ms this way. Filter-only searches never build it.
+  return englishSearchIndex()
+    .filter(({ item, normalized }) => normalized.includes(needle) && matches(item))
+    .map(({ item }) => item);
 }
 
 /** Longest query we will run fuzzy matching on — beyond this, skip suggestions
@@ -308,6 +312,12 @@ function closest<T>(index: readonly Searchable<T>[], rawNeedle: string, count: n
 let skillSearchIndex: Searchable<Skill>[] | undefined;
 let attributeSearchIndex: Searchable<Attribute>[] | undefined;
 let professionSearchIndex: Searchable<Profession>[] | undefined;
+let heroSearchIndex: Searchable<Hero>[] | undefined;
+
+function englishSearchIndex(): Searchable<Skill>[] {
+  skillSearchIndex ??= indexFor(skills, (s) => s.name);
+  return skillSearchIndex;
+}
 
 export function suggestAttributeNames(name: string, count = 3): string[] {
   if (name.length > MAX_SUGGEST_LEN) return [];
@@ -345,8 +355,7 @@ export function suggestSkillNames(name: string, count = 3): string[] {
   const exactFrench = frenchClaimantIndex().get(normalizeName(name));
   if (exactFrench !== undefined) return exactFrench.slice(0, count).map((s) => s.name);
 
-  skillSearchIndex ??= indexFor(skills, (s) => s.name);
-  const english = closest(skillSearchIndex, name, count);
+  const english = closest(englishSearchIndex(), name, count);
   if (english.length > 0) return english.map((s) => s.name);
   // The same index the exact-French check above already built: same cap, same
   // length-based early exit, so the residual cost of French here is one extra SCAN
@@ -371,4 +380,15 @@ export function suggestProfessionNames(name: string, count = 3): string[] {
     (p) => p.name,
   );
   return closest(professionSearchIndex, name, count).map((p) => p.name);
+}
+
+/**
+ * Same machinery over the hero roster. The gap was found by using the live server:
+ * `get_hero "Master of Wispers"` answered NOT_FOUND with nothing to retry on, while
+ * the server's own instructions promise closest matches for misspelled names.
+ */
+export function suggestHeroNames(name: string, count = 3): string[] {
+  if (name.length > MAX_SUGGEST_LEN) return [];
+  heroSearchIndex ??= indexFor(heroes, (h) => h.name);
+  return closest(heroSearchIndex, name, count).map((h) => h.name);
 }

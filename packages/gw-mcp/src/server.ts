@@ -71,6 +71,21 @@ import {
  * already applies to tool names.
  */
 
+/** Serialised once: the roster is static data, and this was rebuilt on every read. */
+const heroesResourceJson = JSON.stringify(heroes.map(fullHero), null, 2);
+
+/** One shape for a filter value that names no profession, on every tool that takes one. */
+const unknownProfession = (name: string) =>
+  jsonError("UNKNOWN_PROFESSION", `Unknown profession ${JSON.stringify(name)}`, {
+    suggestions: suggestProfessionNames(name),
+  });
+
+/** Same for campaigns: five names, so the suggestion is simply all of them. */
+const unknownCampaign = (name: string) =>
+  jsonError("UNKNOWN_CAMPAIGN", `Unknown campaign ${JSON.stringify(name)}`, {
+    suggestions: campaigns.map((c) => c.name),
+  });
+
 /**
  * The gw1://meta payload, serialized once at module scope (a resource read must
  * not rebuild it, same rule as the tool schema literals).
@@ -197,12 +212,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
         if (/^none$/i.test(professionName)) filters.professionId = 0;
         else {
           const profession = getProfessionByName(professionName);
-          if (!profession)
-            return jsonError(
-              "UNKNOWN_PROFESSION",
-              `Unknown profession ${JSON.stringify(professionName)}`,
-              { suggestions: suggestProfessionNames(professionName) },
-            );
+          if (!profession) return unknownProfession(professionName);
           filters.professionId = profession.id;
         }
       }
@@ -221,10 +231,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
       }
       if (campaignName !== undefined) {
         const campaign = getCampaignByName(campaignName);
-        if (!campaign)
-          return jsonError("UNKNOWN_CAMPAIGN", `Unknown campaign ${JSON.stringify(campaignName)}`, {
-            suggestions: campaigns.map((c) => c.name),
-          });
+        if (!campaign) return unknownCampaign(campaignName);
         filters.campaignId = campaign.id;
       }
       if (elite !== undefined) filters.elite = elite;
@@ -448,20 +455,12 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
       let results = heroes;
       if (professionName !== undefined) {
         const profession = getProfessionByName(professionName);
-        if (!profession)
-          return jsonError(
-            "UNKNOWN_PROFESSION",
-            `Unknown profession ${JSON.stringify(professionName)}`,
-            { suggestions: suggestProfessionNames(professionName) },
-          );
+        if (!profession) return unknownProfession(professionName);
         results = results.filter((h) => h.professionId === profession.id);
       }
       if (campaignName !== undefined) {
         const campaign = getCampaignByName(campaignName);
-        if (!campaign)
-          return jsonError("UNKNOWN_CAMPAIGN", `Unknown campaign ${JSON.stringify(campaignName)}`, {
-            suggestions: campaigns.map((c) => c.name),
-          });
+        if (!campaign) return unknownCampaign(campaignName);
         results = results.filter((h) => h.campaignId === campaign.id);
       }
       return jsonStructured({
@@ -515,7 +514,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
       contents: [
         {
           uri: uri.href,
-          text: JSON.stringify(heroes.map(fullHero), null, 2),
+          text: heroesResourceJson,
         },
       ],
     }),

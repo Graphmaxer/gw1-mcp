@@ -4,12 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  '@hono/node-server': ^2.1.6
-  sharp: ^0.35.0
-  hono: ^4.13.16
-  undici: ^7.30.1
-
 importers:
 
   .:
@@ -104,14 +98,14 @@ importers:
         specifier: ^0.3.5
         version: 0.3.5(@modelcontextprotocol/sdk@1.32.2(zod@4.6.7))(hono-rate-limiter@0.5.4(hono@4.13.18))(hono@4.13.18)(zod@4.6.7)
       hono:
-        specifier: ^4.13.16
+        specifier: ^4.13.18
         version: 4.13.18
     devDependencies:
       '@codspeed/vitest-plugin':
         specifier: ^6.1.1
         version: 6.1.1(tinybench@6.2.3)(vite@8.1.7(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(vitest@5.1.0)
       '@hono/node-server':
-        specifier: ^2.1.6
+        specifier: ^2.1.8
         version: 2.1.8(hono@4.13.18)
       '@types/node':
         specifier: ^26.6.6
@@ -384,7 +378,7 @@ packages:
     resolution: {integrity: sha512-CquYSjbl9BuprbMMjvgO2owK7kdEA9wh2CJqAjn1Zk2QAM24y2OBSv5gz5O8jHCp39ae4dgIxOSonEVR+2PpJQ==}
     peerDependencies:
       '@modelcontextprotocol/sdk': ^1.29.0
-      hono: ^4.13.16
+      hono: '*'
       hono-rate-limiter: ^0.5.4
       zod: ^3.25.0 || ^4.0.0
 
@@ -392,7 +386,7 @@ packages:
     resolution: {integrity: sha512-jdf7FHh6A1lzjpHHQUgxsg2GeER2vMetnAOfeActzcoli6jamlK+NAwL6Dsr5Fl3BS3tYUQzCdtZjU8Qxv7bEA==}
     engines: {node: '>=20'}
     peerDependencies:
-      hono: ^4.13.16
+      hono: ^4 || ^5.0.0-0
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -1625,7 +1619,7 @@ packages:
   hono-rate-limiter@0.5.4:
     resolution: {integrity: sha512-P3/cscAmz1hA+MuM+Hn9gP/EyO2zWv2aXIFkVYuLZkPzrPa4oaWdVCS94vyDlsNBgeMnE/Hr2+LznIKQxrF0ng==}
     peerDependencies:
-      hono: ^4.13.16
+      hono: ^4.10.8
       unstorage: ^1.17.3
     peerDependenciesMeta:
       unstorage:
@@ -2075,8 +2069,8 @@ packages:
   undici-types@8.9.0:
     resolution: {integrity: sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==}
 
-  undici@7.30.2:
-    resolution: {integrity: sha512-mLyPQnHwUxaM/rideoK/+KL8DaAJLRl4aBCfmX444aCSLnIaomqPLtNRe2jdCYcsk5wZzXrDIQC8ZeYNRAYyIA==}
+  undici@7.30.1:
+    resolution: {integrity: sha512-03KrMbjIFDWQR5RNPrSw3bd1r12JpyFQl9/yxjUbJtqkjmllqC5lFjZh6ujeuJCKr8EOQvRW872Oy/az+nLYxg==}
     engines: {node: '>=20.18.1'}
 
   unenv@2.0.0-rc.24:
@@ -3454,7 +3448,7 @@ snapshots:
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       sharp: 0.35.5(@types/node@26.6.6)
-      undici: 7.30.2
+      undici: 7.30.1
       workerd: 1.20261110.1
       ws: 8.21.0
       youch: 4.1.0-beta.10
@@ -3828,7 +3822,7 @@ snapshots:
 
   undici-types@8.9.0: {}
 
-  undici@7.30.2: {}
+  undici@7.30.1: {}
 
   unenv@2.0.0-rc.24:
     dependencies:

@@ -910,7 +910,9 @@ fast-uri 3.1.6 "latest resolvable" while our `^3.1.6` floor permitted 3.1.7, out
 days — an inference, not a confirmed Dependabot behaviour). The rule now heads the
 `overrides:` block in pnpm-workspace.yaml: an override only where the parent's range
 CANNOT reach the fix (an exact pin, or a range admitting a vulnerable major). Four
-remain on that basis.
+remained on that basis until 2026-11-13, when their parents had caught up and the
+whole block was deleted: the lockfile resolves to the same patched versions without
+it. There are now NO overrides; the rule stays as a comment in that file.
 
 **2026-09-08: weekly run #25 failed because upstream renamed twenty skills onto ten
 names, and the import now owns the Luxon/Kurzick suffix** the way it already owned

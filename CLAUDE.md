@@ -212,7 +212,8 @@ this file already argues about in prose:
   and the fuzzy suggester — including the padded worst case that GW1-AUD-01
   bounded (the 109 ms -> 1.4 ms fix has a regression guard now).
 - gw-mcp `bench/build.bench.ts`: resolve -> validate -> describe, plus
-  `createServer` construction (the SDK round-trip benchmarks it once listed are gone).
+  `createServer` construction (the SDK round-trip benchmarks it once listed are
+  gone) and the pwnd re-join on its worst-case input (quadratic until 2026-11-13).
 - gw-worker `bench/startup.bench.ts`: `createApp` — route registration only,
   NOT the MCP server (see the CodSpeed section: it is the noise floor). The
   `bench/http.bench.ts` this list claimed until 2026-08-11 does not exist; the
@@ -754,7 +755,7 @@ were still real. Check the claim, not the citation.
    the margin improved rather than eroded. `limits.cpu_ms` stays unset
    deliberately: it has no effect under Free and a rejected value would fail a
    deploy.
-10. tools/list costs 19 397 characters (~4 850 tokens) of FIXED context
+10. tools/list costs 19 409 characters (~4 850 tokens) of FIXED context
     in every conversation, outputSchemas being ~40% of it (7 805 chars). That is
     a deliberate trade — the schemas carry real contracts locked by the golden
     fixtures — but it is paid by every session, including ones that call a
@@ -789,6 +790,10 @@ were still real. Check the claim, not the citation.
     a hard error, from the tool that had just told it to. The validator was fixed
     that day and the sentence describing it was not; nothing locks prose to rules.
     `get_skill`'s own description also still said "exact English name".
+    A further +12 the same day made one more forwarded sentence true: `get_skill`'s
+    `name` claimed every other name field on every other tool was English-only,
+    while build skill names have resolved French since the table shipped (they go
+    through the same lookup). Locked by a test now.
     Trigger: if a client's
     context budget ever matters, check whether that client forwards
     outputSchema to the model at all before optimising further.
@@ -1197,7 +1202,8 @@ cap. Now 1.0 ms.
 
 - `MAX_PWND_SLOTS = 12` — a team is a player plus seven heroes. Rejecting beats
   truncating: 29 112 slots is not a team.
-- `MAX_PWND_BLOB_LEN = 16384` — the old cap was **817x** a real blob (321 characters
+- `MAX_PWND_BLOB_LEN = 8192` (16384 until 2026-11-13, now derived from the format:
+  see schemas.ts) — the original 256 KiB cap was **817x** a real blob (321 characters
   for four slots). Needed separately: the container parse runs before any slot count
   is known.
 - `MAX_TEMPLATE_CODE_LEN = 128` on the `code` argument only. NOT on pwnd slots — the
@@ -1297,7 +1303,7 @@ the sentence is literally true — check it rather than trusting it when adding 
 Verified byte-identical at the time: `tools/list` was 18 577 characters, and strictness
 survives — an extra property in a structured result is still rejected. It went to 18 809
 when inputs became `.strict()` (see the third-audit entry in the debt register), and is
-**19 397 today, LOCKED by a test** — `conventions.test.ts` asserts the exact character
+**19 409 today, LOCKED by a test** — `conventions.test.ts` asserts the exact character
 count and fails on any movement in either direction.
 
 The lock exists because of how the number drifted. Between 18 809 and the audit of

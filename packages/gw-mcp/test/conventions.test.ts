@@ -374,7 +374,7 @@ describe("tools/list size is a locked, deliberate number (debt #10)", () => {
   // `instructions` is invisible to the many clients that never forward them, and a
   // French substring silently matching nothing is exactly the trap audit L-series
   // told us to document on the field itself.
-  const TOOLS_LIST_CHARS = 19_397;
+  const TOOLS_LIST_CHARS = 19_409;
 
   it("has not drifted, from our side or a dependency's", async () => {
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();

@@ -396,6 +396,39 @@ describe("origin validation and logo", () => {
   });
 });
 
+describe("request analytics only count what the transport will run", () => {
+  it("records no tool point for a tools/call the transport refuses on content type", async () => {
+    // The label was derived from the body before anything checked the content
+    // type, so a text/plain `tools/call get_skill` answered 415 and still counted
+    // as one get_skill call on the public dashboard.
+    const points: { blobs?: string[] }[] = [];
+    const env = { MCP_ANALYTICS: { writeDataPoint: (p: (typeof points)[0]) => points.push(p) } };
+    const body = JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: { name: "get_skill", arguments: { name: "Healing Signet" } },
+    });
+    const send = (contentType: string) =>
+      createApp().request(
+        "/mcp",
+        {
+          method: "POST",
+          headers: { "Content-Type": contentType, Accept: "application/json, text/event-stream" },
+          body,
+        },
+        env,
+      );
+
+    expect((await send("text/plain")).status).toBe(415);
+    expect(points).toEqual([]);
+
+    // Same body, JSON content type: counted, so the gate is not simply off.
+    expect((await send("application/json; charset=utf-8")).status).toBe(200);
+    expect(points.some((p) => p.blobs?.[0] === "tool:get_skill")).toBe(true);
+  });
+});
+
 describe("tool outcome points", () => {
   const call = async (name: string, args: Record<string, unknown>) => {
     const points: { blobs?: string[] }[] = [];

@@ -493,7 +493,11 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
     // optional (absent in local dev/tests) and any parse error is swallowed;
     // analytics must never cost a request.
     const analytics = c.env?.MCP_ANALYTICS;
-    if (analytics && c.req.method === "POST") {
+    // JSON bodies only: the transport answers 415 to anything else, and counting a
+    // `tools/call` it is about to refuse inflated the public tool counters with
+    // calls that never ran (and JSON-parsed a body nothing would ever read).
+    const isJson = (c.req.header("content-type") ?? "").toLowerCase().includes("application/json");
+    if (analytics && c.req.method === "POST" && isJson) {
       try {
         const rpc = (await c.req.raw.clone().json()) as {
           method?: string;

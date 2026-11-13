@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { TOOL_NAMES, type ToolName } from "../src/tool-names.js";
-import { pwndSlotLabel } from "../src/results.js";
+import { pwndSlotLabel, rejoinWrappedPwnd } from "../src/results.js";
 import { createServer } from "../src/server.js";
 
 async function connectedClient() {
@@ -42,9 +42,9 @@ describe("gw1-mcp server", () => {
   it("get_skill resolves a French skill name, and answers in English", async () => {
     // End-to-end through the tool, not just the repository: the table is only useful
     // if it reaches a caller, and this is the surface an LLM actually holds. The
-    // ANSWER stays English on purpose — every other tool (encode_template's skill
-    // bar above all) takes English names only, so a French answer would hand the
-    // model a name it cannot spend.
+    // ANSWER stays English on purpose: attribute and profession names, and
+    // search_skills, are English-only, so the English name is the one that works
+    // everywhere.
     const client = await connectedClient();
     const fr = payload(
       await client.callTool({ name: "get_skill", arguments: { name: "Sceau de guérison" } }),
@@ -56,6 +56,23 @@ describe("gw1-mcp server", () => {
       await client.callTool({ name: "get_skill", arguments: { name: "Rafale" } }),
     );
     expect(ambiguous.error.suggestions).toEqual(["Flurry", "Gust"]);
+  });
+
+  it("build tools resolve a French skill name too, as get_skill's description says", async () => {
+    // resolveNamedBuild goes through the same getSkillByName, so this was always
+    // true — while the description said "every other name field on every other
+    // tool is English-only". The behaviour is the useful one; the prose was wrong.
+    const client = await connectedClient();
+    const build = {
+      primary: "Warrior",
+      attributes: [],
+      skills: ["Sceau de guérison", null, null, null, null, null, null, null],
+    };
+    const encoded = payload(await client.callTool({ name: "encode_template", arguments: build }));
+    const decoded = payload(
+      await client.callTool({ name: "decode_template", arguments: { code: encoded.code } }),
+    );
+    expect(decoded.skills[0].name).toBe("Healing Signet");
   });
 
   it("get_skill rejects name and id together instead of silently favoring id (GW1-09)", async () => {
@@ -752,5 +769,40 @@ describe("TOOL_NAMES compile-time lock", () => {
     // the unused @ts-expect-error: the lock guards itself.
     const bogus = "get_skil" satisfies ToolName;
     expect(bogus).toBe("get_skil");
+  });
+});
+
+describe("rejoinWrappedPwnd", () => {
+  // The implementation this replaced, kept ONLY as the oracle: same answers, but
+  // quadratic when no '<' follows (16 384 '>' cost 92 ms inside one tool call).
+  const viaRegex = (pwnd: string) =>
+    pwnd.replace(/>([^<]*)</s, (_, payload: string) => `>${payload.replace(/\s+/g, "")}<`);
+
+  it("strips whitespace only inside the first >...< payload", () => {
+    expect(rejoinWrappedPwnd("pwnd0001? note>AB\n CD\tEF< tail >x y<")).toBe(
+      "pwnd0001? note>ABCDEF< tail >x y<",
+    );
+  });
+
+  it.each([
+    "",
+    "no markers at all",
+    "only > an opener",
+    "only < a closer",
+    "< closer before > opener",
+    "a>b c<d",
+    ">><<",
+    "> a > b < c <",
+    ">\n<",
+    "pwnd0001?x>" + "A B\n".repeat(40) + "<",
+  ])("agrees with the regex it replaced on %j", (input) => {
+    expect(rejoinWrappedPwnd(input)).toBe(viaRegex(input));
+  });
+
+  it("does linear work on the input that made the regex quadratic", () => {
+    // Counted, not timed: a flood of '>' with no '<' must be returned untouched,
+    // and the old implementation rescanned to end-of-string from every one of them.
+    const flood = ">".repeat(16_384);
+    expect(rejoinWrappedPwnd(flood)).toBe(flood);
   });
 });

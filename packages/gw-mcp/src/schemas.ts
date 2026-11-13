@@ -204,13 +204,18 @@ export const MAX_PWND_SLOTS = 12;
 /**
  * Longest accepted pwnd blob. The previous 256 KiB was 817x larger than needed:
  * a real 4-slot PvX team blob, notes and source URL included, measures 321
- * characters. 16 KiB leaves room for eight slots with long notes and still keeps
- * the container parse — which runs BEFORE the slot cap can apply — cheap.
+ * characters. 8 KiB is derived from the format rather than guessed: a slot is
+ * three codes of at most 63 characters, a player name, a description the upstream
+ * parser caps at 258 bytes (~346 base64 characters) and a few flag bytes — about
+ * 620 characters — so MAX_PWND_SLOTS full slots fit in ~7.5 KiB. It was 16 KiB
+ * until 2026-11-13; the container parse runs BEFORE the slot cap can apply and
+ * is linear in this number (13 ms of filler at 16 KiB under Node), so every
+ * kilobyte past the largest real team only buys an attacker CPU.
  *
  * Both bounds matter. The slot cap stops the handler doing 29 112 decodes; this
  * one stops the upstream container parse being handed 256 KiB in the first place.
  */
-const MAX_PWND_BLOB_LEN = 16384;
+const MAX_PWND_BLOB_LEN = 8192;
 
 /**
  * Tool input schemas live at MODULE scope, not inline in `createServer`.
@@ -232,7 +237,7 @@ const getSkillInput = {
     .max(64)
     .optional()
     .describe(
-      'Exact skill name, e.g. "Mystic Regeneration". The official French name also resolves ("Sceau de guérison" -> Healing Signet); every other name field on every other tool is English-only.',
+      'Exact skill name, e.g. "Mystic Regeneration". The official French name also resolves ("Sceau de guérison" -> Healing Signet); build skill names accept it too; every other name field is English-only.',
     ),
   id: z.number().int().min(0).max(65535).optional().describe("Template skill id"),
 };

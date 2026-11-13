@@ -1,6 +1,7 @@
 import { decodeTemplate } from "@gw1-mcp/gw-template";
 import { describe, test } from "vitest";
 import { describeTemplate, resolveNamedBuild, type NamedBuild } from "../src/build-io.js";
+import { rejoinWrappedPwnd } from "../src/results.js";
 import { createServer } from "../src/server.js";
 import { validateBuild } from "../src/validate.js";
 
@@ -89,5 +90,19 @@ describe("build compiler", () => {
 describe("server construction", () => {
   bench("createServer — 8 tools + 3 resources", () => {
     createServer();
+  });
+});
+
+describe("pwnd input", () => {
+  /**
+   * The largest accepted blob made entirely of '>' — the input on which the regex
+   * this function replaced was quadratic (92 ms at the old 16 KiB cap). It is here
+   * for the same reason as the padded suggester case: an unbounded-work bug is
+   * invisible to a correctness suite and obvious to a benchmark.
+   */
+  const FLOOD = ">".repeat(8192);
+
+  bench("rejoinWrappedPwnd — worst-case '>' flood at the size cap", () => {
+    rejoinWrappedPwnd(FLOOD);
   });
 });

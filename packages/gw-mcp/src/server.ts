@@ -49,7 +49,14 @@ import { PwndTemplate } from "@buildwars/gw-templates";
 import dataMeta from "@gw1-mcp/gw-data/data/_meta.json" with { type: "json" };
 import { describeTemplate, resolveNamedBuild } from "./build-io.js";
 import { validateBuild } from "./validate.js";
-import { fullHero, fullSkill, jsonError, jsonStructured, pwndSlotLabel } from "./results.js";
+import {
+  fullHero,
+  fullSkill,
+  jsonError,
+  jsonStructured,
+  pwndSlotLabel,
+  rejoinWrappedPwnd,
+} from "./results.js";
 
 /**
  * A domain event about one tool call. Deliberately transport-agnostic: this
@@ -286,12 +293,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
       inputSchema: decodePwndInputObject,
     },
     async ({ pwnd }) => {
-      // Re-join line-wrapped payloads: strip all whitespace inside the
-      // base64 section between '>' and '<' (pasted blobs often wrap).
-      const cleaned = pwnd.replace(
-        />([^<]*)</s,
-        (_, payload: string) => `>${payload.replace(/\s+/g, "")}<`,
-      );
+      const cleaned = rejoinWrappedPwnd(pwnd);
       let entries;
       try {
         entries = new PwndTemplate().decode(cleaned);

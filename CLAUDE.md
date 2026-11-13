@@ -223,6 +223,13 @@ this file already argues about in prose:
   same run on main — that is how the batch middleware was cleared: 3.02 ms vs
   3.03 ms p50 for `tools/list`, i.e. free).
 
+Since vitest 5 (2026-11-13) `bench` is a TEST FIXTURE, not a top-level export, so
+each bench file carries a five-line local `bench()` wrapper that registers one
+`test` per benchmark — one benchmark per test on purpose, so each name stays its
+own CodSpeed series. The wrapper is duplicated four times rather than shared
+because gw-template has zero dependencies and a fifth package for five lines is
+worse.
+
 Benchmarks are measured, not asserted: nothing fails on a slow number, the
 report is the signal. Keep them deterministic (no network, no clock, no
 random input) — CodSpeed compares runs, so a benchmark that varies by input
@@ -726,7 +733,7 @@ were still real. Check the claim, not the citation.
    and mutates nothing. Trigger: unusual traffic in the Cloudflare
    analytics, or wanting to share the URL deliberately → add a Cloudflare
    WAF rate-limiting rule or a bearer check in app.ts.
-7. Early-adopter stack: TypeScript 7.0.x and vitest 4 are young majors and
+7. Early-adopter stack: TypeScript 7.0.x and vitest 5 are young majors and
    oxfmt is pre-1.0 (0.58.x, formatting may shift between minors);
    pin-and-wait is the policy if a toolchain regression appears.
 8. Single-maintainer bus factor — mitigated by this file being the actual

@@ -1,14 +1,26 @@
 import { decodeTemplate } from "@gw1-mcp/gw-template";
-import { bench, describe } from "vitest";
+import { describe, test } from "vitest";
 import { describeTemplate, resolveNamedBuild, type NamedBuild } from "../src/build-io.js";
+import { rejoinWrappedPwnd } from "../src/results.js";
 import { createServer } from "../src/server.js";
 import { validateBuild } from "../src/validate.js";
 
 /**
+ * vitest 5 turned `bench` from a top-level export into a test fixture: each
+ * benchmark is now a `test` that registers and runs it. This wrapper keeps the
+ * one-line call sites below, and keeps one benchmark per test so every name
+ * stays a separately tracked CodSpeed series.
+ */
+function bench(name: string, fn: () => void | Promise<void>): void {
+  test(name, async ({ bench: register }) => {
+    await register(name, fn).run();
+  });
+}
+
+/**
  * Two layers are measured: the pure compiler stages (resolve names -> ids,
- * validate against the game rules, enrich a decoded template) and a full
- * tools/call round trip through the MCP SDK, which is what a client actually
- * pays for.
+ * validate against the game rules, enrich a decoded template) and the
+ * construction of the MCP server, which every /mcp request pays for.
  */
 
 /** Critical Scythe Assassin — a legal, full 8-skill bar. */
@@ -78,5 +90,19 @@ describe("build compiler", () => {
 describe("server construction", () => {
   bench("createServer — 8 tools + 3 resources", () => {
     createServer();
+  });
+});
+
+describe("pwnd input", () => {
+  /**
+   * The largest accepted blob made entirely of '>' — the input on which the regex
+   * this function replaced was quadratic (92 ms at the old 16 KiB cap). It is here
+   * for the same reason as the padded suggester case: an unbounded-work bug is
+   * invisible to a correctness suite and obvious to a benchmark.
+   */
+  const FLOOD = ">".repeat(8192);
+
+  bench("rejoinWrappedPwnd — worst-case '>' flood at the size cap", () => {
+    rejoinWrappedPwnd(FLOOD);
   });
 });

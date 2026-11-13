@@ -1,6 +1,18 @@
-import { bench, describe } from "vitest";
+import { describe, test } from "vitest";
 import { decodeTemplate, encodeTemplate } from "../src/index.js";
 import fixtureFile from "../test/fixtures/templates.json";
+
+/**
+ * vitest 5 turned `bench` from a top-level export into a test fixture: each
+ * benchmark is now a `test` that registers and runs it. This wrapper keeps the
+ * one-line call sites below, and keeps one benchmark per test so every name
+ * stays a separately tracked CodSpeed series.
+ */
+function bench(name: string, fn: () => void | Promise<void>): void {
+  test(name, async ({ bench: register }) => {
+    await register(name, fn).run();
+  });
+}
 
 /**
  * The codec is the one piece of this server that runs on every single

@@ -128,3 +128,22 @@ export function pwndSlotLabel(
   const [fromDescription = "", ...rest] = lines;
   return { label: fromDescription, notes: rest.join("\n").trim() || null };
 }
+
+/**
+ * Re-joins a line-wrapped pwnd blob: strips whitespace inside the base64 payload
+ * between the first '>' and the next '<' (pasted blobs often wrap there).
+ *
+ * Two `indexOf` calls, not a regex. The `/>([^<]*)</s` this replaced is quadratic
+ * when no '<' follows — it rescans to end-of-string from every '>' — so 16 KiB of
+ * '>' cost 92 ms of CPU in one tool call, the same unbounded-work class as the
+ * slot-count bug the size caps were added for. A string with no such pair is
+ * returned as is, for the container parser to refuse.
+ */
+export function rejoinWrappedPwnd(pwnd: string): string {
+  const open = pwnd.indexOf(">");
+  const close = open < 0 ? -1 : pwnd.indexOf("<", open + 1);
+  if (close < 0) return pwnd;
+  return (
+    pwnd.slice(0, open + 1) + pwnd.slice(open + 1, close).replace(/\s+/g, "") + pwnd.slice(close)
+  );
+}

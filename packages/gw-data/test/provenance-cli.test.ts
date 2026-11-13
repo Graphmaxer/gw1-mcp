@@ -166,6 +166,57 @@ describe("the workflow invokes the CLI in a cwd-independent way", () => {
     }
   });
 
+  it("applies the import job's patch only to generated files (audit 2026-11-13)", async () => {
+    // The patch crosses the trust boundary the two-job split exists for: it is
+    // produced by the job that runs unpinned upstream code and consumed by the job
+    // that holds contents:write. A bare `git apply` let it rewrite the growth gate
+    // that job then executes. The allowlist is a regex in the workflow's env, so it
+    // is extracted and EXECUTED here against hostile paths — a loosened pattern
+    // fails in this suite, not in a compromised weekly run.
+    const { readFileSync, readdirSync } = await import("node:fs");
+    const yaml = readFileSync(join(REPO_ROOT, ".github/workflows/update-data.yml"), "utf8");
+    const pattern = /^\s*ALLOWED: '([^']+)'$/m.exec(yaml)?.[1];
+    expect(pattern, "the apply step must still declare ALLOWED").toBeDefined();
+    const allowed = new RegExp(pattern!);
+
+    // Everything the import generates must pass, or the weekly job refuses itself.
+    const generated = readdirSync(join(REPO_ROOT, "packages/gw-data/data"))
+      .filter((f) => f !== "heroes-overlay.json")
+      .map((f) => `packages/gw-data/data/${f}`);
+    for (const path of [
+      ...generated,
+      "gwtoolbox-plugin/AccountExport/hero-names.generated.h",
+      "README.md",
+    ]) {
+      expect(allowed.test(path), `${path} must be accepted`).toBe(true);
+    }
+    for (const path of [
+      "packages/gw-data/scripts/description-growth.ts",
+      "packages/gw-data/src/repository.ts",
+      "packages/gw-data/data/heroes-overlay.json", // curated by hand, never generated
+      "packages/gw-data/data/../scripts/description-growth.ts",
+      "packages/gw-data/data/sub/skills.json",
+      "packages/gw-data/data/skills.json.ts",
+      ".github/workflows/update-data.yml",
+      "package.json",
+      "docs/README.md",
+      '"packages/gw-data/data/skills.json"', // git quotes unusual paths
+      "packages/gw-data/data/a.json => packages/gw-data/scripts/b.ts",
+    ]) {
+      expect(allowed.test(path), `${path} must be refused`).toBe(false);
+    }
+
+    // And the step must consult git's own view of the patch BEFORE applying it:
+    // touched paths, plus creates/deletes/renames/mode changes.
+    const step = yaml.slice(yaml.indexOf("Apply the imported data"));
+    const applyAt = step.indexOf("\n          git apply /tmp/data-update.patch");
+    expect(applyAt, "the patch must still be applied").toBeGreaterThan(0);
+    const before = step.slice(0, applyAt);
+    expect(before).toContain("git apply --numstat /tmp/data-update.patch");
+    expect(before).toContain("git apply --summary /tmp/data-update.patch");
+    expect(before).toContain("exit 1");
+  });
+
   it("never lets the npm fallback downgrade Pages-sourced data (run #26)", async () => {
     // Run #26 (2026-09-28): the Pages import was refused, the fallback rewrote
     // skills.json from npm 2.0.0 — 31 skills behind Pages — and the job died on a

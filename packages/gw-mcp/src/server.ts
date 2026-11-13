@@ -27,6 +27,7 @@ import { z } from "zod";
 import {
   getAttributeByName,
   suggestAttributeNames,
+  suggestHeroNames,
   suggestProfessionNames,
   getHeroById,
   getHeroByName,
@@ -49,7 +50,14 @@ import { PwndTemplate } from "@buildwars/gw-templates";
 import dataMeta from "@gw1-mcp/gw-data/data/_meta.json" with { type: "json" };
 import { describeTemplate, resolveNamedBuild } from "./build-io.js";
 import { validateBuild } from "./validate.js";
-import { fullHero, fullSkill, jsonError, jsonStructured, pwndSlotLabel } from "./results.js";
+import {
+  fullHero,
+  fullSkill,
+  jsonError,
+  jsonStructured,
+  pwndSlotLabel,
+  rejoinWrappedPwnd,
+} from "./results.js";
 
 /**
  * A domain event about one tool call. Deliberately transport-agnostic: this
@@ -62,6 +70,21 @@ import { fullHero, fullSkill, jsonError, jsonStructured, pwndSlotLabel } from ".
  * consumer to record somewhere public, and it is the same rule the worker
  * already applies to tool names.
  */
+
+/** Serialised once: the roster is static data, and this was rebuilt on every read. */
+const heroesResourceJson = JSON.stringify(heroes.map(fullHero), null, 2);
+
+/** One shape for a filter value that names no profession, on every tool that takes one. */
+const unknownProfession = (name: string) =>
+  jsonError("UNKNOWN_PROFESSION", `Unknown profession ${JSON.stringify(name)}`, {
+    suggestions: suggestProfessionNames(name),
+  });
+
+/** Same for campaigns: five names, so the suggestion is simply all of them. */
+const unknownCampaign = (name: string) =>
+  jsonError("UNKNOWN_CAMPAIGN", `Unknown campaign ${JSON.stringify(name)}`, {
+    suggestions: campaigns.map((c) => c.name),
+  });
 
 /**
  * The gw1://meta payload, serialized once at module scope (a resource read must
@@ -132,7 +155,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
     {
       title: "Get a Guild Wars 1 skill",
       description:
-        "Look up a single GW1 skill by exact English name or by template skill id. Returns full stats (energy, activation, recharge, adrenaline, sacrifice), profession, attribute, campaign, elite flag and description. If the name is not found, returns the closest matches so you can correct spelling. Use this when you already know the exact skill; to discover skills by profession, attribute or name fragment, use search_skills instead.",
+        "Look up a single GW1 skill by exact English or official French name, or by template skill id. Returns full stats (energy, activation, recharge, adrenaline, sacrifice), profession, attribute, campaign, elite flag and description. If the name is not found, returns the closest matches so you can correct spelling. Use this when you already know the exact skill; to discover skills by profession, attribute or name fragment, use search_skills instead.",
       annotations: READ_ONLY,
       outputSchema: fullSkillShapeObject,
       inputSchema: getSkillInputObject,
@@ -189,12 +212,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
         if (/^none$/i.test(professionName)) filters.professionId = 0;
         else {
           const profession = getProfessionByName(professionName);
-          if (!profession)
-            return jsonError(
-              "UNKNOWN_PROFESSION",
-              `Unknown profession ${JSON.stringify(professionName)}`,
-              { suggestions: suggestProfessionNames(professionName) },
-            );
+          if (!profession) return unknownProfession(professionName);
           filters.professionId = profession.id;
         }
       }
@@ -213,10 +231,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
       }
       if (campaignName !== undefined) {
         const campaign = getCampaignByName(campaignName);
-        if (!campaign)
-          return jsonError("UNKNOWN_CAMPAIGN", `Unknown campaign ${JSON.stringify(campaignName)}`, {
-            suggestions: campaigns.map((c) => c.name),
-          });
+        if (!campaign) return unknownCampaign(campaignName);
         filters.campaignId = campaign.id;
       }
       if (elite !== undefined) filters.elite = elite;
@@ -286,12 +301,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
       inputSchema: decodePwndInputObject,
     },
     async ({ pwnd }) => {
-      // Re-join line-wrapped payloads: strip all whitespace inside the
-      // base64 section between '>' and '<' (pasted blobs often wrap).
-      const cleaned = pwnd.replace(
-        />([^<]*)</s,
-        (_, payload: string) => `>${payload.replace(/\s+/g, "")}<`,
-      );
+      const cleaned = rejoinWrappedPwnd(pwnd);
       let entries;
       try {
         entries = new PwndTemplate().decode(cleaned);
@@ -360,11 +370,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
       const resolution = resolveNamedBuild(build);
       if (!resolution.template) return jsonStructured({ errors: resolution.errors });
 
-      const validation = validateBuild(resolution.template, {
-        forHero,
-        forPvp,
-        ...(unlockedSkillIds !== undefined ? { unlockedSkillIds } : {}),
-      });
+      const validation = validateBuild(resolution.template, { forHero, forPvp, unlockedSkillIds });
       if (!validation.valid) return jsonStructured(validation);
 
       try {
@@ -397,11 +403,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
         return jsonStructured({ valid: false, errors: resolution.errors, warnings: [] });
       }
       return jsonStructured(
-        validateBuild(resolution.template, {
-          forHero,
-          forPvp,
-          ...(unlockedSkillIds !== undefined ? { unlockedSkillIds } : {}),
-        }),
+        validateBuild(resolution.template, { forHero, forPvp, unlockedSkillIds }),
       );
     },
   );
@@ -431,7 +433,9 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
       const hero =
         name !== undefined ? getHeroByName(name) : id !== undefined ? getHeroById(id) : undefined;
       if (!hero) {
-        return jsonError("NOT_FOUND", `No hero matching ${JSON.stringify(name ?? id)}`);
+        return jsonError("NOT_FOUND", `No hero matching ${JSON.stringify(name ?? id)}`, {
+          suggestions: name !== undefined ? suggestHeroNames(name) : [],
+        });
       }
       return jsonStructured(fullHero(hero));
     },
@@ -451,20 +455,12 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
       let results = heroes;
       if (professionName !== undefined) {
         const profession = getProfessionByName(professionName);
-        if (!profession)
-          return jsonError(
-            "UNKNOWN_PROFESSION",
-            `Unknown profession ${JSON.stringify(professionName)}`,
-            { suggestions: suggestProfessionNames(professionName) },
-          );
+        if (!profession) return unknownProfession(professionName);
         results = results.filter((h) => h.professionId === profession.id);
       }
       if (campaignName !== undefined) {
         const campaign = getCampaignByName(campaignName);
-        if (!campaign)
-          return jsonError("UNKNOWN_CAMPAIGN", `Unknown campaign ${JSON.stringify(campaignName)}`, {
-            suggestions: campaigns.map((c) => c.name),
-          });
+        if (!campaign) return unknownCampaign(campaignName);
         results = results.filter((h) => h.campaignId === campaign.id);
       }
       return jsonStructured({
@@ -518,7 +514,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
       contents: [
         {
           uri: uri.href,
-          text: JSON.stringify(heroes.map(fullHero), null, 2),
+          text: heroesResourceJson,
         },
       ],
     }),

@@ -383,6 +383,10 @@ describe("PvP/PvE split skills — proven in game 2026-08-01", () => {
       { ...REAL_PVP_TEMPLATE, skills: [23, 0, 0, 0, 0, 0, 0, 0] } as never,
       { forPvp: true } as never,
     );
+    // On `errors`: this rule has never produced a warning, so the assertion that
+    // stood here until 2026-11-13 (on `warnings`) passed with the rule firing on
+    // every skill in the game.
+    expect(report.errors.map((e) => e.code)).not.toContain("PVP_VERSION_IN_TEMPLATE");
     expect(report.warnings.map((w) => w.code)).not.toContain("PVP_VERSION_IN_TEMPLATE");
   });
 });

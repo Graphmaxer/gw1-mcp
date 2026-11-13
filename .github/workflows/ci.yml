@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: pnpm
@@ -35,12 +35,29 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm knip
+
+  # The bundle wrangler really builds, on the runtime that really serves it. The
+  # test job runs createApp() under Node; this starts `wrangler dev --local` and
+  # speaks HTTP to real workerd (see scripts/smoke.ts for the three times the
+  # difference mattered). About twenty requests, well under the emulated rate limit.
+  smoke-workerd:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @gw1-mcp/gw-worker smoke
 
   test:
     runs-on: ubuntu-latest
@@ -49,7 +66,7 @@ jobs:
       # No version here: pnpm/action-setup reads the packageManager field
       # from package.json (specifying both makes the action fail).
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
@@ -68,6 +85,15 @@ jobs:
           ./core_tests
           gcovr --lcov cpp-coverage.lcov --filter 'gwtoolbox-plugin/'
           rm -f core_tests ./*.gcda ./*.gcno
+      - name: C++ plugin core tests under ASan + UBSan
+        # The same tests, a second build. This code turns game memory into JSON
+        # (UTF-16 conversion, escaping, a bitfield walk) and GW1-03 was an
+        # out-of-bounds write in exactly that path: a test that passes while
+        # reading one byte past a buffer is what the sanitizers exist to fail.
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -g -fsanitize=address,undefined -fno-sanitize-recover=all -o core_tests_san gwtoolbox-plugin/tests/core_tests.cpp
+          ./core_tests_san
+          rm -f core_tests_san
       - name: Tests (with lcov coverage for Codecov)
         # Also runs the MCP Registry schema validation (registry-schema.test.ts).
         run: pnpm -r run test --coverage.enabled=true --coverage.reporter=lcov --coverage.reporter=text --reporter=default --reporter=junit --outputFile.junit=test-report.junit.xml

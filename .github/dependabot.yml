@@ -19,6 +19,14 @@ updates:
     commit-message:
       prefix: deps # matches the release-please changelog "Dependencies" section
     groups:
+      # Listed FIRST (a dependency joins the first group that matches) and with
+      # no update-types, so MAJORS are included. These three only move together:
+      # @vitest/coverage-v8 peers on the exact vitest version and the CodSpeed
+      # plugin peers on a vitest major range, so an ungrouped major bump of any
+      # one of them is unresolvable on its own: vitest 5.0.0 shipped 2026-09-03
+      # and no PR appeared for ten weeks, so that major was done by hand.
+      vitest-toolchain:
+        patterns: ["vitest", "@vitest/*", "@codspeed/vitest-plugin"]
       minor-and-patch:
         update-types: ["minor", "patch"]
   - package-ecosystem: github-actions

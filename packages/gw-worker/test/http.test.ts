@@ -396,6 +396,39 @@ describe("origin validation and logo", () => {
   });
 });
 
+describe("request analytics only count what the transport will run", () => {
+  it("records no tool point for a tools/call the transport refuses on content type", async () => {
+    // The label was derived from the body before anything checked the content
+    // type, so a text/plain `tools/call get_skill` answered 415 and still counted
+    // as one get_skill call on the public dashboard.
+    const points: { blobs?: string[] }[] = [];
+    const env = { MCP_ANALYTICS: { writeDataPoint: (p: (typeof points)[0]) => points.push(p) } };
+    const body = JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: { name: "get_skill", arguments: { name: "Healing Signet" } },
+    });
+    const send = (contentType: string) =>
+      createApp().request(
+        "/mcp",
+        {
+          method: "POST",
+          headers: { "Content-Type": contentType, Accept: "application/json, text/event-stream" },
+          body,
+        },
+        env,
+      );
+
+    expect((await send("text/plain")).status).toBe(415);
+    expect(points).toEqual([]);
+
+    // Same body, JSON content type: counted, so the gate is not simply off.
+    expect((await send("application/json; charset=utf-8")).status).toBe(200);
+    expect(points.some((p) => p.blobs?.[0] === "tool:get_skill")).toBe(true);
+  });
+});
+
 describe("tool outcome points", () => {
   const call = async (name: string, args: Record<string, unknown>) => {
     const points: { blobs?: string[] }[] = [];
@@ -549,6 +582,42 @@ describe("client attribution on initialize", () => {
   it("marks a missing or empty name rather than writing nothing", async () => {
     expect(await send({ version: "1.0" })).toBe("_unnamed");
     expect(await send({ name: "***" })).toBe("_unnamed");
+  });
+});
+
+describe("analytics labels are an allow-list, never caller text", () => {
+  // The privacy page says no free text is recorded, and the dashboard is public:
+  // writing the REQUESTED tool or method name instead of a fixed bucket survived
+  // the whole suite, so the claim was true and unguarded.
+  const labelsFor = async (rpc: Record<string, unknown>) => {
+    const points: { blobs?: string[]; indexes?: string[] }[] = [];
+    const env = { MCP_ANALYTICS: { writeDataPoint: (p: (typeof points)[0]) => points.push(p) } };
+    await createApp().request(
+      "/mcp",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json, text/event-stream",
+        },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, ...rpc }),
+      },
+      env,
+    );
+    return points.flatMap((p) => [...(p.blobs ?? []), ...(p.indexes ?? [])]);
+  };
+
+  it("buckets an unknown tool name", async () => {
+    const hostile = "<img src=x onerror=alert(1)>";
+    const labels = await labelsFor({ method: "tools/call", params: { name: hostile } });
+    expect(labels).toContain("tool:_unknown");
+    expect(labels.join("|")).not.toContain("img");
+  });
+
+  it("buckets an unknown method name", async () => {
+    const labels = await labelsFor({ method: "evil/<script>" });
+    expect(labels).toContain("rpc:_other");
+    expect(labels.join("|")).not.toContain("script");
   });
 });
 
@@ -709,6 +778,31 @@ describe("rate limiting", () => {
       expect(body.error.message).toMatch(/batching is not supported/);
     });
   }
+
+  it.each([" [", "\n\t [", "\r\n["])(
+    "rejects a batch hidden behind leading whitespace (%j)",
+    async (prefix) => {
+      // JSON allows whitespace before the top-level value and the transport parses
+      // it happily, so anchoring the check on a literal "[" would hand the whole
+      // amplification path back: this body answered 200 with three results under
+      // that mutation, and no test noticed.
+      const batch = Array.from({ length: 3 }, (_, i) => ({
+        jsonrpc: "2.0",
+        id: i,
+        method: "tools/list",
+      }));
+      const res = await createApp().request("/mcp", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json, text/event-stream",
+        },
+        body: prefix.slice(0, -1) + JSON.stringify(batch),
+      });
+      expect(res.status).toBe(400);
+      expect((await res.json()).error.code).toBe(-32600);
+    },
+  );
 
   it("still rejects an oversized batch as 413, not as a batch (order matters)", async () => {
     // bodyLimit must stay AHEAD of the batch check: otherwise a huge body gets

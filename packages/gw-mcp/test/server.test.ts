@@ -17,6 +17,10 @@ function payload(result: Awaited<ReturnType<Client["callTool"]>>) {
   return JSON.parse(content[0]!.text);
 }
 
+/** Verbatim from the PvX page rendering, including wrap-induced spaces. */
+const PVX_DISCORDWAY =
+  "pwnd0001?download pawned2 @ Copyright 2008-2018 Redeemer >XOwBR4ZymcBaXMmEAAAAAAAAAAAAAABXUGxheWVyCmh0dHBzOi8vZ3dwdnguZ2FtZXBlZGlhLmNvbS9 CdWlsZDpUZWFtXy1fM19IZXJvX0Rpc2NvcmR3YXkZOAhjUoGYIPxsjaGTaO5GmjzLGAAAACEIAAKSGVy byAxCgbOAhkUsG3RFuTMzOgIkmTuhJ1+iBAAAACEJAAKSGVybyAyCgZOANDUshvSxMVBoBbhKg3V1DBE AAAACEIAAKSGVybyAzCg<";
+
 describe("gw1-mcp server", () => {
   it("registers exactly TOOL_NAMES — set equality in both directions", async () => {
     // `satisfies ToolName` on every registration proves registered ⊆ TOOL_NAMES
@@ -276,15 +280,20 @@ describe("paw-ned2 team decoding", () => {
     // `base64_chr(str.length)`, decode does `read(base64_ord(read(1)))` — so 63 is
     // the structural maximum, below any bound worth writing. A 128-character check
     // added here was unreachable, which is exactly why Codecov reported it uncovered.
+    //
+    // Asserted on a REAL team, and on how many codes were looked at: the filler
+    // blob this used until 2026-11-13 parsed into 67 slots, was refused with
+    // TOO_MANY_SLOTS, and so matched zero codes — a loop with no iterations.
     const client = await connectedClient();
     const res = await client.callTool({
       name: "decode_pawned_team",
-      arguments: { pwnd: `pwnd0001?download pawned2 >${"A".repeat(600)}<` },
+      arguments: { pwnd: PVX_DISCORDWAY },
     });
-    // Whatever the outcome, no slot may carry a code longer than the format allows.
-    const text = JSON.stringify(res);
-    for (const match of text.matchAll(/"skillsCode":"([^"]*)"/g)) {
-      expect((match[1] ?? "").length).toBeLessThanOrEqual(63);
+    const codes: string[] = payload(res).builds.map((b: { skillsCode: string }) => b.skillsCode);
+    expect(codes).toHaveLength(4);
+    for (const code of codes) {
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.length).toBeLessThanOrEqual(63);
     }
   });
 
@@ -309,8 +318,7 @@ describe("paw-ned2 team decoding", () => {
   it("decodes a real PvXwiki team blob (3 Hero Discordway) despite line wraps", async () => {
     const client = await connectedClient();
     // Verbatim from the PvX page rendering, including wrap-induced spaces.
-    const pwnd =
-      "pwnd0001?download pawned2 @ Copyright 2008-2018 Redeemer >XOwBR4ZymcBaXMmEAAAAAAAAAAAAAABXUGxheWVyCmh0dHBzOi8vZ3dwdnguZ2FtZXBlZGlhLmNvbS9 CdWlsZDpUZWFtXy1fM19IZXJvX0Rpc2NvcmR3YXkZOAhjUoGYIPxsjaGTaO5GmjzLGAAAACEIAAKSGVy byAxCgbOAhkUsG3RFuTMzOgIkmTuhJ1+iBAAAACEJAAKSGVybyAyCgZOANDUshvSxMVBoBbhKg3V1DBE AAAACEIAAKSGVybyAzCg<";
+    const pwnd = PVX_DISCORDWAY;
     const result = payload(
       await client.callTool({ name: "decode_pawned_team", arguments: { pwnd } }),
     );
@@ -552,6 +560,9 @@ describe("remaining tool surfaces", () => {
       }),
     );
     expect(JSON.stringify(res)).toContain("Avatar of Balthazar");
+    // "Contains the one I expect" passes with every filter deleted. That each
+    // filter actually narrows is asserted, exactly, in contract.test.ts.
+    expect(res.total).toBeLessThan(10);
   });
 
   it("search_skills paginates with offset without changing total", async () => {

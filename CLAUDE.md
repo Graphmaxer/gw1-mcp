@@ -897,7 +897,52 @@ since 2019; see Data maintenance.)
     Gust). These do not resolve at all; the suggester returns BOTH English names,
     so the caller picks instead of the server guessing.
 
-## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-10-05)
+## Current status (update the date when you touch this section — stale status is worse than none; updated 2026-11-13)
+
+**2026-11-13: a SIXTH audit, six parts run in parallel (CI/supply chain, runtime
+code, documentation drift, game rules and freshness, clean code, C++ plugin and
+test quality), plus the live server used as a client would.** The game logic held
+again: 38 realistic bars against the validator with zero disagreements, 18 recently
+patched skills identical to their wiki infoboxes, every skill change of the last
+game updates present (the last one touching skills is 2026-09-01), the C++ core
+clean under ASan/UBSan. What it found, in the order it mattered:
+
+- **The two-job split of `update-data.yml` had a door in it.** The import job runs
+  unpinned upstream code and hands `open-pr` a patch; `open-pr` applied it with a
+  bare `git apply` and then EXECUTED `description-growth.ts` from the patched tree,
+  in the job holding contents:write and the app token. A hostile patch could
+  rewrite the gate, have it print `changed=false` and auto-merge arbitrary source.
+  The patch is now treated as what it is, attacker-controlled input: only content
+  edits to the eight generated data files, the hero header and README, judged by
+  git's own `--numstat`/`--summary`, failing closed on an empty allowlist. The
+  isolation protected the secrets FROM the import and never asked what the import
+  could send back.
+- **`decode_pawned_team` was quadratic on hostile input** — `/>([^<]*)</s` over
+  16 KiB of `>` cost 92 ms. Same family as the slot-count bug: something unbounded,
+  invisible to a correctness suite. Two `indexOf` calls now, with a benchmark.
+- **Two forwarded descriptions contradicted the validator** (`forPvp`, and the
+  English-only claim on build skill names). See debt #10.
+- **Mutation testing found the suite blind in places it looked covered.** Hard-coding
+  `forHero: false` in a handler, deleting the attribute filter of `search_skills`,
+  changing `> 200` to `>= 200`, swapping energy and recharge in a decoded bar,
+  anchoring the batch check on a literal `[`: 451 tests stayed green through every
+  one. Three tests could not fail at all (one asserted on `warnings` for a rule
+  that only emits errors; one looped over zero matches). `contract.test.ts` now
+  checks answers against the DATA, exactly, and each of those mutants was re-run
+  and dies. Line coverage said 97%; coverage counts lines executed, not claims
+  checked.
+- **Using the server found what reading it did not**: `get_hero` on a typo returned
+  nothing to retry on. Suggestions added.
+
+New and worth knowing: `scripts/smoke.ts` runs 22 HTTP checks against real workerd
+on every PR; there are NO dependency overrides left (the lockfile alone resolves
+patched versions, `pnpm audit` at zero); vitest 5 moved `bench` to a fixture; the
+plugin build runs on PRs that touch `pins.env`.
+
+Process note, because it cost twenty minutes: two audit sub-agents working in /tmp
+copies had symlinked `node_modules` back into this repo, and a `pnpm` run in the
+copy repointed the REAL workspace links at /tmp. Typecheck then failed on a symbol
+that plainly existed. A scratch copy needs its own `node_modules`.
 
 **2026-10-05: weekly run #26 (2026-09-28) failed because upstream RENUMBERED its
 non-template attribute ids, and the npm fallback then tried to downgrade the data.**
@@ -1064,7 +1109,7 @@ the code, so they are not a surprise:
   registered on `/mcp` — one middleware that skipped it is the reason.
 - The suggesters and `searchSkills` return nothing for a query that normalises
   to nothing, instead of the whole dataset or three plausible wrong names.
-- Suite is 436 tests (107 / 130 / 127 / 72) as of 2026-10-05.
+- Suite is 475 tests (107 / 133 / 157 / 78) as of 2026-11-13.
 
 A SELF-audit followed on 2026-08-11 — probes and sweeps rather than reading — and
 its lesson is where to look next. The core did not yield: ~1900 generated cases

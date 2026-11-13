@@ -85,6 +85,15 @@ jobs:
           ./core_tests
           gcovr --lcov cpp-coverage.lcov --filter 'gwtoolbox-plugin/'
           rm -f core_tests ./*.gcda ./*.gcno
+      - name: C++ plugin core tests under ASan + UBSan
+        # The same tests, a second build. This code turns game memory into JSON
+        # (UTF-16 conversion, escaping, a bitfield walk) and GW1-03 was an
+        # out-of-bounds write in exactly that path: a test that passes while
+        # reading one byte past a buffer is what the sanitizers exist to fail.
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -g -fsanitize=address,undefined -fno-sanitize-recover=all -o core_tests_san gwtoolbox-plugin/tests/core_tests.cpp
+          ./core_tests_san
+          rm -f core_tests_san
       - name: Tests (with lcov coverage for Codecov)
         # Also runs the MCP Registry schema validation (registry-schema.test.ts).
         run: pnpm -r run test --coverage.enabled=true --coverage.reporter=lcov --coverage.reporter=text --reporter=default --reporter=junit --outputFile.junit=test-report.junit.xml

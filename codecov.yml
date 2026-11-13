@@ -1,6 +1,6 @@
 # Coverage policy (took over from the deleted coverage-summary.mjs floors).
 # Component-level targets track src-only coverage per package; scripts are
-# untested by design (see CLAUDE.md). Raise targets as coverage improves;
+# untested by design (see docs/handbook/conventions.md). Raise targets as coverage improves;
 # never lower without a written why.
 # wait_for_ci: false is REQUIRED for bot-pushed commits (gw1-mcp-bot release
 # PRs): with the default (true), Codecov processes uploads but never sends

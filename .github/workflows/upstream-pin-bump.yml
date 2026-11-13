@@ -14,7 +14,7 @@ name: Upstream pin bump
 # VCPKG_COMMIT is intentionally NOT watched here: vcpkg master moves dozens of
 # times a day and is a frozen build toolchain, not a feature source — tracking
 # it would spam noise PRs. It is bumped by hand only when a dependency needs a
-# newer baseline (documented in CLAUDE.md's manual-pin registry).
+# newer baseline (documented in the manual-pin registry, docs/handbook/releasing.md).
 #
 # Deliberately NO auto-merge: a supply-chain pin bump needs a human. For
 # mcp-publisher the PR recomputes the two SHA-256 digests and prints them in

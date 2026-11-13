@@ -48,7 +48,7 @@ const frenchNames = frenchNamesJson as Record<string, string>;
  * French name -> skill, for EXACT lookup. Two classes of French name are refused.
  *
  *  - a French name whose normalised form is already an English name. English names
- *    are the primary key (see the naming conventions in CLAUDE.md), so no alias may
+ *    are the primary key (see docs/handbook/data-pipeline.md), so no alias may
  *    change what an English name resolves to. Real case: "Récupération" is the
  *    French name of Recovery (1748) and normalises to `recuperation`, the English
  *    name of Recuperation (981). Consequence, accepted knowingly: a caller typing

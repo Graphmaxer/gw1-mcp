@@ -1,9 +1,10 @@
 # Contributing
 
 Thanks for your interest! This project is small and opinionated; most of
-what you need to know lives in **[CLAUDE.md](./CLAUDE.md)** — it is the
-actual source of truth: architecture, data provenance rules, internal
-conventions, the coverage expectations, and an honest register of known
+what you need to know lives in **[CLAUDE.md](./CLAUDE.md)** (the rules in
+force) and **[docs/handbook](./docs/handbook)** (why they exist): architecture,
+data provenance rules, internal conventions, the coverage expectations, and an
+honest register of known
 debts. Read it before proposing changes; it will answer most "why is it
 done this way" questions.
 
@@ -17,7 +18,7 @@ pnpm -r typecheck   # TypeScript 7 (native), zero errors expected
 pnpm -r test        # vitest, all packages (CI reports the count)
 pnpm lint           # oxlint
 pnpm fmt            # oxfmt (CI runs fmt:check)
-pnpm test:coverage  # reference levels are documented in CLAUDE.md
+pnpm test:coverage  # reference levels: docs/handbook/conventions.md
 pnpm bench          # vitest bench, all packages (CodSpeed measures these in CI)
 ```
 
@@ -35,7 +36,7 @@ runs the worker locally.
   four independent encoders). Never "fix" a fixture to make code pass;
   fixtures are the reference, the code is the hypothesis.
 - Generated data files (`packages/gw-data/data/*.json`) are never edited
-  by hand — see the provenance rules in CLAUDE.md. Hero metadata belongs
+  by hand — see the provenance rules in docs/handbook/releasing.md. Hero metadata belongs
   in `data/heroes-overlay.json`.
 - Tool-level failures use the `jsonError` helper (MCP `isError` flag).
 - Importing any module must never trigger I/O; executables guard their
@@ -55,8 +56,9 @@ GitHub, and the MCP Registry metadata updates automatically.
 Keep them small and focused. CI runs lint, format check, typecheck, the
 full test suite and a wrangler dry-run on every PR — a green CI plus a
 sentence explaining the "why" is usually all a review needs. If your
-change adds a known limitation, add it to the debt register in CLAUDE.md
-with its action trigger; honesty there is a feature.
+change adds a known limitation, add it to the debt register
+(`docs/handbook/debts.md`, plus one line in the index in CLAUDE.md) with its
+action trigger; honesty there is a feature.
 
 ## Dead code (`pnpm knip`)
 

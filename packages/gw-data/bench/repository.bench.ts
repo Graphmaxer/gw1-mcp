@@ -33,7 +33,7 @@ function bench(name: string, fn: () => void | Promise<void>): void {
  * 0.2295 ms, and the other two suggestion queries +8% and +24%. CodSpeed reported
  * -72.24% on that same query for that same import, with its "different runtime
  * environments" warning attached — the signature of the false positive the CodSpeed
- * section in CLAUDE.md documents. The `benchmarks` JOB was green; only the
+ * section in docs/handbook/runtime.md documents. The `benchmarks` JOB was green; only the
  * dashboard-side check was red.
  *
  * The count is deliberately not written into this comment (the doc-count lock reads

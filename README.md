@@ -125,8 +125,8 @@ are flagged. Windows build instructions in
 
 ## Roadmap
 
-Upstreaming the account export into GWToolbox itself. See `CLAUDE.md` for the
-full architecture notes, including the ideas that were considered and declined.
+Upstreaming the account export into GWToolbox itself. See
+`docs/handbook/decisions.md` for the ideas that were considered and declined.
 
 ---
 
@@ -147,8 +147,9 @@ pnpm install && pnpm -r test
 Node >= 22.18 (or 24), pnpm 12. Nothing builds to dist — exports point at the .ts
 sources and the worker bundles via wrangler. See
 [CONTRIBUTING.md](./CONTRIBUTING.md) to get started and
-[CLAUDE.md](./CLAUDE.md) for the full architecture, conventions and the
-honest register of known debts.
+[CLAUDE.md](./CLAUDE.md) for the architecture and the rules in force; the
+reasoning behind them, the audit history and the honest register of known debts
+are in [docs/handbook](./docs/handbook).
 
 ## License
 

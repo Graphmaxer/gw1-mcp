@@ -112,7 +112,7 @@ importers:
         version: 5.7.1(tinybench@2.9.0)(vite@8.1.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(vitest@4.1.11)
       '@hono/node-server':
         specifier: ^2.0.10
-        version: 2.1.3(hono@4.13.17)
+        version: 2.1.6(hono@4.13.17)
       '@types/node':
         specifier: ^26.6.4
         version: 26.6.4
@@ -546,6 +546,12 @@ packages:
 
   '@hono/node-server@2.1.3':
     resolution: {integrity: sha512-TA//nWMqPhbfdfneACk6t5a9eqbS9lABEPyKn0/xZTah3H3U2XaVg85rJFl0/Fyit0I552YDHgXGVSf3GwqbUw==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      hono: ^4.12.34
+
+  '@hono/node-server@2.1.6':
+    resolution: {integrity: sha512-p/KH9MnfNcsm3sR6x4lNgm5j+QN4Et8srKredl9DZfXiyZ1UQ3aQ2YVpFLbqktYN5JI+DB+VZFKM2PqE5hLKjQ==}
     engines: {node: '>=20'}
     peerDependencies:
       hono: ^4.12.34
@@ -2738,7 +2744,7 @@ snapshots:
     dependencies:
       hono: 4.13.13
 
-  '@hono/node-server@2.1.3(hono@4.13.17)':
+  '@hono/node-server@2.1.6(hono@4.13.17)':
     dependencies:
       hono: 4.13.17
 

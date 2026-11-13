@@ -6,7 +6,7 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
-    # Mirrors pnpm 11's own minimumReleaseAge default (1 day, unconfigured by
+    # Mirrors pnpm's own minimumReleaseAge default since pnpm 11 (1 day, unconfigured by
     # us — see CLAUDE.md). Without this, Dependabot proposes a PR the moment
     # a version publishes, then CI fails with
     # ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION because pnpm won't resolve it

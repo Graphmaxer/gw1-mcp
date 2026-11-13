@@ -378,6 +378,10 @@ describe("resources and error surfaces", () => {
     );
     expect(typo.error.code).toBe("NOT_FOUND");
     expect(typo.error.suggestions[0]).toBe("Master of Whispers");
+    // A miss by ID has no name to be close to: same code, nothing to suggest.
+    const byId = payload(await client.callTool({ name: "get_hero", arguments: { id: 250 } }));
+    expect(byId.error.code).toBe("NOT_FOUND");
+    expect(byId.error.suggestions ?? []).toEqual([]);
     const nf = await client.callTool({
       name: "list_heroes",
       arguments: { campaignName: "Nightfall" },

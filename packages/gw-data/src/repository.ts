@@ -164,15 +164,19 @@ export function searchSkills(filters: SkillSearchFilters): Skill[] {
   // return the whole non-PvP dataset presented as search hits (audit L8, same
   // family as the empty-needle guard in closest() below).
   if (needle !== undefined && needle.length === 0) return [];
-  return skills.filter(
-    (s) =>
-      (filters.includePvpVersions === true || !s.isPvpVersion) &&
-      (filters.professionId === undefined || s.professionId === filters.professionId) &&
-      (filters.attributeId === undefined || s.attributeId === filters.attributeId) &&
-      (filters.campaignId === undefined || s.campaignId === filters.campaignId) &&
-      (filters.elite === undefined || s.elite === filters.elite) &&
-      (needle === undefined || normalizedSkillName(s).includes(needle)),
-  );
+  const matches = (s: Skill) =>
+    (filters.includePvpVersions === true || !s.isPvpVersion) &&
+    (filters.professionId === undefined || s.professionId === filters.professionId) &&
+    (filters.attributeId === undefined || s.attributeId === filters.attributeId) &&
+    (filters.campaignId === undefined || s.campaignId === filters.campaignId) &&
+    (filters.elite === undefined || s.elite === filters.elite);
+  if (needle === undefined) return skills.filter(matches);
+  // A name search walks the suggester's lazy index, which already holds every
+  // normalised name in `skills` order: re-normalising all of them per call cost
+  // 0.53 ms against 0.065 ms this way. Filter-only searches never build it.
+  return englishSearchIndex()
+    .filter(({ item, normalized }) => normalized.includes(needle) && matches(item))
+    .map(({ item }) => item);
 }
 
 /** Longest query we will run fuzzy matching on — beyond this, skip suggestions
@@ -313,20 +317,6 @@ let heroSearchIndex: Searchable<Hero>[] | undefined;
 function englishSearchIndex(): Searchable<Skill>[] {
   skillSearchIndex ??= indexFor(skills, (s) => s.name);
   return skillSearchIndex;
-}
-
-/**
- * Normalised English name per skill, shared with the suggester's lazy index.
- * `searchSkills({ nameContains })` used to re-normalise every name on every call
- * (0.53 ms); reading them from the index the suggester builds anyway is 0.065 ms.
- * Filter-only searches never touch it, so they never pay for the build.
- */
-let normalizedNameBySkill: Map<Skill, string> | undefined;
-function normalizedSkillName(skill: Skill): string {
-  normalizedNameBySkill ??= new Map(
-    englishSearchIndex().map(({ item, normalized }) => [item, normalized]),
-  );
-  return normalizedNameBySkill.get(skill) ?? normalizeName(skill.name);
 }
 
 export function suggestAttributeNames(name: string, count = 3): string[] {

@@ -12,7 +12,7 @@ Verified in the source, not asserted:
    `professions.json`, `attributes.json`, `skill-types.json`, `skills.json` and
    `heroes.json` as static modules. There is no runtime fetch anywhere in the tool
    packages — `grep -rn "fetch(" packages/gw-mcp/src packages/gw-data/src
-packages/gw-template/src` returns nothing.
+   packages/gw-template/src` returns nothing.
 2. **Nothing is written.** No file writes, no key-value store, no database, no account,
    no session. The server is stateless; the only `.set()` in the tool code is a local
    `Map` inside the validator.

@@ -19,6 +19,12 @@ on:
       # A pin bump must rebuild: the tripwire's PR body claims "CI proves it
       # still builds", and that claim is only true if this file triggers here.
       - ".github/pins.env"
+  # ...and it has to be true BEFORE the merge: the pin-bump PR is the review
+  # moment, and a push-only trigger compiled the new commit only afterwards.
+  # The build job is contents:read and uses no secret, so a PR run is safe.
+  pull_request:
+    paths:
+      - ".github/pins.env"
   workflow_call:
     inputs:
       release_tag:
@@ -101,9 +107,10 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ github.workspace }}/GWToolboxpp/build/_deps
+          # Exact key only, like the vcpkg binary cache above (audit L9): a prefix
+          # fallback restores sources fetched for a DIFFERENT set of cmake files
+          # into a build whose DLL is attached to a public release.
           key: deps-${{ runner.os }}-${{ hashFiles('GWToolboxpp/cmake/*.cmake') }}
-          restore-keys: |
-            deps-${{ runner.os }}-
 
       - name: Configure CMake (vcpkg preset, Win32)
         shell: bash
@@ -149,9 +156,11 @@ jobs:
       - name: Attach AccountExport.dll to the release
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          REPO: ${{ github.repository }}
         # No actions/checkout in this job (by design — it only needs the
         # artifact), so `gh` has no git-derived repo context and fails
         # immediately without --repo. Root cause of the DLL missing from the
         # v0.7.0 and v0.8.0 releases (last attached successfully at v0.6.0,
         # before the build/upload job split for GW1-04).
-        run: gh release upload "${{ inputs.release_tag }}" out/AccountExport.dll --clobber --repo "${{ github.repository }}"
+        run: gh release upload "$RELEASE_TAG" out/AccountExport.dll --clobber --repo "$REPO"

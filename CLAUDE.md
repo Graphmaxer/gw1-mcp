@@ -17,7 +17,7 @@ Never add a tool that "reasons" or "generates" a build from vague intent. If a t
 ## Commands
 
 ```bash
-pnpm install                      # Node >= 22, pnpm 11
+pnpm install                      # Node >= 22.18 (or 24), pnpm 11
 pnpm -r typecheck && pnpm -r test # must pass from a clean clone
 pnpm lint && pnpm fmt             # oxlint / oxfmt (CI runs fmt:check)
 pnpm test:coverage                # reference levels: see Coverage section
@@ -211,8 +211,8 @@ this file already argues about in prose:
 - gw-data `bench/repository.bench.ts`: name lookup, the three search shapes,
   and the fuzzy suggester — including the padded worst case that GW1-AUD-01
   bounded (the 109 ms -> 1.4 ms fix has a regression guard now).
-- gw-mcp `bench/build.bench.ts`: resolve -> validate -> describe, then the
-  same tools through the SDK over InMemoryTransport.
+- gw-mcp `bench/build.bench.ts`: resolve -> validate -> describe, plus
+  `createServer` construction (the SDK round-trip benchmarks it once listed are gone).
 - gw-worker `bench/startup.bench.ts`: `createApp` — route registration only,
   NOT the MCP server (see the CodSpeed section: it is the noise floor). The
   `bench/http.bench.ts` this list claimed until 2026-08-11 does not exist; the
@@ -734,7 +734,7 @@ were still real. Check the claim, not the citation.
    analytics, or wanting to share the URL deliberately → add a Cloudflare
    WAF rate-limiting rule or a bearer check in app.ts.
 7. Early-adopter stack: TypeScript 7.0.x and vitest 5 are young majors and
-   oxfmt is pre-1.0 (0.58.x, formatting may shift between minors);
+   oxfmt is pre-1.0 (0.78.x, formatting may shift between minors);
    pin-and-wait is the policy if a toolchain regression appears.
 8. Single-maintainer bus factor — mitigated by this file being the actual
    source of truth (kept aligned by the doc-audit habit).
@@ -754,8 +754,8 @@ were still real. Check the claim, not the citation.
    the margin improved rather than eroded. `limits.cpu_ms` stays unset
    deliberately: it has no effect under Free and a rejected value would fail a
    deploy.
-10. tools/list costs 19 308 characters (~4 850 tokens) of FIXED context
-    in every conversation, outputSchemas being ~42% of it (8 128 chars). That is
+10. tools/list costs 19 397 characters (~4 850 tokens) of FIXED context
+    in every conversation, outputSchemas being ~40% of it (7 805 chars). That is
     a deliberate trade — the schemas carry real contracts locked by the golden
     fixtures — but it is paid by every session, including ones that call a
     single tool. decode_pawned_team was slimmed (3 192 -> 1 936 chars); the
@@ -782,6 +782,13 @@ were still real. Check the claim, not the citation.
     L-series lesson — a caveat in the server `instructions` is invisible to the
     many clients that never forward them, while a parameter description always
     travels.
+    And +89 on 2026-11-13, again on purpose and again on a forwarded field: both
+    `forPvp` descriptions still said PvP versions of split skills "are only valid
+    when this is true, and a PvP bar is expected to use them" — the rule deleted on
+    2026-08-01. A model that obeyed the description got `PVP_VERSION_IN_TEMPLATE`,
+    a hard error, from the tool that had just told it to. The validator was fixed
+    that day and the sentence describing it was not; nothing locks prose to rules.
+    `get_skill`'s own description also still said "exact English name".
     Trigger: if a client's
     context budget ever matters, check whether that client forwards
     outputSchema to the model at all before optimising further.
@@ -1290,7 +1297,7 @@ the sentence is literally true — check it rather than trusting it when adding 
 Verified byte-identical at the time: `tools/list` was 18 577 characters, and strictness
 survives — an extra property in a structured result is still rejected. It went to 18 809
 when inputs became `.strict()` (see the third-audit entry in the debt register), and is
-**19 308 today, LOCKED by a test** — `conventions.test.ts` asserts the exact character
+**19 397 today, LOCKED by a test** — `conventions.test.ts` asserts the exact character
 count and fails on any movement in either direction.
 
 The lock exists because of how the number drifted. Between 18 809 and the audit of
@@ -1358,8 +1365,8 @@ about users yet. Their panel descriptions say so.
 
 ## Game rules: see docs/game-rules-provenance.md
 
-Every validator rule, where it comes from, and how sure we are: **12 of 24 verified
-against primary sources, 3 partial, 0 unverified, 9 that are not game rules.** Each
+Every validator rule, where it comes from, and how sure we are: **15 of 24 verified
+against primary sources, 0 partial, 0 unverified, 9 that are not game rules.** Each
 rule cites its source in `validate.ts`.
 
 Two defects were found on 2026-07-31 by checking sources instead of reading code, and

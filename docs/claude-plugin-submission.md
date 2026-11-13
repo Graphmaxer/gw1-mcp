@@ -49,8 +49,8 @@ the form's "What you'll need" list.
 All 8 tools carry title + readOnlyHint: true, destructiveHint: false
 (accurate: pure lookups/computations). get_skill, search_skills,
 get_hero, list_heroes, decode_template, decode_pawned_team,
-validate_build, encode_template. 3 resources (meta, professions guide,
-build workflow guide). No prompts — the `prompts` capability is not
+validate_build, encode_template. 3 resources (build workflow guide,
+meta, heroes). No prompts — the `prompts` capability is not
 declared, so `prompts/list` correctly returns -32601. Server-level
 instructions declare the code-integrity rules.
 
@@ -59,7 +59,6 @@ instructions declare the code-integrity rules.
 - Docs: https://github.com/Graphmaxer/gw1-mcp (README covers setup,
   usage, architecture; public well before publish date)
 - Privacy policy: https://gw1-mcp.graphmaxer.workers.dev/privacy
-  (also summarized in the README's Privacy Policy section)
 - Support: GitHub issues on the repository
 
 ## Test account

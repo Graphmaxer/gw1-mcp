@@ -125,9 +125,8 @@ are flagged. Windows build instructions in
 
 ## Roadmap
 
-MCP resources for build archetypes and hero constraints, hero availability
-from campaign progression, and upstreaming the account export into GWToolbox
-itself. See `CLAUDE.md` for the full architecture notes.
+Upstreaming the account export into GWToolbox itself. See `CLAUDE.md` for the
+full architecture notes, including the ideas that were considered and declined.
 
 ---
 
@@ -145,7 +144,7 @@ under the GFDL and CC BY-NC-SA 2.5 (a NonCommercial license) — see
 pnpm install && pnpm -r test
 ```
 
-Node >= 22, pnpm 11. Nothing builds to dist — exports point at the .ts
+Node >= 22.18 (or 24), pnpm 11. Nothing builds to dist — exports point at the .ts
 sources and the worker bundles via wrangler. See
 [CONTRIBUTING.md](./CONTRIBUTING.md) to get started and
 [CLAUDE.md](./CLAUDE.md) for the full architecture, conventions and the

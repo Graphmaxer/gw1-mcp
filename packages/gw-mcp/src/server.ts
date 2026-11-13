@@ -132,7 +132,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
     {
       title: "Get a Guild Wars 1 skill",
       description:
-        "Look up a single GW1 skill by exact English name or by template skill id. Returns full stats (energy, activation, recharge, adrenaline, sacrifice), profession, attribute, campaign, elite flag and description. If the name is not found, returns the closest matches so you can correct spelling. Use this when you already know the exact skill; to discover skills by profession, attribute or name fragment, use search_skills instead.",
+        "Look up a single GW1 skill by exact English or official French name, or by template skill id. Returns full stats (energy, activation, recharge, adrenaline, sacrifice), profession, attribute, campaign, elite flag and description. If the name is not found, returns the closest matches so you can correct spelling. Use this when you already know the exact skill; to discover skills by profession, attribute or name fragment, use search_skills instead.",
       annotations: READ_ONLY,
       outputSchema: fullSkillShapeObject,
       inputSchema: getSkillInputObject,

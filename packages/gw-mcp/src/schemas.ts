@@ -348,7 +348,7 @@ const encodeInput = {
     .boolean()
     .default(false)
     .describe(
-      "Set true for a PvP character's bar. PvP versions of split skills are only valid when this is true, and a PvP bar is expected to use them.",
+      "Set true for a PvP character's bar: PvE-only skills become errors. Never use '(PvP)' skill versions, even here: templates always carry the PvE id.",
     ),
   unlockedSkillIds: z
     .array(z.number().int().min(0).max(65535))
@@ -369,7 +369,7 @@ const validateInput = {
     .boolean()
     .default(false)
     .describe(
-      "Set true for a PvP character's bar (PvP versions of split skills are only valid then).",
+      "Set true for a PvP character's bar: PvE-only skills become errors. Never use '(PvP)' skill versions, even here: templates always carry the PvE id.",
     ),
   unlockedSkillIds: z
     .array(z.number().int().min(0).max(65535))

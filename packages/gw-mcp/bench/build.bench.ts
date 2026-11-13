@@ -18,9 +18,8 @@ function bench(name: string, fn: () => void | Promise<void>): void {
 
 /**
  * Two layers are measured: the pure compiler stages (resolve names -> ids,
- * validate against the game rules, enrich a decoded template) and a full
- * tools/call round trip through the MCP SDK, which is what a client actually
- * pays for.
+ * validate against the game rules, enrich a decoded template) and the
+ * construction of the MCP server, which every /mcp request pays for.
  */
 
 /** Critical Scythe Assassin — a legal, full 8-skill bar. */

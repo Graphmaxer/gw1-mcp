@@ -15,6 +15,7 @@ import {
   searchSkills,
   skills,
   suggestAttributeNames,
+  suggestHeroNames,
   suggestProfessionNames,
   suggestSkillNames,
   normalizeName,
@@ -221,8 +222,42 @@ describe("lookups", () => {
     expect(suggestProfessionNames("necromancr")[0]).toBe("Necromancer");
     expect(suggestProfessionNames("Bard")).not.toContain("none");
     expect(suggestProfessionNames("Bard").length).toBeGreaterThan(0);
+  });
+
+  it("suggests hero names for a typo, and nothing for a name that is not close", () => {
+    // Found by using the live server: get_hero "Master of Wispers" came back
+    // NOT_FOUND and bare, while the server's own instructions promise suggestions
+    // for misspelled names. 31 names, several long and easy to get one letter off.
+    expect(suggestHeroNames("Master of Wispers")[0]).toBe("Master of Whispers");
+    expect(suggestHeroNames("Zhed Shadowhoof")[0]).toBe("Zhed Shadowhoof");
+    expect(suggestHeroNames("pyre")[0]).toBe("Pyre Fierceshot");
+    expect(suggestHeroNames("Gandalf the Grey of Middle-earth")).toEqual([]);
+    expect(suggestHeroNames("")).toEqual([]);
+    // Same length bound as every other suggester: no fuzzy work on a huge query.
+    expect(suggestHeroNames("Koss".repeat(40))).toEqual([]);
     expect(suggestProfessionNames("Возрождение")).toEqual([]);
     expect(suggestProfessionNames("z".repeat(5000))).toEqual([]);
+  });
+
+  it("searches by name fragment through the shared index, with the same answers as a scan", () => {
+    // The name path reads normalised names from the suggester's index instead of
+    // re-normalising 1500 of them per call. The oracle is the plain scan it
+    // replaced: same skills, same order, alone and combined with other filters.
+    const scan = (needle: string, keep: (s: (typeof skills)[number]) => boolean) =>
+      skills.filter((s) => !s.isPvpVersion && keep(s) && normalizeName(s.name).includes(needle));
+    expect(searchSkills({ nameContains: "Heal" })).toEqual(scan("heal", () => true));
+    expect(searchSkills({ nameContains: "heal" }).length).toBeGreaterThan(10);
+    expect(searchSkills({ nameContains: "signet", elite: true })).toEqual(
+      scan("signet", (s) => s.elite),
+    );
+    // Diacritics and case fold the same way on both sides of the comparison.
+    expect(searchSkills({ nameContains: "SAVE YOURSELVES" }).map((s) => s.name)).toContain(
+      '"Save Yourselves!" (Luxon)',
+    );
+    // PvP versions stay opt-in on this path too.
+    const withPvp = searchSkills({ nameContains: "aegis", includePvpVersions: true });
+    expect(withPvp.some((s) => s.isPvpVersion)).toBe(true);
+    expect(searchSkills({ nameContains: "aegis" }).some((s) => s.isPvpVersion)).toBe(false);
   });
 
   it("treats a nameContains that normalises to nothing as matching nothing (audit L8)", () => {

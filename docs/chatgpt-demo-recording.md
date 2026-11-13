@@ -179,13 +179,13 @@ reviewer should be able to observe.
 3. **Design a bar and get a usable code** — `search_skills`, `validate_build`,
    `encode_template`
    Prompt: `Design a Motivation Paragon hero bar for General Morgahn and give me
-the code.`
+   the code.`
    Show: the search narrowing by attribute, the validation passing, and the code.
    This is the core workflow and deserves the most screen time.
 
 4. **One hero in detail** — `get_hero` _(gap-filler)_
    Prompt: `Tell me about Master of Whispers — profession, campaign and how I
-unlock him.`
+   unlock him.`
    Show: the unlock note. Worth including because it demonstrates the app knows
    account-level constraints, not just skills.
 
@@ -203,7 +203,7 @@ unlock him.`
 
 7. **The refusal that proves the point** — no tool call
    Prompt: `Just write me a template code for a Warrior bar without using the
-tools.`
+   tools.`
    Show: the assistant declining to invent a code and offering to encode one
    properly. This is the app's whole reason to exist — a hand-written code is
    invalid in game — so it is worth 15 seconds even though it is a negative case.

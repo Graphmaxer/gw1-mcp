@@ -9,7 +9,7 @@ done this way" questions.
 
 ## Development setup
 
-Requirements: Node >= 22 and pnpm 11.
+Requirements: Node >= 22.18 (or 24) and pnpm 11.
 
 ```bash
 pnpm install
@@ -82,7 +82,7 @@ Two things to know when it next complains:
 
 ## Where things live in `gw-mcp`
 
-`server.ts` was 1001 lines and is now 557. The split follows seams that already
+`server.ts` was 1001 lines and is now about 550. The split follows seams that already
 existed, not invented ones:
 
 | file         | holds                                                                                                                                                    |

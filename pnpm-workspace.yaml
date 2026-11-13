@@ -4,44 +4,13 @@ allowBuilds:
   esbuild: true
   sharp: true
   workerd: true
-# @modelcontextprotocol/sdk@1.29.0 pins an internal @hono/node-server@1.19.14
-# (a package.json dependency of the SDK itself, not ours to bump directly).
-# That version has GHSA-frvp-7c67-39w9 (Windows path traversal in
-# serve-static via encoded backslash). We don't call serveStatic anywhere
-# and only ever run @hono/node-server locally for dev, so exposure is
-# already ~nil, but there's no reason to leave a known-vulnerable transitive
-# copy sitting in the tree when our own dependency is already >=2.0.10.
-overrides:
-  # WHEN AN OVERRIDE BELONGS HERE (rule set 2026-10-05). Only when the parent's own
-  # declared range cannot reach the fix: an exact pin (miniflare pins undici and
-  # sharp) or a range that still admits a vulnerable major (the SDK takes
-  # @hono/node-server ^1.19.9 || ^2.0.5). Otherwise do NOT add one. A caret parent
-  # already lets the lockfile move to the patched version, and an override only adds
-  # a floor someone has to keep raising by hand. It also appears to stop
-  # Dependabot's own transitive security updates: on 2026-09-29 it reported fast-uri
-  # 3.1.6 as "latest resolvable" while the override allowed 3.1.7, out 27 days.
-  # Six such floors (fast-uri, qs, postcss, nanoid, ip-address, axios) were removed
-  # that day, and every one of their parents declares a caret range that admits the
-  # patched version. To fix a transitive advisory, re-resolve the lockfile entry
-  # instead (`pnpm update --recursive --depth Infinity <pkg>`), or let Dependabot do it.
-  "@hono/node-server": "^2.0.10"
-  # sharp is pulled in by miniflare (wrangler's local Workers simulator,
-  # dev-only — never runs in the deployed Cloudflare Worker) and inherits
-  # several libvips CVEs below 0.35.0 (GHSA-f88m-g3jw-g9cj). Production
-  # exposure is nil either way, but no reason to leave it unpatched locally.
-  "sharp": "^0.35.0"
-  # hono < 4.12.34 has GHSA / Dependabot #9: ReDoS in the CORS middleware via
-  # Access-Control-Request-Headers. Unlike the four above, this one is REACHABLE IN
-  # PRODUCTION: hono is a direct runtime dependency, app.ts calls cors() on /mcp, and
-  # that request header is attacker-controlled on a public endpoint — catastrophic
-  # backtracking there burns the 10 ms CPU budget, the same shape as the pwnd DoS.
-  # gw-worker's own dependency is bumped to ^4.12.34; this override also collapses the
-  # older copy that @modelcontextprotocol/sdk pulls in through @hono/node-server.
-  "hono": "^4.12.34"
-  # undici < 7.29.0 carries five advisories (Dependabot #4-#8, one High: cross-user
-  # information disclosure and a parse-time crash via degenerate private cache
-  # directives). It reaches us ONLY through miniflare -> wrangler, which is a
-  # devDependency, and `grep undici dist/index.js` finds nothing — so production
-  # exposure is nil. GitHub labels the scope "runtime", which is wrong here; the graph
-  # and the bundle both say dev. Overridden anyway, same reasoning as sharp and postcss.
-  "undici": "^7.29.0"
+# NO `overrides:` BLOCK, on purpose (last four removed 2026-11-13). Transitive
+# advisories are fixed in the LOCKFILE: `pnpm update --recursive --depth Infinity
+# <pkg>`, or let Dependabot do it. An override is a floor someone has to keep
+# raising by hand, and it appears to stop Dependabot's own transitive security
+# updates. Add one back only when a parent's declared range CANNOT reach the fix
+# (an exact pin on a vulnerable version, or a range admitting a vulnerable major),
+# say which parent and why, and delete it once that parent catches up. The four
+# removed ones (@hono/node-server, sharp, hono, undici) had all become redundant
+# that way: with the block deleted the lockfile resolves to the same patched
+# single copies and `pnpm audit` stays at zero.

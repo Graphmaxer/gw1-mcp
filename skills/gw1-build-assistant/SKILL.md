@@ -79,8 +79,8 @@ historical wiki knowledge and from training data.
    several campaigns, and Reforged-added skills are tagged "Core").
    Use `get_skill` for full stats and description of shortlisted skills.
 2. **Design** — pick exactly 8 skills, at most one elite. For hero bars,
-   remember heroes can use any account-unlocked skill but NOT most
-   PvE-only skills.
+   remember heroes can use any account-unlocked skill but NO PvE-only
+   skill at all (Signet of Capture included).
 3. **Validate** — call `validate_build` with the named build. Set
    `forHero: true` for hero bars. Attribute ranks are base 0-12; the
    200-point budget is enforced by the validator — if it reports

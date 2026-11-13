@@ -57,11 +57,6 @@ Two consequences, both applied:
 
 The template is now a test fixture, so the false positive cannot return.
 
-## Partial: mechanism sourced, exact wording not
-
-- `ATTRIBUTE_NOT_TEMPLATABLE` — title tracks are not attribute-point attributes, which
-  follows from GWW Title but is not stated as a template restriction.
-
 ## A constraint we cannot check, worth knowing
 
 GWW Skills_and_Attributes_Panel: "If a template has been saved with a primary and/or

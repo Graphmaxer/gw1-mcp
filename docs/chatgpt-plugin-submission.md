@@ -156,7 +156,7 @@ THIRD_PARTY_NOTICES.md at https://github.com/Graphmaxer/gw1-mcp
 1. Verify individual developer identity (platform.openai.com organization
    settings) and ensure the submitting role has Apps Management: Write.
 2. Zip the skill: `cd skills && zip -r gw1-build-assistant.zip
-gw1-build-assistant/` and upload it on the Skills tab. A bundled skill is
+   gw1-build-assistant/` and upload it on the Skills tab. A bundled skill is
    the right vehicle on both directories — OpenAI's form has a dedicated
    bundled-skills field, and Anthropic states skills are not a standalone
    submission type and must be bundled in a plugin. MCP `prompts` are NOT a

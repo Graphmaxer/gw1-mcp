@@ -1,5 +1,17 @@
-import { bench, describe } from "vitest";
+import { describe, test } from "vitest";
 import { createApp } from "../src/app.js";
+
+/**
+ * vitest 5 turned `bench` from a top-level export into a test fixture: each
+ * benchmark is now a `test` that registers and runs it. This wrapper keeps the
+ * one-line call sites below, and keeps one benchmark per test so every name
+ * stays a separately tracked CodSpeed series.
+ */
+function bench(name: string, fn: () => void | Promise<void>): void {
+  test(name, async ({ bench: register }) => {
+    await register(name, fn).run();
+  });
+}
 
 /**
  * Constructing the Hono app: route registration only.

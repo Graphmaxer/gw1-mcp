@@ -4,7 +4,7 @@
 // A `#!/usr/bin/env node` line promised an entry point that never worked.
 // Run it with `pnpm --filter @gw1-mcp/gw-mcp dev` (or `npx tsx <path>`).
 // Publishing a real `bin` would need a build step and a public package — see
-// the distribution note in CLAUDE.md.
+// docs/handbook/conventions.md (sub-packages are private).
 import { argv, exit } from "node:process";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createServer } from "./server.js";

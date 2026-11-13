@@ -362,7 +362,7 @@ describe("upstream pins live in .github/pins.env, not in workflow YAML", () => {
  * that claim.
  */
 describe("tools/list size is a locked, deliberate number (debt #10)", () => {
-  // Measured 2026-08-31. Keep this and the figure in CLAUDE.md in the same commit.
+  // Measured 2026-08-31. Keep this and debt #10 (docs/handbook/debts.md) in the same commit.
   // 19 358 measured 2026-08-17; +60 for the decode_template description gaining its
   // whitespace-tolerance sentence in the same change as this lock; -323 for zod 4.5
   // emitting the 17 nullable output fields as the JSON Schema type-array form
@@ -391,7 +391,7 @@ describe("tools/list size is a locked, deliberate number (debt #10)", () => {
       delta === 0
         ? ""
         : `tools/list moved by ${delta > 0 ? "+" : ""}${delta} characters (${TOOLS_LIST_CHARS} -> ${actual}). ` +
-            `If YOU changed the tool surface, update TOOLS_LIST_CHARS and the debt #10 figure in CLAUDE.md together. ` +
+            `If YOU changed the tool surface, update TOOLS_LIST_CHARS and the debt #10 figure in docs/handbook/debts.md together. ` +
             `If you did not, a dependency did — check whether the SDK started emitting a new field before accepting it.`,
     ).toBe(TOOLS_LIST_CHARS);
   });

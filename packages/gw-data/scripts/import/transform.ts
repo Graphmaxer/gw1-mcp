@@ -169,7 +169,7 @@ const pvpSuffixed = (name: string, isPvp: boolean): string =>
  * presented as a name.
  *
  * Keyed by attribute ID, not attribute name: 104/105 are OUR stable ids
- * (CLAUDE.md, "Attribute id conventions") — upstream renumbered them to 906/905 in
+ * (CLAUDE.md, "Load-bearing rules"; history in docs/handbook/data-pipeline.md) — upstream renumbered them to 906/905 in
  * 2026-09, and canonicaliseUpstreamIds maps them back before this rule ever runs,
  * which is what run #26 lacked. Every skill's attributeId is
  * a tested foreign key, and the labels are GWW's — not derivable from "Friend of the

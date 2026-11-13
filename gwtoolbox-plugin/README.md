@@ -49,8 +49,8 @@ or automates anything.
 The repo ships `.github/workflows/build-gwtoolbox-plugin.yml`: it builds the
 DLL on a GitHub-hosted Windows runner against a pinned GWToolboxpp commit
 (`GWTOOLBOX_COMMIT` in `.github/pins.env` — not the floating `master` branch, so a
-supply-chain change upstream can't silently affect the build; see CLAUDE.md's
-manual-pin registry for the bump procedure), mirroring their own CI (same
+supply-chain change upstream can't silently affect the build; see the manual-pin
+registry in `docs/handbook/releasing.md` for the bump procedure), mirroring their own CI (same
 vcpkg pin, their `vcpkg` CMake preset). Go to
 the **Actions** tab → _Build GWToolbox plugin_ → **Run workflow**, wait
 (~20-30 min cold, faster once caches are warm), then download the

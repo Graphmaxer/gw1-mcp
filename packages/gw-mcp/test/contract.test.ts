@@ -8,6 +8,7 @@ import {
   heroes,
   skills,
 } from "@gw1-mcp/gw-data";
+import { encodeTemplate } from "@gw1-mcp/gw-template";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { describe, expect, it } from "vitest";
@@ -287,5 +288,79 @@ describe("decoded records carry the data, field for field", () => {
     const decoded = await call(client, "decode_template", { code });
     expect(decoded.primary).toBe("Warrior");
     expect(decoded.secondary).toBeNull();
+  });
+});
+
+describe("the edges Codecov showed uncovered once each tool had its own file", () => {
+  // Not new code: these branches existed inside one 410-line function, where a
+  // file-level percentage hid them. Each is behaviour a caller can reach.
+
+  it("get_skill with neither name nor id is a bad request, not a miss", async () => {
+    const client = await connectedClient();
+    const result = await client.callTool({ name: "get_skill", arguments: {} });
+    expect(result.isError).toBe(true);
+    expect(JSON.parse((result.content as { text: string }[])[0]!.text).error.code).toBe(
+      "BAD_REQUEST",
+    );
+  });
+
+  it('search_skills professionName "None" means the profession-less skills', async () => {
+    // "None" is not a profession in the lookup table; it is spelled out in the
+    // parameter description as the way to ask for common and PvE-only skills.
+    const client = await connectedClient();
+    const expected = playable.filter((s) => s.professionId === 0);
+    expect(expected.length).toBeGreaterThan(50);
+    for (const spelling of ["None", "none", "NONE"]) {
+      const found = await call(client, "search_skills", { professionName: spelling, limit: 200 });
+      expect(found.total, spelling).toBe(expected.length);
+      expect(found.skills.every((s: { profession: string }) => s.profession === "none")).toBe(true);
+    }
+  });
+
+  it("decode_template names what it cannot resolve instead of failing the call", async () => {
+    // A template is a list of ids, and nothing stops a code from carrying one this
+    // dataset does not know (a future skill, a typo in a hand-edited code). The
+    // slot is described as unknown, in place, and the rest of the bar still decodes.
+    const client = await connectedClient();
+    const known = getSkillByName("Healing Signet")!.id;
+    const code = encodeTemplate({
+      primary: 1,
+      secondary: 12,
+      attributes: [],
+      skills: [known, 65000, 0, 0, 0, 0, 0, 0],
+    });
+    const decoded = await call(client, "decode_template", { code });
+    expect(decoded.primary).toBe("Warrior");
+    expect(decoded.secondary).toBe("Unknown (12)");
+    expect(decoded.skills[0].name).toBe("Healing Signet");
+    expect(decoded.skills[1]).toEqual({ slot: 2, name: "Unknown skill id 65000" });
+    expect(decoded.skills[2]).toEqual({ slot: 3, name: null });
+  });
+
+  it("decode_pawned_team reports a broken slot on that slot and still decodes the others", async () => {
+    // The isError policy in one test: a per-item failure inside a larger result is
+    // content, not a failed call. The blob is the real PvX team with the first
+    // character of the first slot's skill code replaced, which makes that one
+    // template unreadable and leaves the container intact.
+    const client = await connectedClient();
+    const good =
+      "pwnd0001?download pawned2 @ Copyright 2008-2018 Redeemer >XOwBR4ZymcBaXMmEAAAAAAAAAAAAAABXUGxheWVyCmh0dHBzOi8vZ3dwdnguZ2FtZXBlZGlhLmNvbS9CdWlsZDpUZWFtXy1fM19IZXJvX0Rpc2NvcmR3YXkZOAhjUoGYIPxsjaGTaO5GmjzLGAAAACEIAAKSGVybyAxCgbOAhkUsG3RFuTMzOgIkmTuhJ1+iBAAAACEJAAKSGVybyAyCgZOANDUshvSxMVBoBbhKg3V1DBEAAAACEIAAKSGVybyAzCg<";
+    const intact = await call(client, "decode_pawned_team", { pwnd: good });
+    expect(intact.builds).toHaveLength(4);
+    expect(intact.builds.every((b: { build?: unknown }) => b.build !== undefined)).toBe(true);
+
+    const broken = good.replace(">XO", ">X/");
+    expect(broken).not.toBe(good);
+    const result = await client.callTool({
+      name: "decode_pawned_team",
+      arguments: { pwnd: broken },
+    });
+    expect(result.isError).not.toBe(true);
+    const { builds } = JSON.parse((result.content as { text: string }[])[0]!.text);
+    expect(builds).toHaveLength(4);
+    expect(builds[0].build).toBeUndefined();
+    expect(typeof builds[0].error.code).toBe("string");
+    expect(builds[0].label).toBe("Player");
+    expect(builds.slice(1).every((b: { build?: unknown }) => b.build !== undefined)).toBe(true);
   });
 });

@@ -236,20 +236,20 @@ export function assertUniqueSkillNames(skills: readonly { id: number; name: stri
 
 // --- campaigns / professions / attributes / types ---------------------------
 export const transformCampaigns = (CAMPAIGNS: unknown) =>
-  (CAMPAIGNS as unknown as UpstreamCampaign[]).map((c, id) => ({
+  (CAMPAIGNS as UpstreamCampaign[]).map((c, id) => ({
     id,
     name: checkedName("campaign", id, c.name.en),
   }));
 
 export const transformProfessions = (PROFESSIONS: unknown) =>
-  (PROFESSIONS as unknown as UpstreamProfession[]).map((p, id) => ({
+  (PROFESSIONS as UpstreamProfession[]).map((p, id) => ({
     id,
     name: checkedName("profession", id, p.name.en),
     abbr: checkedName("profession abbreviation", id, p.abbr.en),
   }));
 
 export const transformAttributes = (ATTRIBUTES: unknown) =>
-  Object.entries(ATTRIBUTES as unknown as Record<string, UpstreamAttribute>).map(([id, a]) => ({
+  Object.entries(ATTRIBUTES as Record<string, UpstreamAttribute>).map(([id, a]) => ({
     id: Number(id),
     name: checkedName("attribute", id, a.name.en),
     isPrimary: a.pri,
@@ -259,7 +259,7 @@ export const transformAttributes = (ATTRIBUTES: unknown) =>
   }));
 
 export const transformSkillTypes = (SKILLTYPES: unknown) =>
-  Object.entries(SKILLTYPES as unknown as Record<string, UpstreamSkillType>).map(([id, t]) => ({
+  Object.entries(SKILLTYPES as Record<string, UpstreamSkillType>).map(([id, t]) => ({
     id: Number(id),
     name: checkedName("skill type", id, t.name.en),
   }));

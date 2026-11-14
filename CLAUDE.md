@@ -197,8 +197,11 @@ this is the rule.
 **Tools and contract**
 
 - Tool INPUTS are `.strict()`: an undeclared argument is an error naming the key.
-- Zod schemas live at MODULE scope. Zero `z.` calls inside `createServer`, which
-  runs on every `/mcp` request.
+- Zod schemas live at MODULE scope (`schemas.ts`). Zero `z.` calls inside
+  `createServer` or a `tools/` register function: both run on every `/mcp` request.
+- One file per tool in `gw-mcp/src/tools/`; `server.ts` and the worker's `app.ts`
+  only assemble, and the ORDER they register things in is part of the contract
+  (`tools/list` order, guard order). A handler or guard added inline is a regression.
 - Never spread a record into a result (`...skill`, `...hero`) in `results.ts`:
   output schemas are strict and a spread leaks internal keys. Enumerate fields.
 - Tests call tools through a PRIMED client (`tools/list` first), or the SDK's

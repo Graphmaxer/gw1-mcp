@@ -84,15 +84,16 @@ Two things to know when it next complains:
 
 ## Where things live in `gw-mcp`
 
-`server.ts` was 1001 lines and is now about 550. The split follows seams that already
-existed, not invented ones:
+One responsibility per file. `server.ts` was once 1001 lines; it now only assembles:
 
-| file         | holds                                                                                                                                                    |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `schemas.ts` | every zod shape, inferred type, tool input/output schema, pre-built schema object, and the input bounds. Immutable data with no dependency on the server |
-| `results.ts` | the MCP content and error envelopes, plus `fullSkill`/`fullHero`, which resolve ids to names                                                             |
-| `events.ts`  | `ToolCallEvent`, `CreateServerOptions`, `deriveEvent` — the transport-agnostic boundary the worker consumes                                              |
-| `server.ts`  | `createServer` and the eight tool plus three resource registrations, and nothing else                                                                    |
+| file           | holds                                                                                                                                                    |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `schemas.ts`   | every zod shape, inferred type, tool input/output schema, pre-built schema object, and the input bounds. Immutable data with no dependency on the server |
+| `results.ts`   | the MCP content and error envelopes, plus `fullSkill`/`fullHero`, which resolve ids to names                                                             |
+| `events.ts`    | `ToolCallEvent`, `CreateServerOptions`, `deriveEvent` — the transport-agnostic boundary the worker consumes                                              |
+| `server.ts`    | the server identity, the observer wrapped around tool registration, and the registration ORDER. Nothing else                                             |
+| `tools/*.ts`   | one file per tool (the two hero tools share one): its description, schemas and handler, behind a `register…` function                                    |
+| `resources.ts` | the three resources and their payloads, serialised once at module scope                                                                                  |
 
 `validate.ts` is deliberately NOT split, and the contrast is the useful part: its
 rules share mutable intermediate state and interact by order — the attribute-budget
@@ -173,3 +174,17 @@ speed but to stop a cache-dependent duration from deciding whether the suite pas
 **If a test fails in CI and passes locally, run it with coverage before looking for a
 cause in the diff.** On 2026-08-02 this failure landed on a Dependabot PR and looked like a
 dependency regression; none of the seven bumps touches that package at runtime.
+
+## Where things live in `gw-worker`
+
+| file               | holds                                                                                                           |
+| ------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `app.ts`           | `createApp`: assembly only. It registers everything below, in an order that matters                             |
+| `mcp-guards.ts`    | each guard on `/mcp` as a named middleware (CORS, no-store, body limit, rate limit, origin, batch refusal, 405) |
+| `site.ts`          | the static routes: discovery document, favicon, terms, privacy, well-known files                                |
+| `analytics.ts`     | the two Analytics Engine writes and the allow-lists that keep caller text out of them                           |
+| `rpc.ts`, `env.ts` | the JSON-RPC error envelope, the JSON content-type test, the binding types                                      |
+
+To add a tool: a new file in `gw-mcp/src/tools/`, its schemas in `schemas.ts`, its
+name in `tool-names.ts`, one line in `server.ts`. To add a guard: a named export in
+`mcp-guards.ts` and its place in the list in `app.ts`.

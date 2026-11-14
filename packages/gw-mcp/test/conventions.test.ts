@@ -1,4 +1,6 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { describe, expect, it } from "vitest";
@@ -164,8 +166,16 @@ describe("release versioning", () => {
 });
 
 describe("isError policy (mechanical lock)", () => {
-  it("every top-level error object in server.ts goes through jsonError (which sets isError)", () => {
-    const source = read("../src/server.ts");
+  it("every top-level error object in src goes through jsonError (which sets isError)", () => {
+    // Every source file, not one: the handlers moved out of server.ts into
+    // tools/, and a lock tied to a single path keeps passing while finding nothing.
+    const srcDir = fileURLToPath(new URL("../src", import.meta.url));
+    const files = readdirSync(srcDir, { recursive: true, encoding: "utf8" }).filter((f) =>
+      f.endsWith(".ts"),
+    );
+    expect(files.length).toBeGreaterThan(10);
+    const source = files.map((f) => readFileSync(join(srcDir, f), "utf8")).join("\n");
+    expect(source).toContain("jsonError(");
     // Strip the jsonError helper itself (the one legitimate `json({ error` site),
     // then forbid the pattern anywhere else: total-call failures must use the
     // helper so the isError flag can never be forgotten again.

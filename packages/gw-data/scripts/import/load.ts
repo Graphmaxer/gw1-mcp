@@ -101,149 +101,158 @@ async function validatedSnapshot(text: {
 
 /**
  * Data source resolution (see the entry-point doc): no argument = the npm
- * package; an http(s) URL = the upstream's GitHub Pages release files; a
- * filesystem path = a local git clone.
+ * package; an http(s) URL = the upstream's GitHub Pages release files (what the
+ * weekly job uses); a filesystem path = a local git clone. All three return the
+ * same shape and all three normalise the constant tables.
  */
 export async function loadUpstream(source: string | undefined): Promise<Upstream> {
-  const cloneRoot = source && !/^https?:\/\//.test(source) ? source : undefined;
-  const pagesBase = source && /^https?:\/\//.test(source) ? source.replace(/\/$/, "") : undefined;
+  if (source === undefined || source === "") return loadFromNpm();
+  return /^https?:\/\//.test(source)
+    ? loadFromPages(source.replace(/\/$/, ""))
+    : loadFromClone(source);
+}
 
-  if (pagesBase) {
-    const fetchText = async (path: string): Promise<string> => {
-      const response = await fetch(`${pagesBase}/${path}`);
-      if (!response.ok) throw new Error(`GET ${pagesBase}/${path} -> ${response.status}`);
-      return response.text();
-    };
-    /** Same as fetchText, but a 404 yields undefined instead of throwing. */
-    const fetchOptionalText = async (path: string): Promise<string | undefined> => {
-      const response = await fetch(`${pagesBase}/${path}`);
-      if (response.status === 404) return undefined;
-      if (!response.ok) throw new Error(`GET ${pagesBase}/${path} -> ${response.status}`);
-      return response.text();
-    };
-    const [skilldataText, descText, skilldataSchema, descSchema, bundle, descFrText] =
-      await Promise.all([
-        fetchText("json/skilldata.json"),
-        fetchText("json/skilldesc-en.json"),
-        fetchText("schemas/skilldata.schema.json"),
-        fetchText("schemas/skilldesc.schema.json"),
-        fetchText("js/gw-skilldata-node.cjs"),
-        // Optional, and NOT linked from the upstream index page even though it is
-        // served — so a 404 means "this channel has no French yet", not a broken
-        // deploy. Absence never deletes the committed names (see import.ts), it only
-        // leaves them unrefreshed, and the caller logs which of the two happened.
-        fetchOptionalText("json/skilldesc-fr.json"),
-      ]);
-    const snapshot = await validatedSnapshot({
-      skilldata: skilldataText,
-      desc: descText,
-      skilldataSchema,
-      descSchema,
-      descFr: descFrText,
-    });
+/** The upstream's GitHub Pages release files: tip-fresh, hashed, French included. */
+async function loadFromPages(pagesBase: string): Promise<Upstream> {
+  const fetchText = async (path: string): Promise<string> => {
+    const response = await fetch(`${pagesBase}/${path}`);
+    if (!response.ok) throw new Error(`GET ${pagesBase}/${path} -> ${response.status}`);
+    return response.text();
+  };
+  /** Same as fetchText, but a 404 yields undefined instead of throwing. */
+  const fetchOptionalText = async (path: string): Promise<string | undefined> => {
+    const response = await fetch(`${pagesBase}/${path}`);
+    if (response.status === 404) return undefined;
+    if (!response.ok) throw new Error(`GET ${pagesBase}/${path} -> ${response.status}`);
+    return response.text();
+  };
+  const [skilldataText, descText, skilldataSchema, descSchema, bundle, descFrText] =
+    await Promise.all([
+      fetchText("json/skilldata.json"),
+      fetchText("json/skilldesc-en.json"),
+      fetchText("schemas/skilldata.schema.json"),
+      fetchText("schemas/skilldesc.schema.json"),
+      fetchText("js/gw-skilldata-node.cjs"),
+      // Optional, and NOT linked from the upstream index page even though it is
+      // served — so a 404 means "this channel has no French yet", not a broken
+      // deploy. Absence never deletes the committed names (see import.ts), it only
+      // leaves them unrefreshed, and the caller logs which of the two happened.
+      fetchOptionalText("json/skilldesc-fr.json"),
+    ]);
+  const snapshot = await validatedSnapshot({
+    skilldata: skilldataText,
+    desc: descText,
+    skilldataSchema,
+    descSchema,
+    descFr: descFrText,
+  });
 
-    // Constants (PROFESSIONS/ATTRIBUTES/CAMPAIGNS/SKILLTYPES) must come from
-    // the same channel as the data (SKILLTYPES evolves): the Pages-served
-    // node bundle is built by their CI from the same commit. Executing it is
-    // the same trust level as our npm dependency on the same author.
-    // mkdtempSync, not a Date.now()-named file in a shared tmpdir: the old path
-    // was predictable, so on a multi-user machine another process could win the
-    // race and have OUR require() execute ITS file. Same character count, no
-    // TOCTOU.
-    const { tmpdir } = await import("node:os");
-    const bundlePath = join(mkdtempSync(join(tmpdir(), "gw-skilldata-")), "bundle.cjs");
-    writeFileSync(bundlePath, bundle);
-    const require = createRequire(import.meta.url);
-    // Normalised, not read directly: the bundle is whatever upstream has DEPLOYED,
-    // so its shape is not pinned by our lockfile. 2.0.0 replaced the flat tables
-    // with classes, and reading `.ATTRIBUTES` off a 2.x bundle yields four
-    // `undefined`s that only fail three call frames later in a transform's `.map`.
-    // That is exactly what broke the weekly Pages import (run #18, 2026-08-17):
-    // the npm path was adapted for 2.x, this one was not, and the npm fallback
-    // masked it as a warning.
-    const constants = normaliseConstantTables(require(bundlePath) as Record<string, unknown>);
+  // Constants (PROFESSIONS/ATTRIBUTES/CAMPAIGNS/SKILLTYPES) must come from
+  // the same channel as the data (SKILLTYPES evolves): the Pages-served
+  // node bundle is built by their CI from the same commit. Executing it is
+  // the same trust level as our npm dependency on the same author.
+  // mkdtempSync, not a Date.now()-named file in a shared tmpdir: the old path
+  // was predictable, so on a multi-user machine another process could win the
+  // race and have OUR require() execute ITS file. Same character count, no
+  // TOCTOU.
+  const { tmpdir } = await import("node:os");
+  const bundlePath = join(mkdtempSync(join(tmpdir(), "gw-skilldata-")), "bundle.cjs");
+  writeFileSync(bundlePath, bundle);
+  const require = createRequire(import.meta.url);
+  // Normalised, not read directly: the bundle is whatever upstream has DEPLOYED,
+  // so its shape is not pinned by our lockfile. 2.0.0 replaced the flat tables
+  // with classes, and reading `.ATTRIBUTES` off a 2.x bundle yields four
+  // `undefined`s that only fail three call frames later in a transform's `.map`.
+  // That is exactly what broke the weekly Pages import (run #18, 2026-08-17):
+  // the npm path was adapted for 2.x, this one was not, and the npm fallback
+  // masked it as a warning.
+  const constants = normaliseConstantTables(require(bundlePath) as Record<string, unknown>);
 
-    // Provenance bound to the actual bytes we fetched (GW1-06): a post-hoc
-    // `ls-remote` names a commit that may differ from what produced these five
-    // files (a Pages redeploy between requests could even mix versions). We
-    // record a content hash of each downloaded artifact so an import is
-    // reproducible and tamper-evident, and keep the remote HEAD only as a
-    // secondary hint. Not a signed manifest (that needs upstream support), but
-    // it ties provenance to data instead of to a racy side channel.
-    const { createHash } = await import("node:crypto");
-    const digest = (s: string) => createHash("sha256").update(s).digest("hex").slice(0, 16);
-    const contentHashes = {
-      skilldata: digest(skilldataText),
-      skilldesc: digest(descText),
-      skilldataSchema: digest(skilldataSchema),
-      descSchema: digest(descSchema),
-      bundle: digest(bundle),
-      // Sixth artifact, so GW1-06's "provenance is bound to the bytes we actually
-      // fetched" covers the French channel too. Recorded as "absent" rather than
-      // omitted when there is no French: a reader needs to tell "this run had no
-      // French" from "this record predates French support".
-      descFr: descFrText === undefined ? "absent" : digest(descFrText),
-    };
+  // Provenance bound to the actual bytes we fetched (GW1-06): a post-hoc
+  // `ls-remote` names a commit that may differ from what produced these five
+  // files (a Pages redeploy between requests could even mix versions). We
+  // record a content hash of each downloaded artifact so an import is
+  // reproducible and tamper-evident, and keep the remote HEAD only as a
+  // secondary hint. Not a signed manifest (that needs upstream support), but
+  // it ties provenance to data instead of to a racy side channel.
+  const { createHash } = await import("node:crypto");
+  const digest = (s: string) => createHash("sha256").update(s).digest("hex").slice(0, 16);
+  const contentHashes = {
+    skilldata: digest(skilldataText),
+    skilldesc: digest(descText),
+    skilldataSchema: digest(skilldataSchema),
+    descSchema: digest(descSchema),
+    bundle: digest(bundle),
+    // Sixth artifact, so GW1-06's "provenance is bound to the bytes we actually
+    // fetched" covers the French channel too. Recorded as "absent" rather than
+    // omitted when there is no French: a reader needs to tell "this run had no
+    // French" from "this record predates French support".
+    descFr: descFrText === undefined ? "absent" : digest(descFrText),
+  };
 
-    let version = `pages:${new Date().toISOString().slice(0, 10)}`;
-    try {
-      const head = execSync(
-        "git ls-remote https://github.com/build-wars/gw-skilldata.git refs/heads/main",
-      )
-        .toString()
-        .slice(0, 12);
-      version = `pages@${head}`;
-    } catch {
-      /* provenance falls back to the fetch date */
-    }
-    version = `${version} (sha256 skilldata:${contentHashes.skilldata} desc:${contentHashes.skilldesc} descFr:${contentHashes.descFr} skilldataSchema:${contentHashes.skilldataSchema} descSchema:${contentHashes.descSchema} bundle:${contentHashes.bundle})`;
-    return {
-      ATTRIBUTES: constants.ATTRIBUTES,
-      CAMPAIGNS: constants.CAMPAIGNS,
-      PROFESSIONS: constants.PROFESSIONS,
-      SKILLTYPES: constants.SKILLTYPES,
-      ...snapshot,
-      version,
-    };
+  let version = `pages:${new Date().toISOString().slice(0, 10)}`;
+  try {
+    const head = execSync(
+      "git ls-remote https://github.com/build-wars/gw-skilldata.git refs/heads/main",
+    )
+      .toString()
+      .slice(0, 12);
+    version = `pages@${head}`;
+  } catch {
+    /* provenance falls back to the fetch date */
   }
+  version = `${version} (sha256 skilldata:${contentHashes.skilldata} desc:${contentHashes.skilldesc} descFr:${contentHashes.descFr} skilldataSchema:${contentHashes.skilldataSchema} descSchema:${contentHashes.descSchema} bundle:${contentHashes.bundle})`;
+  return {
+    ATTRIBUTES: constants.ATTRIBUTES,
+    CAMPAIGNS: constants.CAMPAIGNS,
+    PROFESSIONS: constants.PROFESSIONS,
+    SKILLTYPES: constants.SKILLTYPES,
+    ...snapshot,
+    version,
+  };
+}
 
-  if (cloneRoot) {
-    // es6/index.js, NOT es6/constants.js: 2.0.0 deleted the latter outright, so this
-    // path did not merely read undefined tables — it threw ERR_MODULE_NOT_FOUND. The
-    // index is the stable entry point across both majors (1.x re-exports the flat
-    // tables from it, 2.x exports the classes), and normaliseConstantTables takes
-    // either.
-    const constants = normaliseConstantTables(
-      (await import(pathToFileURL(join(cloneRoot, "es6", "index.js")).href)) as Record<
-        string,
-        unknown
-      >,
-    );
-    const read = (...path: string[]) => readFileSync(join(cloneRoot, ...path), "utf8");
-    // Optional for the same reason as the Pages path: a clone older than the commit
-    // that added French has no such file, and that is not an error.
-    const hasFrench = existsSync(join(cloneRoot, "data", "json-full", "skilldesc-fr.json"));
-    const snapshot = await validatedSnapshot({
-      skilldata: read("data", "json-full", "skilldata.json"),
-      desc: read("data", "json-full", "skilldesc-en.json"),
-      skilldataSchema: read("data", "schemas", "skilldata.schema.json"),
-      descSchema: read("data", "schemas", "skilldesc.schema.json"),
-      descFr: hasFrench ? read("data", "json-full", "skilldesc-fr.json") : undefined,
-    });
+/** A local clone of build-wars/gw-skilldata, for offline use. */
+async function loadFromClone(cloneRoot: string): Promise<Upstream> {
+  // es6/index.js, NOT es6/constants.js: 2.0.0 deleted the latter outright, so this
+  // path did not merely read undefined tables — it threw ERR_MODULE_NOT_FOUND. The
+  // index is the stable entry point across both majors (1.x re-exports the flat
+  // tables from it, 2.x exports the classes), and normaliseConstantTables takes
+  // either.
+  const constants = normaliseConstantTables(
+    (await import(pathToFileURL(join(cloneRoot, "es6", "index.js")).href)) as Record<
+      string,
+      unknown
+    >,
+  );
+  const read = (...path: string[]) => readFileSync(join(cloneRoot, ...path), "utf8");
+  // Optional for the same reason as the Pages path: a clone older than the commit
+  // that added French has no such file, and that is not an error.
+  const hasFrench = existsSync(join(cloneRoot, "data", "json-full", "skilldesc-fr.json"));
+  const snapshot = await validatedSnapshot({
+    skilldata: read("data", "json-full", "skilldata.json"),
+    desc: read("data", "json-full", "skilldesc-en.json"),
+    skilldataSchema: read("data", "schemas", "skilldata.schema.json"),
+    descSchema: read("data", "schemas", "skilldesc.schema.json"),
+    descFr: hasFrench ? read("data", "json-full", "skilldesc-fr.json") : undefined,
+  });
 
-    const version = `git:${JSON.parse(readFileSync(join(cloneRoot, "package.json"), "utf8")).version}`;
-    return {
-      // Named rather than spread, like the other two paths: the normaliser's four
-      // keys are the contract here, and an upstream module gaining an export must
-      // not silently widen what we return.
-      ATTRIBUTES: constants.ATTRIBUTES,
-      CAMPAIGNS: constants.CAMPAIGNS,
-      PROFESSIONS: constants.PROFESSIONS,
-      SKILLTYPES: constants.SKILLTYPES,
-      ...snapshot,
-      version,
-    };
-  }
+  const version = `git:${JSON.parse(readFileSync(join(cloneRoot, "package.json"), "utf8")).version}`;
+  return {
+    // Named rather than spread, like the other two paths: the normaliser's four
+    // keys are the contract here, and an upstream module gaining an export must
+    // not silently widen what we return.
+    ATTRIBUTES: constants.ATTRIBUTES,
+    CAMPAIGNS: constants.CAMPAIGNS,
+    PROFESSIONS: constants.PROFESSIONS,
+    SKILLTYPES: constants.SKILLTYPES,
+    ...snapshot,
+    version,
+  };
+}
+
+/** The npm package the lockfile pins: the fallback, English only as of 2.0.0. */
+async function loadFromNpm(): Promise<Upstream> {
   // Provenance for THIS path comes from a different, arguably stronger
   // mechanism than the Pages path's content hashing (GW1-06): `pnpm install
   // --frozen-lockfile` already verified this exact resolved version against

@@ -71,6 +71,17 @@ export function deriveEvent(
   };
 }
 
+/**
+ * A domain event about one tool call. Deliberately transport-agnostic: this
+ * package knows nothing about Analytics Engine, blobs or dashboards, and the
+ * consumer decides what to do with it. That boundary is the point — gw-mcp stays
+ * usable over stdio, in tests, and anywhere else.
+ *
+ * Every field is either a fixed enum or a value derived from THIS project's own
+ * data after resolution — never caller input. That is what makes it safe for a
+ * consumer to record somewhere public, and it is the same rule the worker
+ * already applies to tool names.
+ */
 export interface ToolCallEvent {
   /** Which tool ran. Always one of TOOL_NAMES. */
   readonly tool: ToolName;

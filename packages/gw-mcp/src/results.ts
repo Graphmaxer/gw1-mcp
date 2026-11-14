@@ -2,9 +2,9 @@ import {
   getAttributeById,
   getCampaignById,
   getProfessionById,
-  getSkillById,
   getSkillType,
   type Hero,
+  type Skill,
 } from "@gw1-mcp/gw-data";
 import type { FullHeroOut, FullSkillOut } from "./schemas.js";
 
@@ -78,9 +78,7 @@ export function fullHero(hero: Hero): FullHeroOut {
  * The ids are deliberately not exposed here. `id` is, because it appears in
  * template codes; the rest are internal join keys, and callers get resolved names.
  */
-export function fullSkill(id: number): FullSkillOut | null {
-  const skill = getSkillById(id);
-  if (!skill) return null;
+export function fullSkill(skill: Skill): FullSkillOut {
   return {
     id: skill.id,
     name: skill.name,

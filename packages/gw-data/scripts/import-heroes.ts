@@ -20,6 +20,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
+import { mergeProvenance } from "./import/write.ts";
 
 const ENUM_URL =
   "https://raw.githubusercontent.com/gwdevhub/GWToolboxpp/master/Dependencies/GWCA/include/GWCA/Constants/Constants.h";
@@ -186,23 +187,14 @@ async function main(): Promise<void> {
   );
   writeFileSync(headerPath, renderHeroNamesHeader(heroes));
 
-  // Merge our provenance key into _meta.json (see the note in import.ts):
-  // one key per data pipeline, read-merge-write so generators never clobber
-  // each other.
-  const metaPath = join(dataDir, "_meta.json");
-  let existingMeta: Record<string, unknown> = {};
-  try {
-    existingMeta = JSON.parse(readFileSync(metaPath, "utf8")) as Record<string, unknown>;
-  } catch {
-    // first run: no _meta.json yet
-  }
-  existingMeta["heroes"] = {
+  // Our provenance key in _meta.json, through the same read-merge-write as the
+  // skills import so generators never clobber each other.
+  mergeProvenance(dataDir, "heroes", {
     source: `${ENUM_URL} (GWCA HeroID enum, vendored in GWToolboxpp — the living source; standalone gwdevhub/GWCA is gone)`,
     generatedAt: new Date().toISOString().slice(0, 10),
     curatedOverlay:
       "data/heroes-overlay.json (professionId/campaignId/unlock — human knowledge, no machine-readable source exists)",
-  };
-  writeFileSync(metaPath, `${JSON.stringify(existingMeta, null, 1)}\n`);
+  });
   console.log(
     `data/heroes.json + AccountExport/hero-names.generated.h generated: ${heroes.length} heroes from the GWCA enum + curated overlay.`,
   );

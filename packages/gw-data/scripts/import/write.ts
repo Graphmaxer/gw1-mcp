@@ -58,6 +58,12 @@ export function mergeProvenance(outDir: string, key: string, entry: unknown): vo
     outDir,
     "_meta.json",
     { ...existing, [key]: entry },
-    String(entry && (entry as { sourceVersion?: string }).sourceVersion),
+    // What identifies this record in the log: its version when it has one (skills,
+    // French names), otherwise the day it was generated (heroes).
+    String(
+      (entry as { sourceVersion?: string; generatedAt?: string } | null)?.sourceVersion ??
+        (entry as { generatedAt?: string } | null)?.generatedAt ??
+        key,
+    ),
   );
 }

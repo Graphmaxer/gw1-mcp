@@ -328,7 +328,7 @@ descriptions (see `THIRD_PARTY_NOTICES.md`).
 
 Everything through distribution is done and live: codec, Reforged-current data,
 8 tools and 3 resources, the Worker on Cloudflare, the MCP Registry listing,
-automated releases, the C++ export plugin. Suite: 475 tests (107 / 133 / 157 / 78).
+automated releases, the C++ export plugin. Suite: 484 tests (107 / 133 / 161 / 83).
 No open advisory, no dependency override, every dependency and action on its
 latest major (pnpm 12, vitest 5).
 

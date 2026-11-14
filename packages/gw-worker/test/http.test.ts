@@ -585,6 +585,49 @@ describe("client attribution on initialize", () => {
   });
 });
 
+describe("favicon", () => {
+  it.each(["/favicon.ico", "/favicon.png", "/logo.png"])("serves the PNG at %s", async (path) => {
+    const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    const res = await createApp(bytes).request(path);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("image/png");
+    expect(new Uint8Array(await res.arrayBuffer())).toEqual(bytes);
+  });
+});
+
+describe("rate limiter key", () => {
+  it("keys on the connecting IP, and on a fixed bucket when the header is absent", async () => {
+    // Without CF-Connecting-IP (local dev, a misrouted request) every caller
+    // shares one bucket rather than each getting an unlimited one of its own.
+    const keys: string[] = [];
+    const env = {
+      RATE_LIMITER: {
+        limit: async ({ key }: { key: string }) => {
+          keys.push(key);
+          return { success: true };
+        },
+      },
+    };
+    const send = (headers: Record<string, string>) =>
+      createApp().request(
+        "/mcp",
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            accept: "application/json, text/event-stream",
+            ...headers,
+          },
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping" }),
+        },
+        env,
+      );
+    await send({ "CF-Connecting-IP": "203.0.113.7" });
+    await send({});
+    expect(keys).toEqual(["203.0.113.7", "unknown"]);
+  });
+});
+
 describe("analytics labels are an allow-list, never caller text", () => {
   // The privacy page says no free text is recorded, and the dashboard is public:
   // writing the REQUESTED tool or method name instead of a fixed bucket survived
@@ -612,6 +655,13 @@ describe("analytics labels are an allow-list, never caller text", () => {
     const labels = await labelsFor({ method: "tools/call", params: { name: hostile } });
     expect(labels).toContain("tool:_unknown");
     expect(labels.join("|")).not.toContain("img");
+  });
+
+  it("buckets a request that names no method or no tool at all", async () => {
+    // Valid JSON, wrong shape: still one counted request, still a fixed label.
+    expect(await labelsFor({})).toContain("rpc:_other");
+    expect(await labelsFor({ method: "tools/call" })).toContain("tool:_unknown");
+    expect(await labelsFor({ method: "tools/call", params: {} })).toContain("tool:_unknown");
   });
 
   it("buckets an unknown method name", async () => {

@@ -147,7 +147,7 @@ jobs:
         # Same App as release-please; the token lives ~1h. The PR is authored
         # by gw1-mcp-bot, so CI/CodeQL trigger normally on it.
         id: app-token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
           # Client ID (a string, not the numeric App ID) is the non-deprecated
           # input as of create-github-app-token v3.1; stored as a repo var since

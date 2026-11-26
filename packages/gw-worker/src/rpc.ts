@@ -7,7 +7,7 @@ import type { AppEnv } from "./env.js";
  */
 export function rpcError(
   c: Context<AppEnv>,
-  status: 400 | 405 | 413 | 415 | 429,
+  status: 400 | 403 | 405 | 413 | 415 | 429,
   code: number,
   message: string,
   headers?: Record<string, string>,

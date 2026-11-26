@@ -1,5 +1,6 @@
 import type { Context, MiddlewareHandler } from "hono";
 import { bodyLimit } from "hono/body-limit";
+import { HTTPException } from "hono/http-exception";
 import { cors } from "hono/cors";
 import type { AppEnv } from "./env.js";
 import { isJsonRequest, rpcError } from "./rpc.js";
@@ -7,9 +8,10 @@ import { isJsonRequest, rpcError } from "./rpc.js";
 /**
  * Everything that stands between a request and the MCP transport, one guard per
  * export. `app.ts` registers them on both spellings of the endpoint and decides
- * their ORDER, which is load-bearing: the body limit runs before the rate
- * limiter and before anything reads the body, and the batch refusal runs after
- * the body limit so an oversized batch still answers 413.
+ * their ORDER, which is load-bearing: the rate limiter runs first because it
+ * never needs the body, the body limit runs before anything reads the body, and
+ * the batch refusal runs after the body limit so an oversized batch still
+ * answers 413.
  */
 
 // CORS (B1). The previous state was the worst of both worlds: no CORS headers
@@ -38,7 +40,10 @@ export const noStore: MiddlewareHandler<AppEnv> = async (c, next) => {
 };
 
 const MAX_BODY_BYTES = 512 * 1024;
-// Body-size ceiling, enforced before parsing or rate limiting (GW1-AUD-01).
+// Body-size ceiling, enforced before anything parses the body (GW1-AUD-01).
+// AFTER the rate limiter since 2026-11-26: with no Content-Length this
+// middleware buffers the stream itself, so placed first it read 512 KiB from a
+// caller the limiter was about to refuse, and a 413 cost no quota at all.
 // hono/body-limit counts bytes actually read from the stream — unlike a
 // Content-Length check, it can't be bypassed by omitting/forging that header
 // or using chunked transfer encoding (GW1-RESTE-02).
@@ -54,7 +59,7 @@ export const mcpBodyLimit: MiddlewareHandler<AppEnv> = bodyLimit({
   onError: (c) => rpcError(c, 413, -32600, "Request body too large (max 512 KiB)."),
 });
 
-// Per-IP rate limit, evaluated before any parsing or analytics work.
+// Per-IP rate limit, evaluated before anything reads the body.
 // Optional binding (absent in dev/tests -> fail-open), same philosophy as
 // MCP_ANALYTICS: protection must never break the service it protects.
 export const rateLimit: MiddlewareHandler<AppEnv> = async (c, next) => {
@@ -111,7 +116,7 @@ export const checkOrigin: MiddlewareHandler<AppEnv> = async (c, next) => {
       ok = false;
     }
     if (!ok) {
-      return c.json({ error: "forbidden origin" }, 403);
+      return rpcError(c, 403, -32000, "Forbidden origin");
     }
   }
   await next();
@@ -175,6 +180,30 @@ export const refuseBatch: MiddlewareHandler<AppEnv> = async (c, next) => {
   }
   await next();
 };
+
+const MAX_TRANSPORT_ERROR_CHARS = 1024;
+/**
+ * Bound what the transport answers when it refuses a message.
+ *
+ * The body limit counts BYTES; @hono/mcp's validation error grows per KEY. It
+ * answers 400 with the whole zod report as `data`, and every unknown top-level
+ * key appears in it once per branch of the JSON-RPC message union: 62 000 keys
+ * in a 510 KiB body came back as 8.8 MB (measured on workerd, 2026-11-26), a
+ * 17x reply for one unit of quota. A reply over the cap is replaced by the bare
+ * parse error; the transport's short refusals (unsupported protocol version,
+ * missing Accept) pass through untouched, and anything that is not one of its
+ * HTTP refusals is rethrown.
+ */
+export async function boundTransportError(c: Context<AppEnv>, error: unknown): Promise<Response> {
+  if (!(error instanceof HTTPException)) throw error;
+  const response = error.getResponse();
+  if (response.status !== 400) return response;
+  const text = await response.text();
+  if (text.length > MAX_TRANSPORT_ERROR_CHARS) {
+    return rpcError(c, 400, -32700, "Parse error: the body is not a valid JSON-RPC 2.0 message.");
+  }
+  return new Response(text, { status: 400, headers: response.headers });
+}
 
 // B2/B3. In stateless mode there is no session to resume and no server->client
 // notification to stream, so a GET opened an SSE body that never closed (100

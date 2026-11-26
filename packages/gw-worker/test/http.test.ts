@@ -185,7 +185,7 @@ describe("CORS and method handling on /mcp", () => {
   });
 
   it("accepts the project's own loopback dev origin", async () => {
-    // `dev:node` serves on http://localhost:3000; rejecting it was a false
+    // `dev:node` serves on a loopback port (8787 by default); rejecting it was a false
     // negative against our own workflow.
     const res = await createApp().request("/mcp", {
       method: "POST",
@@ -272,6 +272,38 @@ describe("the endpoint answers with and without a trailing slash", () => {
         body: call,
       });
       expect(res.status).toBe(403);
+      // Same envelope as every other refusal on the endpoint, not a bare object.
+      expect(await res.json()).toEqual({
+        jsonrpc: "2.0",
+        id: null,
+        error: { code: -32000, message: "Forbidden origin" },
+      });
+    });
+
+    it(`answers a malformed JSON-RPC message on ${path} without echoing it back`, async () => {
+      // The body limit counts BYTES; the transport's validation error grows per
+      // KEY. It answers 400 with the whole zod report as `data`, and each unknown
+      // top-level key appears in it once per branch of the message union: 62 000
+      // keys in a 510 KiB body came back as 8.8 MB (measured on workerd,
+      // 2026-11-26). The reply must stay small whatever the request holds.
+      const keys = Array.from({ length: 2000 }, (_, i) => `"k${i}":0`).join(",");
+      const body = `{"jsonrpc":"2.0","id":1,"method":"ping",${keys}}`;
+      const res = await createApp().request(path, { method: "POST", headers, body });
+      expect(res.status).toBe(400);
+      const text = await res.text();
+      expect(text.length).toBeLessThan(300);
+      expect(JSON.parse(text)).toMatchObject({ jsonrpc: "2.0", id: null, error: { code: -32700 } });
+      expect(res.headers.get("cache-control")).toBe("no-store");
+    });
+
+    it(`keeps the transport's own short refusals intact on ${path}`, async () => {
+      const res = await createApp().request(path, {
+        method: "POST",
+        headers: { ...headers, "Mcp-Protocol-Version": "1999-01-01" },
+        body: call,
+      });
+      expect(res.status).toBe(400);
+      expect(await res.text()).toContain("Unsupported protocol version");
     });
   }
 });
@@ -834,6 +866,47 @@ describe("rate limiting", () => {
       expect(res.status).toBe(413);
     });
   }
+  it("refuses a throttled caller before reading its body, and counts an oversized one", async () => {
+    // The limiter never needs the body, so it goes first: with the body limit
+    // ahead of it, a caller already over quota still had 512 KiB buffered per
+    // request, and a 413 cost no quota at all.
+    let pulled = 0;
+    const stream = () =>
+      new ReadableStream<Uint8Array>({
+        pull(controller) {
+          pulled += 64 * 1024;
+          if (pulled > 600 * 1024) controller.close();
+          else controller.enqueue(new Uint8Array(64 * 1024).fill(120));
+        },
+      });
+    const request = (limiter: { limit: () => Promise<{ success: boolean }> }) =>
+      createApp().request(
+        "/mcp",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: stream(),
+          duplex: "half",
+        } as RequestInit,
+        { RATE_LIMITER: limiter },
+      );
+
+    const denied = await request({ limit: async () => ({ success: false }) });
+    expect(denied.status).toBe(429);
+    expect(pulled).toBeLessThanOrEqual(64 * 1024);
+
+    pulled = 0;
+    let calls = 0;
+    const oversized = await request({
+      limit: async () => {
+        calls++;
+        return { success: true };
+      },
+    });
+    expect(oversized.status).toBe(413);
+    expect(calls).toBe(1);
+  });
+
   it("passes through when the limiter allows", async () => {
     const env = { RATE_LIMITER: { limit: async () => ({ success: true }) } };
     const res = await post(createApp(), env);

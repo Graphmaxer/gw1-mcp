@@ -1,0 +1,26 @@
+name: Check mcp-publisher pin
+
+# The GWToolbox pin is proven by the plugin build on every PR that touches
+# pins.env. Nothing did the same for mcp-publisher: its version and digests were
+# first downloaded and checked by a RELEASE, after the tag and the GitHub
+# release already existed. This runs the release's own install step (the shared
+# composite action) on any PR that changes the pin or the step, with no OIDC
+# token and nothing published.
+on:
+  pull_request:
+    paths:
+      - ".github/pins.env"
+      - ".github/actions/install-mcp-publisher/**"
+      - ".github/workflows/check-publisher-pin.yml"
+      - ".github/workflows/publish-registry.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/install-mcp-publisher

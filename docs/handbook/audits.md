@@ -4,6 +4,58 @@ Every audit this project has been through, what each found and what was delibera
 
 ## Status log (newest first)
 
+**2026-11-26: a SEVENTH audit, run by Codex and merged as one commit (PR #106),
+then reviewed the same day.** Recorded here because the commit says only "prevent
+regressions identified in the project audit" and the reasoning lived nowhere but
+the PR body. What it changed, and what the review made of it:
+
+- **The release jobs built from the wrong ref.** Both reusable workflows checked
+  out the SHA of the push that triggered release-please, which is not
+  necessarily the commit it tagged. They now check out the tag and compare it to
+  the `sha` output. `release_created` is also compared to `'true'`, since a
+  non-empty string is truthy in an `if:`.
+- **Withdrawing auto-merge ran AFTER the push and ended in `|| true`.** A
+  flagged weekly diff was pushed to the shared PR branch first and disarmed
+  second, with a failure of the disarm swallowed. It now runs before
+  `create-pull-request`, fails closed, and arming uses `--match-head-commit`.
+  Its shell is executed by `.github/tests/update-data.test.mts` against a stub
+  `gh` (a second harness, `node:test`, next to the vitest ones in
+  `gw-data/test`; kept because it needs no install).
+- **paw-ned2 notes were truncated by the upstream parser.** Real, reproduced
+  against the unpatched tarball, fixed by an install-time patch. See debt #12.
+- **`@hono/mcp` acknowledges a notification with the body `null`.** The spec
+  asks for an empty 202; the handler now strips it. Confirmed under workerd.
+- **A rank-0 attribute counted as allocated**, so `UNALLOCATED_ATTRIBUTE` stayed
+  silent for a line listed at 0. Fixed. The same change made the warning fire
+  NEXT TO `RANK_OUT_OF_RANGE` and `DUPLICATE_ATTRIBUTE` ("no points allocated"
+  about a line the error had just described); the review corrected that and
+  locked both cases. Neither was reachable through a tool, whose schema already
+  holds ranks to integers 0-12.
+- **Descriptions caught up with the rule again**: `encode_template` and
+  `validate_build` now say they take French skill names (`tools/list` 19 409 ->
+  19 389, debt #10). The œ fold moved to the suggestion path only, where it
+  costs nothing on a lookup; the measurements behind NOT folding in
+  `normalizeName` are the 2026-08-31 entry below and still stand.
+- **The registry schema is vendored** (byte-identical to the cited upstream
+  file, re-checked) so the suite no longer fetches at test time.
+- **The privacy page was rewritten** shorter and blunter about the client name
+  reaching the public dashboard. Accurate against `analytics.ts`. It is the text
+  the directory submissions cite, so it is the maintainer's to re-read.
+
+What the review took back out: the import writer had grown staging directories,
+rollback and a lock directory against concurrent imports (69 -> 160 lines, plus
+tests). The outputs are tracked files and the two import commands run in sequence
+in one CI job, so `git checkout` already was the rollback. It is back to
+prepare-everything-then-write; the part worth keeping stayed, which is that a
+failed validation or an unreadable `_meta.json` now stops the run before the
+first write. Left in place, though more than the problem needed: a guard that
+accepts a mixed-case `Application/JSON`, rank checks for `NaN` and fractions,
+and an exact vitest pin with a test that the coverage peer matches.
+
+Checked rather than assumed, because the weekly job had been green and silent
+for eleven weeks: a live import from Pages on 2026-11-26 produced byte-identical
+data files. Upstream's bundle hash moved; nothing we ship did.
+
 **2026-11-13: a SIXTH audit, six parts run in parallel (CI/supply chain, runtime
 code, documentation drift, game rules and freshness, clean code, C++ plugin and
 test quality), plus the live server used as a client would.** The game logic held

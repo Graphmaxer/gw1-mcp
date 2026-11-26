@@ -320,20 +320,23 @@ Deliberate compromises, each with its trigger. Full reasoning in
     conversation. Locked exactly by a test; see the handbook for each move.
 11. French names: two skills lose to an English homonym, five are ambiguous, and
     the table can lag one import behind after an npm-fallback run.
+12. `@buildwars/gw-templates@1.1.1` is patched at install time so paw-ned2 notes
+    keep every line. A bump of that library fails `pnpm install` on purpose:
+    re-check, then delete or re-cut the patch.
 
 Also owed, and not a code matter: a legal sign-off on redistributing skill
 descriptions (see `THIRD_PARTY_NOTICES.md`).
 
-## Current status (updated 2026-11-13)
+## Current status (updated 2026-11-26)
 
 Everything through distribution is done and live: codec, Reforged-current data,
 8 tools and 3 resources, the Worker on Cloudflare, the MCP Registry listing,
-automated releases, the C++ export plugin. Suite: 484 tests (107 / 133 / 161 / 83).
-No open advisory, no dependency override, every dependency and action on its
+automated releases, the C++ export plugin. Suite: 507 tests (107 / 138 / 173 / 89).
+No open advisory, no dependency override (one install-time patch, debt #12), every dependency and action on its
 latest major (pnpm 12, vitest 5).
 
-Six audits have run; the sixth (2026-11-13) is the first entry of
-`docs/handbook/audits.md`. The game logic has never yielded a defect to an audit.
+Seven audits have run; the seventh (2026-11-26, by Codex, then reviewed) is the
+first entry of `docs/handbook/audits.md`. The game logic has never yielded a defect to an audit.
 What has, every time: automation that fails silently, prose that drifts from the
 rule it describes, and bounds that count the wrong unit.
 

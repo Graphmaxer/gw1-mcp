@@ -78,7 +78,8 @@ describe("directory-readiness routes", () => {
   it("serves a privacy policy", async () => {
     const res = await createApp().request("/privacy");
     expect(res.status).toBe(200);
-    expect(await res.text()).toContain("privacy policy");
+    // A claim, not the title: the page must still say what is NOT recorded.
+    expect(await res.text()).toMatch(/does not record free-text tool arguments/);
   });
   it("serves the OpenAI apps challenge only when configured", async () => {
     const app = createApp();

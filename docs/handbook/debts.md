@@ -182,3 +182,23 @@ The honest register: every KNOWN compromise, kept deliberately, with its trigger
       that exports `SkillLangFrench` (the loader already picks it up with no code
       change — it asks `typeof SkillLangFrench === "function"` rather than
       hard-coding today's absence).
+12. `@buildwars/gw-templates@1.1.1` is PATCHED at install time (2026-11-26,
+    `patches/@buildwars__gw-templates@1.1.1.patch`, wired through
+    `patchedDependencies` in `pnpm-workspace.yaml`). The published parser trims a
+    paw-ned2 description BEFORE splitting it and then splits with `split("\n", 2)`,
+    which in JavaScript drops everything after the second line. Measured against
+    the unpatched tarball: a slot whose field is "Player / Cast A first. / Then
+    cast B." came back with notes "Cast A first." only, and a slot with an empty
+    title and one note line came back with the note AS its title. The patch
+    touches the two built entry points we load (`lib/main.cjs` under Node,
+    `lib/browser.js` in the Worker bundle) and nothing else; `es6/` and `dist/`
+    are not patched because nothing here imports them.
+    A patch and not an override, so the no-`overrides` rule is untouched, but it
+    is the same kind of promise: someone has to remove it. It is version-keyed,
+    so the day Dependabot bumps the library `pnpm install` fails on an unused
+    patch — loudly, in CI and in the Cloudflare build. That failure is the
+    trigger, not a bug: check whether the new version keeps multi-line notes (the
+    two `preserves the complete notes` cases in `server.test.ts` answer it),
+    then delete the patch file and the `patchedDependencies` entry, or re-cut
+    the patch for the new version. Not yet reported upstream; it can ride along
+    with the report owed under #4.

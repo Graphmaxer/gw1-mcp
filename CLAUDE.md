@@ -21,16 +21,16 @@ behind them are in `docs/handbook/` — read the relevant one before changing wh
 it covers, because most of these rules exist for a reason that is not obvious
 from the code.
 
-| File                             | Read it before                                                                 |
-| -------------------------------- | ------------------------------------------------------------------------------ |
-| `docs/handbook/debts.md`         | calling something a bug: it may be a known, deliberate compromise              |
-| `docs/handbook/releasing.md`     | touching a workflow, a pin, a credential or `_meta.json`                       |
-| `docs/handbook/data-pipeline.md` | touching `update-data.yml`, `scripts/import*` or the French names              |
-| `docs/handbook/runtime.md`       | touching `/mcp`, `createServer`, a bound, or reading a CodSpeed report         |
-| `docs/handbook/conventions.md`   | adding a script, a field name, a tsconfig option or a root file                |
-| `docs/handbook/decisions.md`     | proposing a tool, a domain, a directory listing or a codec change              |
-| `docs/handbook/audits.md`        | starting an audit: six have run, and their findings and non-findings are there |
-| `docs/game-rules-provenance.md`  | touching a validator rule: each one cites its source                           |
+| File                             | Read it before                                                                   |
+| -------------------------------- | -------------------------------------------------------------------------------- |
+| `docs/handbook/debts.md`         | calling something a bug: it may be a known, deliberate compromise                |
+| `docs/handbook/releasing.md`     | touching a workflow, a pin, a credential or `_meta.json`                         |
+| `docs/handbook/data-pipeline.md` | touching `update-data.yml`, `scripts/import*` or the French names                |
+| `docs/handbook/runtime.md`       | touching `/mcp`, `createServer`, a bound, or reading a CodSpeed report           |
+| `docs/handbook/conventions.md`   | adding a script, a field name, a tsconfig option or a root file                  |
+| `docs/handbook/decisions.md`     | proposing a tool, a domain, a directory listing or a codec change                |
+| `docs/handbook/audits.md`        | starting an audit: seven have run, and their findings and non-findings are there |
+| `docs/game-rules-provenance.md`  | touching a validator rule: each one cites its source                             |
 
 A new dated narrative (an incident, an audit, a measurement) goes in the handbook,
 not here. Add a line here only if it changes what someone must DO.
@@ -228,6 +228,8 @@ this is the rule.
   drift apart.
 - No `server.close()` in the `/mcp` handler: the response body is lazy and closing
   empties it.
+- The rate limiter runs before anything reads the body, and a reply never grows
+  with the request: the transport's 400s go through `boundTransportError`.
 - JSON-RPC batches are refused. A middleware that reads the body gates on
   `isJsonRequest`, so it never acts on a request the transport will answer 415 to.
 - When adding a bound, ask what unit the attacker controls and whether anything
@@ -324,7 +326,7 @@ Deliberate compromises, each with its trigger. Full reasoning in
 8. Single-maintainer bus factor, mitigated by this file and the handbook.
 9. ~~CPU budget unmeasured in production~~ closed 2026-07-29 (7.66 ms mean of a
    10 ms cap; it is a mean, re-read it if a hot path gains work).
-10. `tools/list` costs a fixed ~19 400 characters of context in every
+10. `tools/list` costs a fixed ~19 600 characters of context in every
     conversation. Locked exactly by a test; see the handbook for each move.
 11. French names: two skills lose to an English homonym, five are ambiguous, and
     the table can lag one import behind after an npm-fallback run.
@@ -339,7 +341,7 @@ descriptions (see `THIRD_PARTY_NOTICES.md`).
 
 Everything through distribution is done and live: codec, Reforged-current data,
 8 tools and 3 resources, the Worker on Cloudflare, the MCP Registry listing,
-automated releases, the C++ export plugin. Suite: 507 tests (107 / 138 / 173 / 89).
+automated releases, the C++ export plugin. Suite: 526 tests (107 / 146 / 179 / 94).
 No open advisory, no dependency override (one install-time patch, debt #12), every dependency and action on its
 latest major (pnpm 12, vitest 5).
 

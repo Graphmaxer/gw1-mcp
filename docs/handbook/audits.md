@@ -18,9 +18,9 @@ the PR body. What it changed, and what the review made of it:
   flagged weekly diff was pushed to the shared PR branch first and disarmed
   second, with a failure of the disarm swallowed. It now runs before
   `create-pull-request`, fails closed, and arming uses `--match-head-commit`.
-  Its shell is executed by `.github/tests/update-data.test.mts` against a stub
-  `gh` (a second harness, `node:test`, next to the vitest ones in
-  `gw-data/test`; kept because it needs no install).
+  Its shell is executed against a stub `gh` by a test that arrived as a second
+  harness (`node:test` under `.github/tests/`); the review below folded it into
+  vitest.
 - **paw-ned2 notes were truncated by the upstream parser.** Real, reproduced
   against the unpatched tarball, fixed by an install-time patch. See debt #12.
 - **`@hono/mcp` acknowledges a notification with the body `null`.** The spec
@@ -51,6 +51,58 @@ failed validation or an unreadable `_meta.json` now stops the run before the
 first write. Left in place, though more than the problem needed: a guard that
 accepts a mixed-case `Application/JSON`, rank checks for `NaN` and fractions,
 and an exact vitest pin with a test that the coverage peer matches.
+
+**The same day, the review widened into five parallel passes** (tool layer, HTTP
+surface, CI and import scripts, documentation, mutation testing), each finding
+reproduced by running something before it was accepted. The game rules held
+again. What moved, in the order it mattered:
+
+- **The body limit counted bytes and the transport's error reply grew per key.**
+  `@hono/mcp` answers a malformed message with the whole zod report as `data`,
+  and every unknown top-level key appears in it once per branch of the JSON-RPC
+  union: 62 000 keys in a 510 KiB body came back as 8.8 MB on workerd, for one
+  unit of quota. `boundTransportError` replaces any 400 over 1 KiB with the bare
+  parse error. The CPU half is NOT fixed and is recorded here instead: the same
+  body costs about 270 ms on local workerd (zod validation, not the echo), which
+  production's CPU cap ends before it finishes. Lowering the 512 KiB ceiling
+  would shrink it; the largest legitimate request (8192 pretty-printed unlocked
+  ids) is around 100 KiB, so there is room if it ever matters.
+- **The body was read before the rate limiter ran.** With no Content-Length,
+  hono's body limit buffers the stream itself, so a caller already over quota
+  still had 512 KiB read per request and a 413 cost no quota. The limiter never
+  needs the body; it goes first now.
+- **The weekly job's content gates ran only in the half it declares hostile.**
+  The plausibility checks (URLs, markup, instruction phrasing) live in the
+  import job, which executes the unpinned bundle. The privileged half checked
+  paths and description GROWTH, so a new skill, or a same-length rewrite, with
+  an instruction in it would have been applied and auto-merge armed (replayed
+  in a scratch clone). The gates now run again over the committed data in the
+  PR's own CI, which a patch cannot edit, and the apply step refuses a README
+  change beyond the skill count.
+- **A short query was within five edits of everything.** "Sin" suggested Monk,
+  Ranger and Mesmer; "Axe" suggested Curses. The cap is now a third of the
+  query's length, between 1 and 5. The decision this reverses: a non-typo such
+  as "Bard" used to get three real professions on purpose, and now gets none.
+- **`UNALLOCATED_ATTRIBUTE` advised an illegal move**: on a Monk/Dervish it
+  said Mysticism had no points, and adding them is `PRIMARY_ATTRIBUTE_ON_SECONDARY`.
+- **Strictness stopped one level down**: `{attribute, rank, rnak}` was accepted
+  and the stray key dropped. Both build tools now refuse it (debt #10, +206).
+- Smaller: an empty paw-ned2 container was a success with zero builds; the 403
+  was the one refusal outside the JSON-RPC envelope; `get_hero` rebuilt its
+  output schema on every request; a failed release-time job (DLL, Registry)
+  alerted nobody; a manual Registry publish checked nothing.
+- **Twenty claims in prose were false today**, among them the evidence in
+  THIRD_PARTY_NOTICES.md (the `<sic/>` and `<gray>` markup it cites left the
+  data on 2026-09-08), a fixture example in CLAUDE.md that was not the file's
+  shape, and a handbook line giving the opposite severity of a validator rule.
+
+Seen and deliberately left: `search_skills` summaries carry energy, activation
+and recharge but not adrenaline, so 85 adrenaline skills read as free in a
+search (an output-contract change, for discussion); suggestions can spend two
+of three slots on "(PvP)" twins the validator refuses; nothing exercises a
+bumped `mcp-publisher` pin before a release does; the request body is decoded
+up to four times; and debt #1's "Build command `pnpm -r test`" disagrees with
+conventions.md and CLAUDE.md, which only the Cloudflare dashboard can settle.
 
 Checked rather than assumed, because the weekly job had been green and silent
 for eleven weeks: a live import from Pages on 2026-11-26 produced byte-identical

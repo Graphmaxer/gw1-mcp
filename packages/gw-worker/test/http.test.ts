@@ -86,7 +86,7 @@ describe("directory-readiness routes", () => {
     const res = await createApp().request("/privacy");
     expect(res.status).toBe(200);
     // A claim, not the title: the page must still say what is NOT recorded.
-    expect(await res.text()).toMatch(/does not record free-text tool arguments/);
+    expect(await res.text()).toMatch(/does\s+not record free-text tool arguments/);
   });
   it("serves the OpenAI apps challenge only when configured", async () => {
     const app = createApp();
@@ -391,9 +391,11 @@ describe("privacy policy covers what the directory requires", () => {
     // (/collect/, /stor|usage/) matched almost any wording of the page,
     // including one that had dropped the topic.
     ["collection", /It collects request methods and requested\s+tool names/],
-    ["usage and storage", /usage counters in Analytics Engine/],
-    ["third-party sharing", /Cloudflare operates the service and may process operational metadata/],
+    ["usage and storage", /usage counters in Cloudflare\s+Workers Analytics Engine/],
+    ["third-party sharing", /not sold, and are not given to anyone other than Cloudflare as host/],
     ["retention", /retains each usage record for 90 days/],
+    ["purpose", /To see which tools are used and when one\s+fails/],
+    ["hosting provider", /Cloudflare,\s+as the hosting provider/],
     ["contact", /Contact:/],
   ];
   for (const [topic, pattern] of topics) {
@@ -445,19 +447,7 @@ describe("security.txt reproducibility", () => {
   });
 });
 
-describe("favicon", () => {
-  it("serves the injected favicon bytes as image/png", async () => {
-    // Inject fake PNG-magic bytes; the real PNG is wired in index.ts, not here.
-    const fakePng = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
-    const res = await createApp(fakePng).request("/favicon.ico");
-    expect(res.status).toBe(200);
-    expect(res.headers.get("Content-Type")).toBe("image/png");
-    const bytes = new Uint8Array(await res.arrayBuffer());
-    expect([bytes[0], bytes[1], bytes[2], bytes[3]]).toEqual([137, 80, 78, 71]);
-  });
-});
-
-describe("origin validation and logo", () => {
+describe("origin validation", () => {
   it("rejects non-https browser origins on /mcp", async () => {
     const res = await createApp().request("/mcp", {
       method: "POST",
@@ -487,11 +477,6 @@ describe("origin validation and logo", () => {
       body: PING,
     });
     expect(res.status).toBe(200);
-  });
-  it("serves the PNG logo at /logo.png", async () => {
-    const res = await createApp(new Uint8Array([137, 80, 78, 71])).request("/logo.png");
-    expect(res.status).toBe(200);
-    expect(res.headers.get("Content-Type")).toBe("image/png");
   });
 });
 
@@ -686,6 +671,7 @@ describe("client attribution on initialize", () => {
 
 describe("favicon", () => {
   it.each(["/favicon.ico", "/favicon.png", "/logo.png"])("serves the PNG at %s", async (path) => {
+    // Injected PNG-magic bytes; the real PNG is wired in index.ts, not here.
     const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
     const res = await createApp(bytes).request(path);
     expect(res.status).toBe(200);

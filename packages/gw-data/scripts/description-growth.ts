@@ -42,9 +42,13 @@
  *
  * Run: node packages/gw-data/scripts/description-growth.ts >> "$GITHUB_OUTPUT"
  * Prints `changed=true|false` on stdout; findings and faults go to stderr.
- * Failure modes: NEVER exits non-zero — its only job is to decide whether a
- * human reads the diff before it merges — but any git fault it cannot interpret
- * prints `changed=true`, because withholding the merge is the safe direction.
+ * Failure modes, both in the safe direction. A committed baseline that is tracked
+ * but unreadable prints `changed=true`: a human reads the diff. Anything else it
+ * cannot interpret (git itself missing, a working-tree skills.json that is not
+ * JSON or not a list) is an uncaught throw and a non-zero exit, with nothing on
+ * stdout: the `open-pr` step fails before anything is pushed, and the workflow's
+ * notify job reports it. What it must never do is print `changed=false` on a
+ * fault, because that is the answer that arms auto-merge.
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";

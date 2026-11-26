@@ -64,8 +64,17 @@ jobs:
           # not reliably findable by search, and a miss here means a duplicate.
           # The title reaches jq as env.TITLE rather than by string splicing, so
           # a quote in the caller's workflow name cannot rewrite the filter.
-          existing=$(gh api "repos/${REPO}/issues?state=open&per_page=100" \
-            --jq '[.[] | select(.pull_request == null) | select(.title == env.TITLE) | .number] | first // empty')
+          #
+          # --paginate, because this endpoint counts open pull requests too and one
+          # page is 100 of them: past that, a miss opens the duplicate this file
+          # exists to avoid. gh runs --jq once PER PAGE (and refuses --slurp next to
+          # --jq), so the filter prints every match, one number a line, and the
+          # shell keeps the first line. A parameter expansion rather than
+          # `| head -n1`, which under pipefail can fail the step by closing the pipe
+          # while gh is still writing.
+          matches=$(gh api --paginate "repos/${REPO}/issues?state=open&per_page=100" \
+            --jq '.[] | select(.pull_request == null) | select(.title == env.TITLE) | .number')
+          existing=${matches%%$'\n'*}
 
           if [ -n "$existing" ]; then
             gh issue comment "$existing" --repo "$REPO" \

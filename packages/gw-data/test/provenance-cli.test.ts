@@ -20,6 +20,10 @@ import { describe, expect, it } from "vitest";
  * So these run the real file, from a cwd that is NOT the repo root, and assert
  * on exit codes and stdout. That covers the argument contract the workflow
  * actually depends on, rather than the function behind it.
+ *
+ * The other half of the same lock, that the WORKFLOW still passes absolute
+ * paths, lives in update-data-workflow.test.ts with everything else that reads
+ * update-data.yml.
  */
 
 const SCRIPT = resolve(import.meta.dirname, "../scripts/provenance-changed.ts");
@@ -113,136 +117,5 @@ describe("provenance-changed CLI (subprocess, as the workflow calls it)", () => 
       expect(status, `cwd=${cwd}`).toBe(0);
       expect(stdout, `cwd=${cwd}`).toBe("changed");
     }
-  });
-});
-
-describe("the workflow invokes the CLI in a cwd-independent way", () => {
-  it("passes absolute paths, since the runner's cwd is not guaranteed", async () => {
-    // A static lock on the call site itself. The unit tests and even the
-    // subprocess tests above all pass while the WORKFLOW still hands over a
-    // relative path, so the argument style has to be asserted where it lives.
-    const { readFileSync } = await import("node:fs");
-    const yaml = readFileSync(join(REPO_ROOT, ".github/workflows/update-data.yml"), "utf8");
-    const invocation = yaml
-      .split("\n")
-      .filter((line) => line.includes("provenance-changed.ts") || line.includes("meta-before.json"))
-      .join("\n");
-    expect(invocation, "workflow must still call the script").toContain("provenance-changed.ts");
-    // Every path argument must be absolute: rooted at $GITHUB_WORKSPACE, at
-    // RUNNER_TEMP, or at /tmp. A bare `packages/...` argument is the run #20 bug.
-    expect(invocation, "no repo-relative path arguments").not.toMatch(
-      /provenance-changed\.ts[^\n]*\s(?!\$|\/)[\w.]+\//,
-    );
-    expect(invocation).toContain("$GITHUB_WORKSPACE");
-  });
-
-  it("carries every path the import writes into the PR, README included", async () => {
-    // The import job and the open-pr job are split so the privileged half never
-    // runs upstream code, and they communicate through ONE path-scoped `git diff`.
-    // Any file the import writes that is missing from that path list is silently
-    // dropped: on 2026-08-31 README.md was, so the data PR carried 1516 skills next
-    // to a README still advertising 1485, and the failure surfaced as a gw-data test
-    // three packages from the cause. Worse, the import job was GREEN — `pnpm -r test`
-    // runs there, where the rewrite still exists.
-    //
-    // Static, like the assertion above, and for the same reason: every unit test of
-    // syncReadmeSkillCount passes while the patch that transports its output omits
-    // the file. The three paths are the three things the import generates.
-    const { readFileSync } = await import("node:fs");
-    const yaml = readFileSync(join(REPO_ROOT, ".github/workflows/update-data.yml"), "utf8");
-    const patchLine = yaml
-      .split("\n")
-      .find((line) => line.includes("git diff") && line.includes("data-update.patch"));
-    expect(
-      patchLine,
-      "the workflow must still build the patch with a scoped git diff",
-    ).toBeDefined();
-    for (const path of [
-      "packages/gw-data/data",
-      "gwtoolbox-plugin/AccountExport/hero-names.generated.h",
-      "README.md",
-    ]) {
-      expect(patchLine, `${path} must reach the open-pr job`).toContain(path);
-    }
-  });
-
-  it("applies the import job's patch only to generated files (audit 2026-11-13)", async () => {
-    // The patch crosses the trust boundary the two-job split exists for: it is
-    // produced by the job that runs unpinned upstream code and consumed by the job
-    // that holds contents:write. A bare `git apply` let it rewrite the growth gate
-    // that job then executes. The allowlist is a regex in the workflow's env, so it
-    // is extracted and EXECUTED here against hostile paths — a loosened pattern
-    // fails in this suite, not in a compromised weekly run.
-    const { readFileSync, readdirSync } = await import("node:fs");
-    const yaml = readFileSync(join(REPO_ROOT, ".github/workflows/update-data.yml"), "utf8");
-    const pattern = /^\s*ALLOWED: '([^']+)'$/m.exec(yaml)?.[1];
-    expect(pattern, "the apply step must still declare ALLOWED").toBeDefined();
-    const allowed = new RegExp(pattern!);
-
-    // Everything the import generates must pass, or the weekly job refuses itself.
-    const generated = readdirSync(join(REPO_ROOT, "packages/gw-data/data"))
-      .filter((f) => f !== "heroes-overlay.json")
-      .map((f) => `packages/gw-data/data/${f}`);
-    for (const path of [
-      ...generated,
-      "gwtoolbox-plugin/AccountExport/hero-names.generated.h",
-      "README.md",
-    ]) {
-      expect(allowed.test(path), `${path} must be accepted`).toBe(true);
-    }
-    for (const path of [
-      "packages/gw-data/scripts/description-growth.ts",
-      "packages/gw-data/src/repository.ts",
-      "packages/gw-data/data/heroes-overlay.json", // curated by hand, never generated
-      "packages/gw-data/data/../scripts/description-growth.ts",
-      "packages/gw-data/data/sub/skills.json",
-      "packages/gw-data/data/skills.json.ts",
-      ".github/workflows/update-data.yml",
-      "package.json",
-      "docs/README.md",
-      '"packages/gw-data/data/skills.json"', // git quotes unusual paths
-      "packages/gw-data/data/a.json => packages/gw-data/scripts/b.ts",
-    ]) {
-      expect(allowed.test(path), `${path} must be refused`).toBe(false);
-    }
-
-    // And the step must consult git's own view of the patch BEFORE applying it:
-    // touched paths, plus creates/deletes/renames/mode changes.
-    const step = yaml.slice(yaml.indexOf("Apply the imported data"));
-    const applyAt = step.indexOf("\n          git apply /tmp/data-update.patch");
-    expect(applyAt, "the patch must still be applied").toBeGreaterThan(0);
-    const before = step.slice(0, applyAt);
-    expect(before).toContain("git apply --numstat /tmp/data-update.patch");
-    expect(before).toContain("git apply --summary /tmp/data-update.patch");
-    expect(before).toContain("exit 1");
-  });
-
-  it("never lets the npm fallback downgrade Pages-sourced data (run #26)", async () => {
-    // Run #26 (2026-09-28): the Pages import was refused, the fallback rewrote
-    // skills.json from npm 2.0.0 — 31 skills behind Pages — and the job died on a
-    // French-table assertion naming neither cause. The guard is a shell `if` around
-    // an inline node predicate, so no unit test can reach it: this extracts the
-    // predicate from the workflow and EXECUTES it, so a typo in the JSON path (which
-    // would make the predicate throw, i.e. exit non-zero, i.e. "keep the downgrade")
-    // fails here instead of in the next degraded run.
-    const { readFileSync } = await import("node:fs");
-    const yaml = readFileSync(join(REPO_ROOT, ".github/workflows/update-data.yml"), "utf8");
-    const lines = yaml.split("\n");
-    const guard = lines.find((l) => l.includes("git show HEAD:packages/gw-data/data/_meta.json |"));
-    expect(guard, "the fallback branch must still check the committed provenance").toBeDefined();
-    const script = /node -e '([^']+)'/.exec(guard!)?.[1];
-    expect(script, "the guard must still be an inline node predicate").toBeDefined();
-    const decide = (input: string) =>
-      spawnSync(process.execPath, ["-e", script!], { input, encoding: "utf8" }).status;
-    expect(decide(meta("pages@8495ca2c6125 (sha256 skilldata:e6342516cb033f1e)"))).toBe(0);
-    expect(decide(meta("npm:2.0.0"))).toBe(1);
-    expect(decide(readFileSync(COMMITTED_META, "utf8")), "the real committed record").toBe(
-      JSON.parse(readFileSync(COMMITTED_META, "utf8")).skills.sourceVersion.startsWith("pages")
-        ? 0
-        : 1,
-    );
-    // The revert must cover everything the import writes (heroes run after it).
-    const revert = lines.find((l) => l.trim().startsWith("git checkout -- packages/gw-data/data"));
-    expect(revert, "the fallback must still revert its data").toContain("README.md");
   });
 });

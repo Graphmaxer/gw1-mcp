@@ -25,7 +25,8 @@
  * narrow — this is the signal that answers "which importer path produced what
  * is committed", and nothing else.
  *
- * Run: tsx scripts/provenance-changed.ts <before.json> <after.json>
+ * Run: node packages/gw-data/scripts/provenance-changed.ts <before.json> <after.json>
+ * (bare node, like every script here; the workflow passes absolute paths).
  * Prints `changed` or `unchanged` on one line, for the workflow to capture.
  * Failure modes: a missing or unparseable BEFORE file is treated as a first
  * import (`changed`), because "we have no record" is exactly when a record is

@@ -12,7 +12,7 @@ export function registerEncodeTemplateTool(registerTool: RegisterTool): void {
     {
       title: "Encode a build into a template code",
       description:
-        "Compile a build (professions, attributes, 8 skills by exact English name) into an official in-game template code. The build is validated first; on rule violations the errors are returned instead of a code. Unknown skill names return closest-match suggestions. IMPORTANT: template codes MUST come from this tool — never write or guess a code by hand, hand-written codes are invalid in-game. If unsure, verify any code with decode_template.",
+        "Compile a build (professions, attributes, 8 skill names in English or French) into an official in-game template code. The build is validated first; on rule violations the errors are returned instead of a code. Unknown skill names return closest-match suggestions. IMPORTANT: template codes MUST come from this tool — never write or guess a code by hand, hand-written codes are invalid in-game. If unsure, verify any code with decode_template.",
       annotations: READ_ONLY,
       outputSchema: encodeResultSchemaObject,
       inputSchema: encodeInputObject,

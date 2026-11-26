@@ -120,6 +120,49 @@ describe("attribute point budget", () => {
     expect(codes).not.toContain("ATTRIBUTE_POINTS_EXCEEDED");
     expect(report.errors.map((e) => e.message).join(" ")).not.toContain("Infinity");
   });
+
+  it("discards the running budget when a later rank is invalid", () => {
+    const report = validateBuild({
+      primary: 10,
+      secondary: 0,
+      attributes: [
+        { attributeId: 41, rank: 12 },
+        { attributeId: 44, rank: 12 },
+        { attributeId: 43, rank: 8 },
+        { attributeId: 42, rank: 13 },
+      ],
+      skills: [1518, 0, 0, 0, 0, 0, 0, 0],
+    });
+    expect(report.errors.map(({ code }) => code)).toEqual(["RANK_OUT_OF_RANGE"]);
+  });
+
+  it.each([1.5, NaN, "length"])("rejects %s as a base attribute rank", (rank) => {
+    const report = validateBuild({
+      primary: 1,
+      secondary: 0,
+      attributes: [{ attributeId: 21, rank: rank as number }],
+      skills: [1, 0, 0, 0, 0, 0, 0, 0],
+    });
+    expect(report.valid).toBe(false);
+    expect(report.errors.map((issue) => issue.code)).toEqual(["RANK_OUT_OF_RANGE"]);
+  });
+
+  it.each([
+    [0, ["UNALLOCATED_ATTRIBUTE"]],
+    [1, []],
+  ])(
+    "warns about a scaling attribute only when it has no allocation (rank %s)",
+    (rank, warnings) => {
+      const report = validateBuild({
+        primary: 1,
+        secondary: 0,
+        attributes: [{ attributeId: 21, rank }],
+        skills: [1, 0, 0, 0, 0, 0, 0, 0],
+      });
+      expect(report.valid).toBe(true);
+      expect(report.warnings.map((issue) => issue.code)).toEqual(warnings);
+    },
+  );
 });
 
 // Table-driven coverage of every remaining validator rule. Base bar: Dervish

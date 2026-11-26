@@ -52,24 +52,15 @@ historical wiki knowledge and from training data.
    have spent a round trip. Ranks here are **base** ranks 0-12 — runes and headgear
    are not part of the template.
 
-6. Attribute names are **English only**, and so are skill names
-   everywhere except `get_skill`. Guild Wars 1 is localised, so a French,
-   German or Spanish player will give you names the tools cannot resolve —
-   and a translated guess is the one way to produce a template that
-   encodes cleanly and is still wrong.
-   - **French skill names: do not translate them, pass them to
-     `get_skill` as-is.** It knows the official French name of every
-     skill and answers with the English one. Your own translation is a
-     guess; this is a lookup. A handful of French names are ambiguous
-     ("Rafale" is both Flurry and Gust) — you get both English names as
-     suggestions, so ask the user which they meant.
-   - **German, Spanish and any other language:** translate it yourself,
-     then **confirm with `get_skill` before using it**.
-     Either way, use the English name it returns for every other tool
-     (`encode_template`'s skill bar above all) and show the user the English
-     name you settled on. If `get_skill` misses, use `search_skills` on the
-     attribute line rather than picking the nearest-looking English skill —
-     and note `nameContains` matches ENGLISH names only.
+6. Use English for professions, attributes, campaigns, hero names, and
+   `search_skills` substrings. `get_skill`, `validate_build`, and
+   `encode_template` accept official English and French skill names.
+   - **French skill names.** Pass the name through as supplied. `get_skill`
+     returns the English name. Some names are ambiguous, such as "Rafale"
+     (Flurry or Gust). Ask the user to choose from the suggestions.
+   - **Other languages.** Translate the skill name and **confirm it with
+     `get_skill` before using it**. If lookup fails, use `search_skills` on
+     the attribute line and confirm the skill with the user.
 
 ## Build-design workflow
 

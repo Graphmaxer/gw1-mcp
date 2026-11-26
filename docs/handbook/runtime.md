@@ -95,7 +95,7 @@ the sentence is literally true — check it rather than trusting it when adding 
 Verified byte-identical at the time: `tools/list` was 18 577 characters, and strictness
 survives — an extra property in a structured result is still rejected. It went to 18 809
 when inputs became `.strict()` (see the third-audit entry in the debt register), and is
-**19 409 today, LOCKED by a test** — `conventions.test.ts` asserts the exact character
+**19 389 today, LOCKED by a test** — `conventions.test.ts` asserts the exact character
 count and fails on any movement in either direction.
 
 The lock exists because of how the number drifted. Between 18 809 and the audit of
@@ -173,7 +173,7 @@ The same test now also asserts every tool REJECTS an undeclared argument.
 ## workerd runs locally, and there are no compatibility flags
 
 `pnpm --filter @gw1-mcp/gw-worker smoke` (added 2026-11-13, also a CI job) starts
-`wrangler dev --local` on a free port and runs 22 HTTP checks against REAL workerd:
+`wrangler dev --local` on a free port and exercises real workerd over HTTP:
 routes, the handshake, hardening headers on a streamed answer, a French lookup, an
 encode/decode round trip, and every refusal (batch 400, text/plain 415, 413 on both
 path spellings, unknown argument, hostile pwnd). It is the manual pass this section

@@ -11,6 +11,15 @@ name: Publish to MCP Registry
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      release_tag:
+        description: "Release tag whose version must match server.json."
+        type: string
+        required: true
+      release_sha:
+        description: "Commit SHA tagged by Release Please."
+        type: string
+        required: true
 
 permissions:
   id-token: write # OIDC
@@ -21,6 +30,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.release_tag && format('refs/tags/{0}', inputs.release_tag) || '' }}
+      - name: Verify registry metadata matches the release
+        if: ${{ inputs.release_tag != '' }}
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "${RELEASE_SHA:?missing release SHA}"
+          if ! jq -e --arg version "${RELEASE_TAG#v}" '.version == $version' server.json >/dev/null; then
+            echo "::error::server.json version differs from release ${RELEASE_TAG}."
+            exit 1
+          fi
       # The version and the two digests live in .github/pins.env so the weekly
       # tripwire can open the PR that bumps them (see that file's header).
       - name: Load upstream pins

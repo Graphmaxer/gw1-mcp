@@ -1,4 +1,5 @@
 import { readFileSync, readdirSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -14,6 +15,15 @@ import { TOOL_NAMES } from "../src/tool-names.js";
  * drift between the rule and reality becomes a red test, not a doc lie.
  */
 const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
+
+it("keeps the installed Vitest coverage peer on the same patch", () => {
+  const require = createRequire(new URL("../../../package.json", import.meta.url));
+  const vitest = require("vitest/package.json") as { version: string };
+  const coverage = require("@vitest/coverage-v8/package.json") as {
+    peerDependencies: { vitest: string };
+  };
+  expect(vitest.version).toBe(coverage.peerDependencies.vitest);
+});
 
 describe("conventions: every error code has a triggering test", () => {
   const testCorpus =
@@ -384,7 +394,8 @@ describe("tools/list size is a locked, deliberate number (debt #10)", () => {
   // `instructions` is invisible to the many clients that never forward them, and a
   // French substring silently matching nothing is exactly the trap audit L-series
   // told us to document on the field itself.
-  const TOOLS_LIST_CHARS = 19_409;
+  // English and French build tool descriptions reduced the total by 20 characters.
+  const TOOLS_LIST_CHARS = 19_389;
 
   it("has not drifted, from our side or a dependency's", async () => {
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();

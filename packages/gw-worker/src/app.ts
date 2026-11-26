@@ -5,6 +5,7 @@ import { createServer } from "@gw1-mcp/gw-mcp";
 import { recordRequest, toolCallRecorder } from "./analytics.js";
 import type { AppEnv } from "./env.js";
 import {
+  checkContentType,
   checkOrigin,
   mcpBodyLimit,
   mcpCors,
@@ -56,13 +57,16 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
   registerSiteRoutes(app, faviconPng);
 
   // Order matters here, and every guard explains its own place in mcp-guards.ts.
-  for (const guard of [mcpCors, noStore, mcpBodyLimit, rateLimit, checkOrigin, refuseBatch]) {
+  for (const guard of [
+    mcpCors,
+    noStore,
+    mcpBodyLimit,
+    rateLimit,
+    checkOrigin,
+    checkContentType,
+    refuseBatch,
+  ]) {
     useOnMcp(guard);
-  }
-
-  for (const path of MCP_PATHS) {
-    app.get(path, methodNotAllowed);
-    app.delete(path, methodNotAllowed);
   }
 
   const handleMcp = async (c: Context<AppEnv>) => {
@@ -80,9 +84,20 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
     // before anything is written. @hono/mcp owns that lifecycle in stateless
     // mode. The repo's own tests do catch this (3 failures in test/http.test.ts),
     // which is the guardrail; this comment is so nobody "fixes" it again.
-    return transport.handleRequest(c);
+    const response = await transport.handleRequest(c);
+    // MCP requires an empty 202 acknowledgment. @hono/mcp sends JSON null.
+    if (response?.status === 202) {
+      const headers = new Headers(response.headers);
+      headers.delete("Content-Type");
+      headers.delete("Content-Length");
+      return new Response(null, { status: 202, headers });
+    }
+    return response;
   };
-  for (const path of MCP_PATHS) app.all(path, handleMcp);
+  for (const path of MCP_PATHS) {
+    app.post(path, handleMcp);
+    app.all(path, methodNotAllowed);
+  }
 
   return app;
 }

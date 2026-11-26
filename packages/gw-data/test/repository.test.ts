@@ -389,25 +389,15 @@ describe("French skill names (data/skill-names-fr.json)", () => {
     expect(getSkillByName("Voeu de révolution")?.name).toBe("Vow of Revolution");
   });
 
-  it("hands the 18 ligature names to the suggester rather than taxing every lookup", () => {
-    // Upstream writes all 18 "oe" names with the digraph and none with a ligature
-    // (Vœu, Cœur, Chœur, Œil, bœuf, Mœbius). A caller typing the typographically
-    // correct ligature therefore MISSES the exact index — NFD does not decompose œ,
-    // so the strip deletes it — and lands 2 edits from the French name instead.
-    //
-    // This is the trade normalize.ts documents, asserted rather than assumed: the
-    // right answer must actually come back, or dropping the fold would be a
-    // regression rather than a cost saving.
-    for (const [typed, expected] of [
-      ["Vœu du silence", "Vow of Silence"],
-      ["œil critique", "Critical Eye"],
-      ["Frappe de Mœbius", "Moebius Strike"],
-      ["Cœur de furie", "Heart of Fury"],
-      ["Cornes du bœuf", "Horns of the Ox"],
-    ] as const) {
-      expect(getSkillByName(typed), typed).toBeUndefined();
-      expect(suggestSkillNames(typed), typed).toContain(expected);
-    }
+  it("suggests the canonical skill for each French alias with a ligature", () => {
+    const candidates = Object.entries(frenchNames).filter(([, name]) => /oe/i.test(name));
+    expect(candidates.length).toBeGreaterThan(0);
+    const misses = candidates.flatMap(([id, name]) => {
+      const typed = name.replace(/oe/gi, (match) => (match.startsWith("O") ? "Œ" : "œ"));
+      const expected = getSkillById(Number(id))!.name;
+      return suggestSkillNames(typed).includes(expected) ? [] : [{ typed, expected }];
+    });
+    expect(misses).toEqual([]);
   });
 
   it("NEVER changes what an English name resolves to (whole dataset)", () => {

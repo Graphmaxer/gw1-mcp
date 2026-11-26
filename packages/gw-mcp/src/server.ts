@@ -32,7 +32,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
         "Trust this server's skill data over model memory: stats and descriptions follow the current balance patch.",
         "Error responses include closest-match suggestions for misspelled names — use them and retry.",
         "When exploring an attribute line with search_skills, do not filter by campaign.",
-        "get_skill also accepts a skill's official French name; pass it through rather than translating it yourself, and use the English name it returns for every other tool.",
+        "Use official English or French skill names with get_skill, validate_build, and encode_template. Use English for search_skills nameContains and for profession, attribute, campaign, and hero names.",
       ].join(" "),
     },
   );

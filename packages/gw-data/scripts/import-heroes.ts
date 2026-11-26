@@ -17,10 +17,10 @@
  * the identifiers to curate — the weekly workflow turns that into a red run
  * instead of silent staleness. Orphan overlay keys are warnings.
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
-import { mergeProvenance } from "./import/write.ts";
+import { dataFile, writeImport } from "./import/write.ts";
 
 const ENUM_URL =
   "https://raw.githubusercontent.com/gwdevhub/GWToolboxpp/master/Dependencies/GWCA/include/GWCA/Constants/Constants.h";
@@ -171,7 +171,6 @@ async function main(): Promise<void> {
     );
   }
   const heroes = generateHeroes(await response.text(), overlay);
-  writeFileSync(join(dataDir, "heroes.json"), `${JSON.stringify(heroes, null, 1)}\n`);
 
   // The C++ plugin's name table derives from the SAME generation pass —
   // the duplication this replaces had already drifted (ids 36-39 exported
@@ -185,18 +184,24 @@ async function main(): Promise<void> {
     "AccountExport",
     "hero-names.generated.h",
   );
-  writeFileSync(headerPath, renderHeroNamesHeader(heroes));
-
-  // Our provenance key in _meta.json, through the same read-merge-write as the
-  // skills import so generators never clobber each other.
-  mergeProvenance(dataDir, "heroes", {
-    source: `${ENUM_URL} (GWCA HeroID enum, vendored in GWToolboxpp — the living source; standalone gwdevhub/GWCA is gone)`,
-    generatedAt: new Date().toISOString().slice(0, 10),
-    curatedOverlay:
-      "data/heroes-overlay.json (professionId/campaignId/unlock — human knowledge, no machine-readable source exists)",
-  });
-  console.log(
-    `data/heroes.json + AccountExport/hero-names.generated.h generated: ${heroes.length} heroes from the GWCA enum + curated overlay.`,
+  writeImport(
+    dataDir,
+    [
+      dataFile(join(dataDir, "heroes.json"), heroes, heroes.length),
+      {
+        path: headerPath,
+        content: renderHeroNamesHeader(heroes),
+        summary: `${heroes.length} heroes`,
+      },
+    ],
+    {
+      heroes: {
+        source: `${ENUM_URL} (GWCA HeroID enum, vendored in GWToolboxpp — the living source; standalone gwdevhub/GWCA is gone)`,
+        generatedAt: new Date().toISOString().slice(0, 10),
+        curatedOverlay:
+          "data/heroes-overlay.json (professionId/campaignId/unlock — human knowledge, no machine-readable source exists)",
+      },
+    },
   );
 }
 

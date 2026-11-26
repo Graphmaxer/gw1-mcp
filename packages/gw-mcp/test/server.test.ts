@@ -62,16 +62,23 @@ describe("gw1-mcp server", () => {
     expect(ambiguous.error.suggestions).toEqual(["Flurry", "Gust"]);
   });
 
-  it("build tools resolve a French skill name too, as get_skill's description says", async () => {
-    // resolveNamedBuild goes through the same getSkillByName, so this was always
-    // true — while the description said "every other name field on every other
-    // tool is English-only". The behaviour is the useful one; the prose was wrong.
+  it("both build tools advertise and resolve French skill names", async () => {
     const client = await connectedClient();
+    const { tools } = await client.listTools();
+    for (const name of ["encode_template", "validate_build"]) {
+      const tool = tools.find((candidate) => candidate.name === name);
+      expect(tool?.description).toContain("French");
+      expect(tool?.inputSchema.properties?.skills).toMatchObject({
+        description: expect.stringContaining("French"),
+      });
+    }
     const build = {
       primary: "Warrior",
       attributes: [],
       skills: ["Sceau de guérison", null, null, null, null, null, null, null],
     };
+    const validated = payload(await client.callTool({ name: "validate_build", arguments: build }));
+    expect(validated.valid).toBe(true);
     const encoded = payload(await client.callTool({ name: "encode_template", arguments: build }));
     const decoded = payload(
       await client.callTool({ name: "decode_template", arguments: { code: encoded.code } }),
@@ -311,14 +318,17 @@ describe("paw-ned2 team decoding", () => {
       label: "Player",
       notes: "https://gwpvx.example/Build:Team",
     });
-    expect(pwndSlotLabel("", "Hero 1\nnotes")).toEqual({ label: "Hero 1", notes: "notes" });
+    expect(pwndSlotLabel("", "First line\nSecond line")).toEqual({
+      label: "",
+      notes: "First line\nSecond line",
+    });
     expect(pwndSlotLabel("  Hero 2  ", "")).toEqual({ label: "Hero 2", notes: null });
   });
 
-  it("decodes a real PvXwiki team blob (3 Hero Discordway) despite line wraps", async () => {
+  it("decodes a real PvXwiki team blob despite line wraps and surrounding whitespace", async () => {
     const client = await connectedClient();
     // Verbatim from the PvX page rendering, including wrap-induced spaces.
-    const pwnd = PVX_DISCORDWAY;
+    const pwnd = `\n ${PVX_DISCORDWAY}\n `;
     const result = payload(
       await client.callTool({ name: "decode_pawned_team", arguments: { pwnd } }),
     );
@@ -338,6 +348,23 @@ describe("paw-ned2 team decoding", () => {
       );
     }
   });
+
+  it.each([
+    ["Player", "Cast A first.\nThen cast B.", "AsUGxheWVyCkNhc3QgQSBmaXJzdC4KVGhlbiBjYXN0IEIu"],
+    ["", "Cast A first.", "ATCkNhc3QgQSBmaXJzdC4"],
+  ])(
+    "preserves the complete notes of a paw-ned2 slot with label %j",
+    async (label, notes, field) => {
+      // Single-slot fixtures emitted by PwndTemplate 1.1.1 with one valid skill code.
+      const pwnd = `pwnd0002?paw-ned2 notes fixture\n>QOQAAAAAAAAAAAAAAAAAAAA${field}<`;
+      const client = await connectedClient();
+      await client.listTools();
+      const result = await client.callTool({ name: "decode_pawned_team", arguments: { pwnd } });
+      expect(result.structuredContent).toMatchObject({
+        builds: [{ label, notes, build: expect.any(Object) }],
+      });
+    },
+  );
 });
 
 describe("resources and error surfaces", () => {

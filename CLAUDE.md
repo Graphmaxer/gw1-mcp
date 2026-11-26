@@ -43,7 +43,7 @@ pnpm -r typecheck && pnpm -r test # must pass from a clean clone
 pnpm lint && pnpm fmt             # oxlint / oxfmt (CI runs fmt:check)
 pnpm test:coverage                # reference levels: see Coverage section
 pnpm bench                        # vitest bench in every package (see Performance)
-pnpm --filter @gw1-mcp/gw-worker smoke      # 22 HTTP checks against real workerd
+pnpm --filter @gw1-mcp/gw-worker smoke      # HTTP checks against real workerd
 pnpm --filter @gw1-mcp/gw-worker dev        # local worker
 npx wrangler deploy --dry-run               # bundle check (in gw-worker)
 ```

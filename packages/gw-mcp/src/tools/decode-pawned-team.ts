@@ -18,7 +18,7 @@ export function registerDecodePawnedTeamTool(registerTool: RegisterTool): void {
       inputSchema: decodePwndInputObject,
     },
     async ({ pwnd }) => {
-      const cleaned = rejoinWrappedPwnd(pwnd);
+      const cleaned = rejoinWrappedPwnd(pwnd.trim());
       let entries;
       try {
         entries = new PwndTemplate().decode(cleaned);
@@ -51,7 +51,8 @@ export function registerDecodePawnedTeamTool(registerTool: RegisterTool): void {
               message: error instanceof Error ? error.message : String(error),
             };
           }
-          // Both upstream shapes handled in one pure helper; see pwndSlotLabel.
+          // The dependency patch preserves the full notes and an empty title.
+          // Both upstream shapes are handled in pwndSlotLabel.
           const { label, notes } = pwndSlotLabel(
             // Cast because the shipped TYPES lag the implementation: 1.1.1 returns
             // templatename at runtime but declares only skills, equipment, weaponsets,

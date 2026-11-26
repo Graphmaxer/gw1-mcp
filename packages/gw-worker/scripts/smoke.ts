@@ -162,6 +162,20 @@ async function main(): Promise<void> {
     check("nosniff on an /mcp answer", init.headers.get("x-content-type-options") === "nosniff");
     check("open CORS on an /mcp answer", init.headers.get("access-control-allow-origin") === "*");
 
+    for (const path of ["/mcp", "/mcp/"]) {
+      const initialized = await post(
+        JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }),
+        { ...JSON_HEADERS, "Mcp-Protocol-Version": "2025-06-18" },
+        path,
+      );
+      const body = await initialized.text();
+      check(
+        `initialized notification on ${path} answers 202 with an empty body`,
+        initialized.status === 202 && body === "",
+        `got ${initialized.status} with ${body.length} body bytes`,
+      );
+    }
+
     const list = parseRpc(
       await (await post(JSON.stringify({ jsonrpc: "2.0", id: ++id, method: "tools/list" }))).text(),
     );

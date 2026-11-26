@@ -112,7 +112,7 @@ The honest register: every KNOWN compromise, kept deliberately, with its trigger
    the margin improved rather than eroded. `limits.cpu_ms` stays unset
    deliberately: it has no effect under Free and a rejected value would fail a
    deploy.
-10. tools/list costs 19 409 characters (~4 850 tokens) of FIXED context
+10. tools/list costs 19 389 characters (~4 850 tokens) of FIXED context
     in every conversation, outputSchemas being ~40% of it (7 805 chars). That is
     a deliberate trade — the schemas carry real contracts locked by the golden
     fixtures — but it is paid by every session, including ones that call a
@@ -151,6 +151,8 @@ The honest register: every KNOWN compromise, kept deliberately, with its trigger
     `name` claimed every other name field on every other tool was English-only,
     while build skill names have resolved French since the table shipped (they go
     through the same lookup). Locked by a test now.
+    The `encode_template` and `validate_build` tool and parameter descriptions now
+    explicitly advertise French skill names too, reducing the total by 20 characters.
     Trigger: if a client's
     context budget ever matters, check whether that client forwards
     outputSchema to the model at all before optimising further.

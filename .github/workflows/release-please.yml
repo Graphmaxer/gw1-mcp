@@ -1,9 +1,8 @@
 name: Release Please
 # Maintains the release PR from conventional commits; when the merge of that
 # PR creates a release, sibling jobs in THIS run publish to the MCP Registry
-# and attach the plugin DLL — via reusable workflows (uses:). They must be
-# chained here by needs/if: events created by release-please (the release,
-# the tag) never trigger separate on-release workflows.
+# and attach the plugin DLL via reusable workflows. Both receive the commit
+# Release Please actually tagged, which can differ from the triggering push.
 on:
   push:
     branches: [main]
@@ -19,6 +18,7 @@ jobs:
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
+      release_sha: ${{ steps.release.outputs.sha }}
     steps:
       - name: Mint an ephemeral app token (gw1-mcp-bot)
         # GitHub App replaces the old long-lived PAT: the installation token
@@ -50,18 +50,22 @@ jobs:
   # and asks it to upload the DLL straight onto the freshly created release.
   attach-plugin-to-release:
     needs: release-please
-    if: ${{ needs.release-please.outputs.release_created }}
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
     uses: ./.github/workflows/build-gwtoolbox-plugin.yml
     permissions:
       contents: write
     with:
       release_tag: ${{ needs.release-please.outputs.tag_name }}
+      release_sha: ${{ needs.release-please.outputs.release_sha }}
 
   # Reuses the registry publish workflow (single source).
   publish-registry:
     needs: release-please
-    if: ${{ needs.release-please.outputs.release_created }}
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
     uses: ./.github/workflows/publish-registry.yml
     permissions:
       id-token: write
       contents: read
+    with:
+      release_tag: ${{ needs.release-please.outputs.tag_name }}
+      release_sha: ${{ needs.release-please.outputs.release_sha }}

@@ -34,9 +34,11 @@ the form's "What you'll need" list.
 
 ## Data & compliance
 
-- Data handling: no personal data collected or processed; stateless; no
-  request content persisted by the application (Cloudflare operational
-  logs per their policy)
+- Data handling: tool arguments are processed in memory. Cloudflare Analytics
+  Engine retains usage counters and caller-supplied client names for 90 days.
+  A name may contain personal information and appear in the public usage
+  dashboard. Cloudflare may process operational metadata such as IP addresses
+  for logging and rate limiting. See the service's [privacy policy](https://gw1-mcp.graphmaxer.workers.dev/privacy).
 - Third-party connections: none at request time (data is imported at
   build time from build-wars/gw-skilldata; its code is MIT but the skill
   descriptions are GFDL/CC-BY-NC-SA — see THIRD_PARTY_NOTICES.md)

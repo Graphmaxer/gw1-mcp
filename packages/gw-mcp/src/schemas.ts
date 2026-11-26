@@ -43,7 +43,7 @@ const namedBuildSchema = {
     .array(z.string().max(64).nullable())
     .length(8)
     .describe(
-      "Exactly 8 skill names in bar order. Use null for an empty slot. Names must be exact English skill names.",
+      "Exactly 8 official English or French skill names in bar order. Use null for an empty slot.",
     ),
 };
 

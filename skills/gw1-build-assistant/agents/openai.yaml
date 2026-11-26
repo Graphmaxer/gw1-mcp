@@ -5,7 +5,6 @@
 #
 # Without it the display name is derived from the folder name, which would read
 # "Gw1 Build Assistant".
-display_name: Guild Wars 1 build assistant
-description: >-
-  Design, review and compile Guild Wars 1 skill bars using the gw1-mcp tools as the
-  source of truth for game data.
+interface:
+  display_name: "Guild Wars 1 build assistant"
+  short_description: "Design, review and compile Guild Wars 1 skill bars"

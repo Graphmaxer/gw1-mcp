@@ -19,9 +19,10 @@ import { isJsonRequest, rpcError } from "./rpc.js";
 // safe *here* specifically: the service is public, read-only and
 // credential-free, so "*" grants a browser nothing curl does not already have.
 // There is no cookie, no session and no Authorization header to ride on.
+const MCP_ALLOW_METHODS = ["POST", "OPTIONS"];
 export const mcpCors: MiddlewareHandler<AppEnv> = cors({
   origin: "*",
-  allowMethods: ["POST", "GET", "OPTIONS"],
+  allowMethods: MCP_ALLOW_METHODS,
   allowHeaders: ["Content-Type", "Accept", "Mcp-Session-Id", "Mcp-Protocol-Version"],
   exposeHeaders: ["Mcp-Session-Id", "Mcp-Protocol-Version"],
   maxAge: 86400,
@@ -116,6 +117,29 @@ export const checkOrigin: MiddlewareHandler<AppEnv> = async (c, next) => {
   await next();
 };
 
+/** Validate the media type before body inspection and normalize it for @hono/mcp. */
+export const checkContentType: MiddlewareHandler<AppEnv> = async (c, next) => {
+  if (c.req.method !== "POST") return next();
+
+  const contentType = c.req.header("Content-Type");
+  if (!contentType || !isJsonRequest(c)) {
+    return rpcError(
+      c,
+      415,
+      -32000,
+      "Unsupported Media Type: Content-Type must be application/json",
+    );
+  }
+  // HTTP media-type tokens are case-insensitive. The transport uses a
+  // case-sensitive substring check, so give it the canonical type and parameters.
+  if (!contentType.startsWith("application/json")) {
+    const headers = new Headers(c.req.raw.headers);
+    headers.set("Content-Type", contentType.replace(/^[^;]+/, "application/json"));
+    c.req.raw = new Request(c.req.raw, { headers });
+  }
+  await next();
+};
+
 // No JSON-RPC batching (audit N1, 2026-08-08). This is the last amplification
 // path left: every other guard in this file reasons per REQUEST — the body
 // limit, the pwnd slot cap, the bounded Levenshtein — and the rate limiter
@@ -136,12 +160,8 @@ export const checkOrigin: MiddlewareHandler<AppEnv> = async (c, next) => {
 // same audit was a middleware registered on one path spelling only, and an
 // oversized batch must still 413 rather than be buffered and inspected here.
 export const refuseBatch: MiddlewareHandler<AppEnv> = async (c, next) => {
-  // JSON bodies only. Without this the check ran first and answered 400 for a
-  // `text/plain` body starting with "[", where the transport answers 415 —
-  // silently changing a documented response code. Measured under real workerd
-  // 2026-08-11. Nothing is lost: a non-JSON batch never reaches any work,
-  // because the transport refuses the content type before parsing.
-  if (!isJsonRequest(c)) return next();
+  // checkContentType has already accepted the media type of any POST.
+  if (c.req.method !== "POST" || !isJsonRequest(c)) return next();
   // First non-whitespace character only — a body of up to 512 KiB does not
   // need JSON.parse to answer "is the top level an array?".
   const body = await c.req.raw.clone().text();
@@ -167,5 +187,5 @@ export const methodNotAllowed = (c: Context<AppEnv>) =>
     405,
     -32000,
     "This server is stateless: only POST /mcp is supported (no SSE stream, no sessions to delete).",
-    { Allow: "POST, OPTIONS" },
+    { Allow: MCP_ALLOW_METHODS.join(", ") },
   );

@@ -103,7 +103,6 @@ int main()
     assert(std::string(HeroName(36)) == "Miku");
     assert(std::string(HeroName(39)) == "Ghost of Althea");
     constexpr auto table_size = static_cast<uint32_t>(std::size(account_export::kHeroNames));
-    static_assert(std::size(account_export::kHeroNames) == 40);
     assert(std::string(HeroName(table_size)) == "Unknown");
     assert(std::string(HeroName(9999)) == "Unknown");
 

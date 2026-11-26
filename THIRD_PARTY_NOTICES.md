@@ -5,6 +5,14 @@ The **game data** it bundles is not the project's own work and carries its own,
 separate terms, described here. If you redistribute or build on this project,
 these data terms apply independently of the MIT code license.
 
+## MCP Registry schema test fixture
+
+`packages/gw-mcp/test/fixtures/registry-server-2025-12-11.schema.json` is
+copied verbatim from the [MCP Registry v1.8.16 source][mcp-schema].
+The upstream license is included in [LICENSES/MCP-Registry.txt](./LICENSES/MCP-Registry.txt).
+
+[mcp-schema]: https://github.com/modelcontextprotocol/registry/blob/a21a32bd7d58e217c8099996bfa19bfabf08e4d2/internal/validators/schemas/2025-12-11.json
+
 ## Game data and skill descriptions
 
 `packages/gw-data/data/skills.json` (skills, attributes, professions,

@@ -1,0 +1,74 @@
+diff --git a/lib/browser.js b/lib/browser.js
+--- a/lib/browser.js
++++ b/lib/browser.js
+@@ -1806,11 +1806,9 @@
+     return ['', ''];
+   }
+-  desc = _assertClassBrand(_PwndTemplate_brand, this, _decodeField).call(this, desc, $from_encoding);
+-
+-  // for some reason there was no LF character (trimmed from the end while decoding),
+-  // we'll assume that whatever the string is as template name
+-  if (!desc.includes('\n')) {
+-    return [desc, ''];
+-  }
+-  return desc.split('\n', 2);
++  desc = _assertClassBrand(_PwndTemplate_brand, this, _decodeField).call(this, desc, $from_encoding, false);
++  var separator = desc.indexOf('\n');
++  if (separator === -1) {
++    return [desc.trim(), ''];
++  }
++  return [desc.slice(0, separator).trim(), desc.slice(separator + 1).trim()];
+ }
+@@ -1927,4 +1925,4 @@
+  */
+-function _decodeField($data, $from_encoding) {
++function _decodeField($data, $from_encoding, $trim) {
+   if ($from_encoding === _PwndTemplate.ENCODING_UNDEFINED) {
+     $from_encoding = _PwndTemplate.ENCODING_ASCII; // do we have detect_encoding here???
+@@ -1935,6 +1933,7 @@
+   });
+   // Uint8Array.fromBase64() is not available yet
+-  return new TextDecoder($from_encoding, {
++  var decoded = new TextDecoder($from_encoding, {
+     fatal: true
+-  }).decode(new Uint8Array(uint8)).trim();
++  }).decode(new Uint8Array(uint8));
++  return $trim === false ? decoded : decoded.trim();
+ }
+diff --git a/lib/main.cjs b/lib/main.cjs
+--- a/lib/main.cjs
++++ b/lib/main.cjs
+@@ -1808,11 +1808,9 @@
+     return ['', ''];
+   }
+-  desc = _assertClassBrand(_PwndTemplate_brand, this, _decodeField).call(this, desc, $from_encoding);
+-
+-  // for some reason there was no LF character (trimmed from the end while decoding),
+-  // we'll assume that whatever the string is as template name
+-  if (!desc.includes('\n')) {
+-    return [desc, ''];
+-  }
+-  return desc.split('\n', 2);
++  desc = _assertClassBrand(_PwndTemplate_brand, this, _decodeField).call(this, desc, $from_encoding, false);
++  var separator = desc.indexOf('\n');
++  if (separator === -1) {
++    return [desc.trim(), ''];
++  }
++  return [desc.slice(0, separator).trim(), desc.slice(separator + 1).trim()];
+ }
+@@ -1929,4 +1927,4 @@
+  */
+-function _decodeField($data, $from_encoding) {
++function _decodeField($data, $from_encoding, $trim) {
+   if ($from_encoding === _PwndTemplate.ENCODING_UNDEFINED) {
+     $from_encoding = _PwndTemplate.ENCODING_ASCII; // do we have detect_encoding here???
+@@ -1937,6 +1935,7 @@
+   });
+   // Uint8Array.fromBase64() is not available yet
+-  return new TextDecoder($from_encoding, {
++  var decoded = new TextDecoder($from_encoding, {
+     fatal: true
+-  }).decode(new Uint8Array(uint8)).trim();
++  }).decode(new Uint8Array(uint8));
++  return $trim === false ? decoded : decoded.trim();
+ }

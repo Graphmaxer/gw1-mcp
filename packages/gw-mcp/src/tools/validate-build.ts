@@ -11,7 +11,7 @@ export function registerValidateBuildTool(registerTool: RegisterTool): void {
     {
       title: "Validate a build against GW1 rules",
       description:
-        "Check a build (professions, attributes, 8 skills by exact English name) against Guild Wars 1 rules: one elite max, profession/attribute ownership, primary attributes, duplicates, rank ranges. Returns { valid, errors, warnings } without encoding — use encode_template instead when you also want the template code, since it runs these same rules and refuses on any error.",
+        "Check a build (professions, attributes, 8 skill names in English or French) against Guild Wars 1 rules: one elite max, profession/attribute ownership, primary attributes, duplicates, rank ranges. Returns { valid, errors, warnings } without encoding — use encode_template instead when you also want the template code, since it runs these same rules and refuses on any error.",
       annotations: READ_ONLY,
       outputSchema: validateResultSchemaObject,
       inputSchema: validateInputObject,

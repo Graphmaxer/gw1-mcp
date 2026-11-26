@@ -3,44 +3,36 @@ import Ajv from "ajv";
 import addFormats from "ajv-formats";
 import { describe, expect, it } from "vitest";
 
-/**
- * Guards server.json against the MCP Registry schema BEFORE the publish step
- * rejects it (learned the hard way: a 255-char description was silently
- * rejected). Validates against the LIVE official schema — the exact one
- * server.json declares in its $schema field — so registry schema evolutions
- * are caught by CI instead of at publish time. Offline runs (no network)
- * fall back to the critical hardcoded constraints with a warning, so the
- * suite stays green off-grid while CI (which has network) validates fully.
- */
+// Snapshot from the MCP Registry release pinned in .github/pins.env when this
+// fixture was added. Validate offline against the publisher's snapshot of the
+// dated schema server.json declares, including its transport metadata.
+const schema = JSON.parse(
+  readFileSync(
+    new URL("./fixtures/registry-server-2025-12-11.schema.json", import.meta.url),
+    "utf8",
+  ),
+) as { $id: string };
+const server = JSON.parse(
+  readFileSync(new URL("../../../server.json", import.meta.url), "utf8"),
+) as { $schema: string };
+const ajv = new Ajv({ strict: false, allErrors: true });
+addFormats(ajv);
+const validate = ajv.compile(schema);
+
 describe("MCP Registry server.json", () => {
-  const server = JSON.parse(
-    readFileSync(new URL("../../../server.json", import.meta.url), "utf8"),
-  ) as { $schema: string; name: string; description?: string; version?: string };
+  it("conforms to the declared dated Registry schema", () => {
+    expect(server.$schema).toBe(schema.$id);
+    const valid = validate(server);
+    expect.soft(validate.errors ?? [], "official-schema violations").toEqual([]);
+    expect(valid).toBe(true);
+  });
 
-  it("conforms to the official registry schema (live), or to the critical floors offline", async () => {
-    let schema: object | undefined;
-    try {
-      // Stay below Vitest's five-second test timeout. The old ten-second abort
-      // could never reach the documented offline fallback: Vitest killed the
-      // test first whenever the registry accepted a connection but stalled.
-      const res = await fetch(server.$schema, { signal: AbortSignal.timeout(3_000) });
-      schema = (await res.json()) as object;
-    } catch {
-      console.warn("registry schema unreachable — falling back to critical hardcoded checks");
-    }
-
-    if (schema) {
-      const ajv = new Ajv({ strict: false, allErrors: true });
-      addFormats(ajv);
-      const validate = ajv.compile(schema);
-      const valid = validate(server);
-      expect.soft(validate.errors ?? [], "official-schema violations").toEqual([]);
-      expect(valid).toBe(true);
-    } else {
-      expect(server.name).toMatch(/^[a-zA-Z0-9.-]+\/[a-zA-Z0-9._-]+$/);
-      expect(server.description ?? "").not.toBe("");
-      expect((server.description ?? "").length).toBeLessThanOrEqual(100);
-      expect((server.version ?? "").length).toBeLessThanOrEqual(255);
-    }
+  it("rejects an unsupported remote transport", () => {
+    expect(
+      validate({ ...server, remotes: [{ type: "stdio", url: "https://example.org/mcp" }] }),
+    ).toBe(false);
+    expect(validate.errors).toEqual(
+      expect.arrayContaining([expect.objectContaining({ instancePath: "/remotes/0/type" })]),
+    );
   });
 });

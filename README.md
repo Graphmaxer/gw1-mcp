@@ -45,7 +45,7 @@ wrong.
 
 ## Tools
 
-- `get_skill` — full record for one skill (by exact name or template id), with closest-match suggestions on typos. Official **French** skill names resolve too (`Sceau de guérison` -> Healing Signet); every other name field is English-only
+- `get_skill` — full record for one skill (by exact name or template id), with closest-match suggestions on typos
 - `search_skills` — filtered search: profession, attribute, campaign, elite, name substring
 - `decode_template` — in-game template code → professions, attributes, 8 skills with stats
 - `encode_template` — named build → validated, official in-game template code
@@ -53,6 +53,10 @@ wrong.
 - `get_hero` — hero record by exact name or GWCA id
 - `list_heroes` — hero roster with professions, campaigns and unlock notes, filterable by profession/campaign
 - `decode_pawned_team` — paw-ned2 team blobs (PvXwiki team pages) → every bar decoded
+
+`get_skill`, `validate_build`, and `encode_template` accept official English or French
+skill names (`Sceau de guérison` → Healing Signet). Search substrings and
+profession, attribute, campaign, and hero names use English.
 
 Resources: `gw1://guide/build-workflow` (methodology for the LLM), `gw1://meta` (professions, attribute lines, campaigns, skill-type list and data import date) and `gw1://heroes`.
 

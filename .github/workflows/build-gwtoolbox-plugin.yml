@@ -1,11 +1,10 @@
 name: Build GWToolbox plugin
 
 # Single source of truth for compiling AccountExport.dll on a Windows runner.
-# Three entry points, one build:
+# One build serves four entry points:
 #   - workflow_dispatch: manual build, DLL published as a run artifact
-#   - push on the plugin path: CI check that it still compiles
-#   - workflow_call (release_tag input): the release run calls this and the
-#     DLL is uploaded straight onto the GitHub release
+#   - push and pull_request on plugin paths: CI checks that it still compiles
+#   - workflow_call: build the release commit and attach the DLL to its tag
 # Mirrors upstream GWToolboxpp CI: vcpkg pinned to their commit, `vcpkg`
 # CMake preset (Win32 baked in), binaries in <src>/bin/RelWithDebInfo/.
 
@@ -24,13 +23,19 @@ on:
   # The build job is contents:read and uses no secret, so a PR run is safe.
   pull_request:
     paths:
+      - "gwtoolbox-plugin/**"
+      - ".github/workflows/build-gwtoolbox-plugin.yml"
       - ".github/pins.env"
   workflow_call:
     inputs:
       release_tag:
-        description: "If set, upload the built DLL onto this GitHub release."
+        description: "Upload the built DLL onto this GitHub release."
         type: string
-        required: false
+        required: true
+      release_sha:
+        description: "Commit SHA tagged by Release Please."
+        type: string
+        required: true
 
 permissions:
   contents: read
@@ -47,6 +52,14 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.release_tag && format('refs/tags/{0}', inputs.release_tag) || '' }}
+      - name: Verify release checkout
+        if: ${{ inputs.release_tag != '' }}
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        run: test "$(git rev-parse HEAD)" = "${RELEASE_SHA:?missing release SHA}"
 
       # GWTOOLBOX_COMMIT and VCPKG_COMMIT used to be job-level `env:` here. They
       # moved to .github/pins.env so the weekly tripwire can actually open the PR

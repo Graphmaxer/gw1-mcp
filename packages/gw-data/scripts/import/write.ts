@@ -1,69 +1,160 @@
-import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import {
+  copyFileSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { basename, dirname, join } from "node:path";
 
-/** Writes one data file with a one-line count log. */
-export function writeData(
-  outDir: string,
-  name: string,
-  data: unknown,
-  count: number | string,
-): void {
-  writeFileSync(join(outDir, name), JSON.stringify(data, null, 1) + "\n");
-  console.log(`${name}: ${count}`);
+interface ImportFile {
+  path: string;
+  content: string;
+  summary: number | string;
 }
 
-/**
- * Rewrite the skill count quoted in README prose.
- *
- * The count is advertised on purpose, and `repository.test.ts` asserts README
- * quotes it EXACTLY — which made it a one-way ratchet on the only automated path
- * that can change it. `update-data.yml` regenerates `data/*.json` and a C++
- * header but never touched README, so the first count change reds the weekly job
- * until a human edits prose. That is the opposite of the zero-touch pipeline it
- * is sold as, and it is what blocked the 2026-08-10 run.
- *
- * So the generator now owns the number, like every other derived byte in the repo
- * ("no unmanaged copies"). Narrow on purpose: it rewrites the digits in front of
- * "skills" / "real skills" and nothing else, so it cannot reflow a sentence.
- *
- * @returns how many occurrences changed, for the caller's log.
- */
-export function syncReadmeSkillCount(readmePath: string, count: number): number {
+/** Prepare a generated JSON file in the repository's canonical format. */
+export function dataFile(path: string, data: unknown, summary: number | string): ImportFile {
+  return { path, content: JSON.stringify(data, null, 1) + "\n", summary };
+}
+
+/** Prepare a README update only when its advertised skill count changes. */
+export function syncReadmeSkillCount(readmePath: string, count: number): ImportFile | undefined {
   const before = readFileSync(readmePath, "utf8");
   let changed = 0;
-  const after = before.replace(/\b\d{3,5}(?= (?:real )?skills\b)/g, (found) => {
+  const content = before.replace(/\b\d{3,5}(?= (?:real )?skills\b)/g, (found) => {
     if (found !== String(count)) changed++;
     return String(count);
   });
-  if (changed > 0) writeFileSync(readmePath, after);
-  return changed;
+  if (changed === 0) return undefined;
+  return { path: readmePath, content, summary: `${changed} skill-count mention(s) -> ${count}` };
 }
 
-/**
- * _meta.json records provenance for EVERY generated data file, one key per
- * pipeline (skills here, heroes in import-heroes.ts). Each generator
- * read-merge-writes its own key so independent runs never clobber each other.
- */
-export function mergeProvenance(outDir: string, key: string, entry: unknown): void {
-  let existing: Record<string, unknown> = {};
+function readProvenance(path: string): Record<string, unknown> {
+  let text: string;
   try {
-    existing = JSON.parse(readFileSync(join(outDir, "_meta.json"), "utf8")) as Record<
-      string,
-      unknown
-    >;
-  } catch {
-    // first run: no _meta.json yet
+    text = readFileSync(path, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return {};
+    throw error;
   }
-  writeData(
-    outDir,
-    "_meta.json",
-    { ...existing, [key]: entry },
-    // What identifies this record in the log: its version when it has one (skills,
-    // French names), otherwise the day it was generated (heroes).
-    String(
-      (entry as { sourceVersion?: string; generatedAt?: string } | null)?.sourceVersion ??
-        (entry as { generatedAt?: string } | null)?.generatedAt ??
-        key,
-    ),
-  );
+
+  try {
+    const entries: unknown = JSON.parse(text);
+    if (entries === null || typeof entries !== "object" || Array.isArray(entries)) {
+      throw new Error("expected an object of provenance entries");
+    }
+    return entries as Record<string, unknown>;
+  } catch (error) {
+    throw new Error(`Invalid provenance in ${path}: ${error}`, { cause: error });
+  }
+}
+
+interface StagedFile {
+  path: string;
+  directory: string;
+  hadOriginal: boolean;
+}
+
+/** Stage every output beside its destination before replacing any of them. */
+function publish(files: readonly ImportFile[]): void {
+  const staged: StagedFile[] = [];
+  const preserve = new Set<string>();
+  let replaced = 0;
+  try {
+    for (const file of files) {
+      const original = lstatSync(file.path, { throwIfNoEntry: false });
+      if (original && !original.isFile()) {
+        throw new Error(`Cannot replace ${file.path}: expected a regular file`);
+      }
+      const directory = mkdtempSync(join(dirname(file.path), ".gw1-import-"));
+      staged.push({ path: file.path, directory, hadOriginal: original !== undefined });
+      if (original) copyFileSync(file.path, join(directory, "original"));
+      writeFileSync(join(directory, "updated"), file.content, { mode: original?.mode });
+    }
+
+    for (const file of staged) {
+      renameSync(join(file.directory, "updated"), file.path);
+      replaced++;
+    }
+  } catch (error) {
+    const rollbackErrors: unknown[] = [];
+    for (const file of staged.slice(0, replaced).reverse()) {
+      try {
+        if (file.hadOriginal) renameSync(join(file.directory, "original"), file.path);
+        else rmSync(file.path);
+      } catch (rollbackError) {
+        preserve.add(file.directory);
+        rollbackErrors.push(rollbackError);
+      }
+    }
+    if (rollbackErrors.length > 0) {
+      throw new AggregateError(
+        [error, ...rollbackErrors],
+        `Import failed and could not restore all files: ${error}. Remaining staging directories: ${[...preserve].join(", ")}`,
+      );
+    }
+    throw error;
+  } finally {
+    for (const file of staged) {
+      if (preserve.has(file.directory)) continue;
+      try {
+        rmSync(file.directory, { recursive: true, force: true });
+      } catch (error) {
+        console.warn(`Could not remove import staging directory ${file.directory}: ${error}`);
+      }
+    }
+  }
+}
+
+/** Merge this import's provenance and publish it with the prepared files. */
+export function writeImport(
+  outDir: string,
+  files: readonly ImportFile[],
+  entries: Record<string, { sourceVersion?: string; generatedAt?: string; [key: string]: unknown }>,
+  readme?: { path: string; count: number },
+): void {
+  mkdirSync(outDir, { recursive: true });
+  // Both import commands share _meta.json. Hold the lock from reading the
+  // previous entries through publication so simultaneous runs cannot lose keys.
+  const lock = join(outDir, ".gw1-import-lock");
+  try {
+    mkdirSync(lock);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "EEXIST") {
+      throw new Error(
+        `Another import holds ${lock}. If no import is running, remove that directory and retry.`,
+        { cause: error },
+      );
+    }
+    throw error;
+  }
+  try {
+    const path = join(outDir, "_meta.json");
+    const provenance = dataFile(
+      path,
+      { ...readProvenance(path), ...entries },
+      Object.entries(entries)
+        .map(([key, entry]) => `${key}=${entry.sourceVersion ?? entry.generatedAt ?? "updated"}`)
+        .join(", "),
+    );
+    const outputs = [...files];
+    // The README count describes the same snapshot as skills.json. Read it
+    // under the import lock in case another skills import just updated it.
+    const readmeChange = readme && syncReadmeSkillCount(readme.path, readme.count);
+    if (readmeChange) outputs.push(readmeChange);
+    outputs.push(provenance);
+    publish(outputs);
+    for (const file of outputs) console.log(`${basename(file.path)}: ${file.summary}`);
+  } finally {
+    try {
+      rmdirSync(lock);
+    } catch (error) {
+      console.warn(`Could not release import lock ${lock}. Remove it before retrying: ${error}`);
+    }
+  }
 }

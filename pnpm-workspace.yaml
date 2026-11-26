@@ -1,5 +1,8 @@
 packages:
   - "packages/*"
+patchedDependencies:
+  # Preserve paw-ned2 multiline notes until the parser fix ships upstream.
+  "@buildwars/gw-templates@1.1.1": patches/@buildwars__gw-templates@1.1.1.patch
 allowBuilds:
   esbuild: true
   sharp: true

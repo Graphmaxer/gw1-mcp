@@ -15,13 +15,17 @@ concurrency:
 # That code must never run in a job that can mint the app token — a compromised
 # upstream could exfiltrate the job's secrets. So: `import` runs with zero
 # secrets and a read-only token, and hands the data diff to `open-pr` as an
-# artifact; only `open-pr` (which runs no remote code) touches the PAT.
+# artifact; only `open-pr` (which runs no remote code) mints the app token.
 permissions:
   contents: read
 
 jobs:
   import:
     runs-on: ubuntu-latest
+    # Every fetch in the import is unbounded, and the concurrency group above never
+    # cancels: without this a stalled download holds the group for the six-hour
+    # default. A normal run takes a few minutes.
+    timeout-minutes: 20
     permissions:
       contents: read
     outputs:
@@ -65,7 +69,7 @@ jobs:
         # data is discarded in that case — the run ends with the committed data intact,
         # and notify-degraded below reports the real failure. The check reads the
         # COMMITTED record (HEAD), not the file the npm import just overwrote.
-        # provenance-cli.test.ts locks this branch statically.
+        # update-data-workflow.test.ts locks this branch statically.
         run: |
           if pnpm --filter @gw1-mcp/gw-data run import:data -- https://build-wars.github.io/gw-skilldata; then
             echo "fallback=false" >> "$GITHUB_OUTPUT"
@@ -96,14 +100,15 @@ jobs:
         # pure function rather than shell string-slicing, because it is exactly
         # the kind of logic that is never exercised until it is wrong.
         #
-        # ABSOLUTE paths, and `pnpm exec` from the repo root rather than
+        # ABSOLUTE paths, and bare `node` from the repo root rather than
         # `pnpm --filter <pkg> exec`. Both halves are the run #20 fix: --filter
         # chdirs into packages/gw-data, so the repo-root-relative argument this
         # step used to pass resolved to packages/gw-data/packages/gw-data/... and
         # the job died with ENOENT. The script has no dependencies of its own, so
         # there is nothing --filter was buying. provenance-cli.test.ts runs the
-        # script from a foreign cwd and asserts this step keeps passing absolute
-        # paths — the unit tests cannot see either mistake.
+        # script from a foreign cwd and update-data-workflow.test.ts asserts this
+        # step keeps passing absolute paths — the unit tests cannot see either
+        # mistake.
         run: |
           git show HEAD:packages/gw-data/data/_meta.json > "$RUNNER_TEMP/meta-before.json" 2>/dev/null || true
           provenance=$(node \
@@ -131,7 +136,7 @@ jobs:
         # job stayed GREEN because `pnpm -r test` above runs in this job, where the
         # README rewrite still exists; only the PR sees the loss. That made the
         # 2026-08-10 "the generator owns the number" fix half-wired: the generator
-        # wrote it, the pipeline did not carry it. Locked by provenance-cli.test.ts.
+        # wrote it, the pipeline did not carry it. Locked by update-data-workflow.test.ts.
         if: steps.diff.outputs.changed == 'true'
         run: git diff -- packages/gw-data/data gwtoolbox-plugin/AccountExport/hero-names.generated.h README.md > /tmp/data-update.patch
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -145,6 +150,8 @@ jobs:
     needs: import
     if: needs.import.outputs.changed == 'true'
     runs-on: ubuntu-latest
+    # No install and no import here: a checkout, a patch and a few API calls.
+    timeout-minutes: 10
     permissions:
       contents: write
       pull-requests: write
@@ -182,8 +189,18 @@ jobs:
         # content edits. git's own parser lists what it would touch (--numstat) and
         # every non-content change — create, delete, rename, mode, symlink
         # (--summary); a path it has to quote never matches. Nothing is applied
-        # unless both are clean. provenance-cli.test.ts executes ALLOWED against
-        # hostile paths.
+        # unless both are clean. update-data-workflow.test.ts executes ALLOWED
+        # against hostile paths.
+        #
+        # A path allowlist says nothing about CONTENT, and README.md is prose a
+        # reader acts on (install commands, the server URL) with no test over it
+        # beyond the skill count. The import is entitled to change exactly that
+        # count (syncReadmeSkillCount), so the two whole files must be identical
+        # once every count is stripped. Whole files rather than a grep over the
+        # diff's +/- lines: a content line can be written to look like a diff
+        # header. The other allowlisted files are re-checked by the PR's own CI
+        # (committed-data-plausibility.test.ts, import-heroes.test.ts); README has
+        # only this. update-data-workflow.test.ts executes these lines too.
         env:
           ALLOWED: '^(packages/gw-data/data/(_meta|attributes|campaigns|heroes|professions|skill-names-fr|skill-types|skills)\.json|gwtoolbox-plugin/AccountExport/hero-names\.generated\.h|README\.md)$'
         run: |
@@ -197,6 +214,13 @@ jobs:
             exit 1
           fi
           git apply /tmp/data-update.patch
+          without_skill_counts() { sed -E 's/[0-9]{3,5}( (real )?skills)/\1/g' "$1"; }
+          git show HEAD:README.md > "$RUNNER_TEMP/readme-before.md"
+          if [ ! -s README.md ] || ! cmp -s <(without_skill_counts "$RUNNER_TEMP/readme-before.md") <(without_skill_counts README.md); then
+            echo "::error::Refusing the data patch: it changes README.md beyond the advertised skill count."
+            diff <(without_skill_counts "$RUNNER_TEMP/readme-before.md") <(without_skill_counts README.md) || true
+            exit 1
+          fi
       # Descriptions travel verbatim into an LLM's context via get_skill and
       # search_skills, so a vandalised upstream needs no code execution to attack
       # a consumer, and no invariant test can catch it: the suite checks ids and

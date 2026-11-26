@@ -151,15 +151,20 @@ describe("malformed input rejection", () => {
   it("rejects non-charset characters", () => reject("OQAS EZKT!", "INVALID_CHARACTER"));
   it("rejects unknown template types", () => reject("zzzzzzzzzzzz", "INVALID_HEADER"));
   it("rejects codes that end mid-field", () => reject("OQ", "TRUNCATED"));
-  it("round-trips through valuesToChars boundary values", () => {
-    // exercised indirectly; a value >63 can only arise from an internal bug
-    expect(encodeTemplate(decodeTemplate("OQASEZKT9F7gTNAAAAAAXFxgA"))).toBeTruthy();
+  it("re-encodes a decoded code to the same characters", () => {
+    // Was `toBeTruthy()` on the result, which any non-empty string satisfies.
+    const code = "OQASEZKT9F7gTNAAAAAAXFxgA";
+    expect(encodeTemplate(decodeTemplate(code))).toBe(code);
   });
 });
 
 describe("malformed bitstream rejection (GW1-02 audit)", () => {
   it("accepts the canonical empty bar and its pad-to-even form", () => {
-    expect(() => decodeTemplate("OQAAAAAAAAAAAAAA")).not.toThrow();
+    // A Warrior header over an empty bar. The padded form must decode to the
+    // same build, not merely avoid throwing.
+    const empty = { primary: 1, secondary: 0, attributes: [], skills: [0, 0, 0, 0, 0, 0, 0, 0] };
+    expect(decodeTemplate("OQAAAAAAAAAAAAAA")).toMatchObject(empty);
+    expect(decodeTemplate("OQAAAAAAAAAAAAAAA")).toMatchObject(empty);
   });
   it("rejects a non-zero terminal/padding bit", () => {
     expect(() => decodeTemplate("OQAAAAAAAAAAAAAQ")).toThrow(/tail|non-zero/i);

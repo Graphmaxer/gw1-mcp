@@ -42,15 +42,17 @@ const BUILD_WORKFLOW_GUIDE = `# Composing a GW1 build with gw1-mcp
 3. **Choose the 8 skills yourself** using search_skills / get_skill for exact
    data — never invent names or numbers. One elite maximum; check energy cost,
    recharge and attribute lines for coherence.
-4. **Allocate attributes**: base ranks 0-12 only; the primary attribute of a
-   profession is only available when that profession is primary. Title tracks
-   (Sunspear, Lightbringer…) are NOT template attributes.
+4. **Allocate attributes**: base ranks 0-12 only, within a budget of 200
+   attribute points (rank 12 costs 97, rank 9 costs 48); the primary attribute
+   of a profession is only available when that profession is primary. Title
+   tracks (Sunspear, Lightbringer…) are NOT template attributes.
 5. **Validate** with validate_build (pass unlockedSkillIds from the account
    export when available; set forHero=true for hero bars — heroes cannot use
    ANY PvE-only skill, Signet of Capture included, and each one is a blocking
    error rather than a warning).
-6. **Encode** with encode_template only once validation passes, and give the
-   player the code(s) to paste in-game.
+6. **Encode** with encode_template and give the player the code(s) to paste
+   in-game. It runs the same rules as validate_build and returns the errors
+   instead of a code, so calling it directly is fine.
 
 Data freshness: skill stats follow the CURRENT Reforged balance patch (the
 data source tracks official updates). Check gw1://meta for the import date;

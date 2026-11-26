@@ -49,7 +49,9 @@ function sanitizeClientName(name: unknown): string {
     .replace(/[^A-Za-z0-9._@-]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
-    .slice(0, 64);
+    .slice(0, 64)
+    // The cut can land right after a word, leaving the space that followed it.
+    .trimEnd();
   return cleaned.length > 0 ? cleaned : "_unnamed";
 }
 
@@ -58,13 +60,14 @@ export async function recordRequest(
   c: Context<AppEnv>,
   analytics: AnalyticsEngineDataset | undefined,
 ): Promise<void> {
-  // Usage analytics: count tool invocations by NAME only — never arguments,
-  // never identities (see /privacy). Fail-soft by design: the binding is
-  // optional (absent in local dev/tests) and any parse error is swallowed;
-  // analytics must never cost a request.
-  // JSON bodies only: the transport answers 415 to anything else, and counting a
-  // `tools/call` it is about to refuse inflated the public tool counters with
-  // calls that never ran (and JSON-parsed a body nothing would ever read).
+  // Usage analytics: the method, the tool NAME, and on `initialize` the client
+  // software name — never arguments (see /privacy). Fail-soft by design: the
+  // binding is optional (absent in local dev/tests) and any parse error is
+  // swallowed; analytics must never cost a request.
+  // JSON bodies only. `checkContentType` already answers 415 to anything else,
+  // so this is the same gate held a second time on purpose: counting a
+  // `tools/call` that is about to be refused inflated the public tool counters
+  // with calls that never ran.
   if (analytics && c.req.method === "POST" && isJsonRequest(c)) {
     try {
       const rpc = (await c.req.raw.clone().json()) as {
@@ -75,8 +78,6 @@ export async function recordRequest(
       // registry validators and scanners sending arbitrary tool names —
       // recording the REQUESTED name verbatim would let anyone inject
       // labels into a public dashboard. Unknown names aggregate.
-      // KEEP IN SYNC with the server's tools (locked by a test in
-      // gw-worker test/http.test.ts against the real tool list).
       const label =
         rpc.method === "tools/call"
           ? KNOWN_TOOLS.has(rpc.params?.name ?? "")

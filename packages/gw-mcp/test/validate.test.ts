@@ -163,6 +163,29 @@ describe("attribute point budget", () => {
       expect(report.warnings.map((issue) => issue.code)).toEqual(warnings);
     },
   );
+
+  it.each([
+    ["an out-of-range rank", [{ attributeId: 21, rank: 13 }], "RANK_OUT_OF_RANGE"],
+    [
+      "a duplicated attribute",
+      [
+        { attributeId: 21, rank: 5 },
+        { attributeId: 21, rank: 0 },
+      ],
+      "DUPLICATE_ATTRIBUTE",
+    ],
+  ])("does not call an attribute unallocated on top of %s", (_case, attributes, error) => {
+    // The error already says what is wrong with the line. "No points allocated"
+    // next to it would be a second, false statement about the same attribute.
+    const report = validateBuild({
+      primary: 1,
+      secondary: 0,
+      attributes,
+      skills: [1, 0, 0, 0, 0, 0, 0, 0],
+    });
+    expect(report.errors.map((issue) => issue.code)).toEqual([error]);
+    expect(report.warnings).toEqual([]);
+  });
 });
 
 // Table-driven coverage of every remaining validator rule. Base bar: Dervish

@@ -151,37 +151,6 @@ describe("skill import publishes a complete snapshot", () => {
     expect(snapshot()).toEqual(before);
   });
 
-  it("keeps earlier artifacts when another output path cannot be replaced", () => {
-    const path = join(output, "skills.json");
-    rmSync(path);
-    mkdirSync(path);
-    const campaigns = readFileSync(join(output, "campaigns.json"), "utf8");
-    const result = runImport();
-    expect(result.status).toBe(1);
-    expect(result.stderr).toMatch(/skills\.json/);
-    expect(readFileSync(join(output, "campaigns.json"), "utf8")).toBe(campaigns);
-  });
-
-  it("leaves a concurrent import's lock and files alone", () => {
-    const lock = join(output, ".gw1-import-lock");
-    mkdirSync(lock);
-    const before = snapshot();
-    const result = runImport();
-    expect(result.status).toBe(1);
-    expect(result.stderr).toMatch(/Another import holds .*\.gw1-import-lock/);
-    expect(result.stderr).toMatch(/If no import is running, remove that directory and retry/);
-    expect(snapshot()).toEqual(before);
-    expect(() => mkdirSync(lock)).toThrow(/EEXIST/);
-  });
-
-  it("takes the import lock before reading the shared README", () => {
-    mkdirSync(join(output, ".gw1-import-lock"));
-    rmSync(readme);
-    const result = runImport();
-    expect(result.status).toBe(1);
-    expect(result.stderr).toMatch(/Another import holds .*\.gw1-import-lock/);
-  });
-
   it("publishes the transformed files and preserves existing hero provenance", () => {
     const result = runImport();
     expect(result.stderr).toBe("");

@@ -242,6 +242,28 @@ async function main(): Promise<void> {
     check("a JSON-RPC batch answers 400", batch.status === 400, `got ${batch.status}`);
     const plain = await post("[not json", { "content-type": "text/plain" });
     check("a text/plain body answers 415", plain.status === 415, `got ${plain.status}`);
+    const mixedCase = await post(JSON.stringify({ jsonrpc: "2.0", id: ++id, method: "ping" }), {
+      ...JSON_HEADERS,
+      "content-type": "Application/JSON; charset=UTF-8",
+    });
+    check("a mixed-case JSON content type is accepted", mixedCase.status === 200);
+    const forbidden = await post("{}", { ...JSON_HEADERS, origin: "http://evil.example" });
+    const forbiddenBody = (await forbidden.json()) as { jsonrpc?: string };
+    check(
+      "a refused origin answers 403 in the JSON-RPC envelope",
+      forbidden.status === 403 && forbiddenBody.jsonrpc === "2.0",
+      `got ${forbidden.status}`,
+    );
+    // The transport echoes every unknown key back several times; the reply to a
+    // malformed message must stay small whatever the request holds.
+    const keys = Array.from({ length: 5000 }, (_, i) => `"k${i}":0`).join(",");
+    const noisy = await post(`{"jsonrpc":"2.0","id":1,"method":"ping",${keys}}`);
+    const noisyText = await noisy.text();
+    check(
+      "a malformed message answers 400 without being echoed back",
+      noisy.status === 400 && noisyText.length < 300,
+      `got ${noisy.status} with ${noisyText.length} characters`,
+    );
     for (const path of ["/mcp", "/mcp/"]) {
       const big = await post(JSON.stringify({ pad: "x".repeat(600 * 1024) }), JSON_HEADERS, path);
       check(`a 600 KiB body on ${path} answers 413`, big.status === 413, `got ${big.status}`);

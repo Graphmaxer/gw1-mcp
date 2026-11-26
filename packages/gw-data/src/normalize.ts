@@ -30,6 +30,10 @@
  * exact French aliases. This finds the correct English name before unrelated fuzzy
  * matches and keeps the cost on the suggestion path. With the digraph, such as
  * "voeu de piete", exact lookup already works.
+ *
+ * Reopen the fold HERE only with a measurement, not a preference: a fold that is
+ * genuinely free on this function, or evidence that the suggestion round trip
+ * costs something. The original measurements are in docs/handbook/audits.md.
  */
 
 /** Lowercase, strip diacritics and punctuation — tolerant name matching. */

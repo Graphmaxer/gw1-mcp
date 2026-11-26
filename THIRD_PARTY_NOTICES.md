@@ -90,16 +90,22 @@ Nobody is likely to hand us an authoritative provenance statement — plausibly 
 even the upstream maintainer. That is not a reason to guess: the text carries
 evidence, so this is a documented finding rather than an assumption.
 
-- **`<sic/>` appears in 34 descriptions**, e.g. "Your next 0...6 signet[s]
-  interrupt `<sic/>` and deal 15...60 damage". `sic` is written when
-  transcribing someone else's text and preserving its error. An editor writing
-  their own description would have nothing to mark.
-- **`<gray>` appears in 403**, wrapping exactly the clauses the game renders in
+- **As imported until 2026-09-08, `<sic/>` appeared in 34 descriptions**, e.g.
+  "Your next 0...6 signet[s] interrupt `<sic/>` and deal 15...60 damage". `sic`
+  is written when transcribing someone else's text and preserving its error. An
+  editor writing their own description would have nothing to mark.
+- **`<gray>` appeared in 403**, wrapping exactly the clauses the game renders in
   gray in its own tooltip ("You have -40 armor while using this skill"). The
-  markup mirrors in-game presentation.
-- The `signet[s]` / `spell[s] do[es] not` bracket notation and the leading
-  `(20 seconds.)` are Guild Wars' own in-game conventions for variable values
-  and concise descriptions.
+  markup mirrored in-game presentation.
+- The `signet[s]` / `spell[s] do[es] not` bracket notation and the
+  `(20 seconds.)` duration prefix are Guild Wars' own in-game conventions for
+  variable values and concise descriptions.
+
+Upstream has since stripped the `<sic/>` and `<gray>` markup and the bracket
+notation, and now opens each description with its skill type, so the shipped
+`skills.json` contains none of the three (the duration prefix remains). The
+observation stands as historical evidence of transcription, checkable in git
+history (`git log -S'<gray>' -- packages/gw-data/data/skills.json`).
 
 **Position:** the descriptions are transcriptions of ArenaNet/NCsoft in-game
 strings, carrying light editorial markup added by wiki contributors. What the

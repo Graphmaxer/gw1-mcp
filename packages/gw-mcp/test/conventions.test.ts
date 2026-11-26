@@ -346,6 +346,7 @@ describe("upstream pins live in .github/pins.env, not in workflow YAML", () => {
 
   it("no workflow hardcodes a pin value", () => {
     const values = [...pins.matchAll(/^[A-Z0-9_]+=(\S+)$/gm)].map(([, v]) => v ?? "");
+    expect(values.length, "pins.env must still declare pins").toBeGreaterThan(0);
     for (const name of workflows) {
       const yaml = read(`../../../.github/workflows/${name}`);
       for (const value of values) {
@@ -382,7 +383,7 @@ describe("upstream pins live in .github/pins.env, not in workflow YAML", () => {
  * that claim.
  */
 describe("tools/list size is a locked, deliberate number (debt #10)", () => {
-  // Measured 2026-08-31. Keep this and debt #10 (docs/handbook/debts.md) in the same commit.
+  // First locked 2026-08-31; the trail below is every move since. Keep this and debt #10 (docs/handbook/debts.md) in the same commit.
   // 19 358 measured 2026-08-17; +60 for the decode_template description gaining its
   // whitespace-tolerance sentence in the same change as this lock; -323 for zod 4.5
   // emitting the 17 nullable output fields as the JSON Schema type-array form
@@ -394,8 +395,12 @@ describe("tools/list size is a locked, deliberate number (debt #10)", () => {
   // `instructions` is invisible to the many clients that never forward them, and a
   // French substring silently matching nothing is exactly the trap audit L-series
   // told us to document on the field itself.
-  // English and French build tool descriptions reduced the total by 20 characters.
-  const TOOLS_LIST_CHARS = 19_389;
+  // +89 and +12 on 2026-11-13 (the forPvp and get_skill `name` descriptions made
+  // true). -20 on 2026-11-26 when both build tools said they take French names.
+  // +206 the same day: the attribute entries of both build tools became strict
+  // (`additionalProperties: false`, twice), `forHero` says "errors" where it said
+  // "flagged", and `unlockedSkillIds` names which export list goes with which bar.
+  const TOOLS_LIST_CHARS = 19_595;
 
   it("has not drifted, from our side or a dependency's", async () => {
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();

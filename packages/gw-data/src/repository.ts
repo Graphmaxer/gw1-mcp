@@ -217,6 +217,23 @@ const MAX_SUGGEST_LEN = 64;
 const MAX_SUGGEST_DISTANCE = 5;
 
 /**
+ * The distance a query of this length may sit from a candidate: a third of its
+ * own length, never more than MAX_SUGGEST_DISTANCE and never less than one.
+ *
+ * An absolute cap of 5 is a typo budget for a 15-letter name and no budget at
+ * all for a short one: every 3-letter query is within 5 edits of every name of
+ * up to 8 letters. Through the tools (2026-11-26) "Sin" suggested Monk, Ranger
+ * and Mesmer, "Axe" suggested Curses, and "sceau" suggested Steam, Swap and
+ * Shame — the confidently wrong answer the cap exists to prevent, reached from
+ * the other side. Scaled to the query, each of those returns nothing or only the
+ * right name, and the calibration cases above are untouched because they are all
+ * long enough to keep their budget.
+ */
+function suggestDistanceFor(needle: string): number {
+  return Math.min(MAX_SUGGEST_DISTANCE, Math.max(1, Math.floor(needle.length / 3)));
+}
+
+/**
  * Does every whitespace-separated token of the query prefix the candidate's token
  * at the same position? ("mystic regen" -> "Mystic Regeneration", "heal sig" ->
  * "Healing Signet".)
@@ -273,6 +290,7 @@ function closest<T>(index: readonly Searchable<T>[], rawNeedle: string, count: n
   // 2026-08-08 and reproduced through get_skill.
   if (needle.length === 0) return [];
   const needleTokens = needle.split(" ").filter((t) => t.length > 0);
+  const maxDistance = suggestDistanceFor(needle);
   const prefixed: { item: T; length: number }[] = [];
   const scored: { item: T; d: number }[] = [];
   for (const candidate of index) {
@@ -285,9 +303,9 @@ function closest<T>(index: readonly Searchable<T>[], rawNeedle: string, count: n
     // that cannot possibly pass the cap without computing anything. The banded
     // implementation this replaced got that exit for free; fastest-levenshtein
     // computes the full distance regardless, which cost 2x on padding attacks.
-    if (Math.abs(needle.length - candidate.normalized.length) > MAX_SUGGEST_DISTANCE) continue;
+    if (Math.abs(needle.length - candidate.normalized.length) > maxDistance) continue;
     const d = distance(needle, candidate.normalized);
-    if (d <= MAX_SUGGEST_DISTANCE) scored.push({ item: candidate.item, d });
+    if (d <= maxDistance) scored.push({ item: candidate.item, d });
   }
   const ranked = [
     ...prefixed.sort((x, y) => x.length - y.length).map(({ item }) => item),

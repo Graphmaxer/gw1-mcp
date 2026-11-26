@@ -21,16 +21,16 @@ behind them are in `docs/handbook/` — read the relevant one before changing wh
 it covers, because most of these rules exist for a reason that is not obvious
 from the code.
 
-| File                             | Read it before                                                                 |
-| -------------------------------- | ------------------------------------------------------------------------------ |
-| `docs/handbook/debts.md`         | calling something a bug: it may be a known, deliberate compromise              |
-| `docs/handbook/releasing.md`     | touching a workflow, a pin, a credential or `_meta.json`                       |
-| `docs/handbook/data-pipeline.md` | touching `update-data.yml`, `scripts/import*` or the French names              |
-| `docs/handbook/runtime.md`       | touching `/mcp`, `createServer`, a bound, or reading a CodSpeed report         |
-| `docs/handbook/conventions.md`   | adding a script, a field name, a tsconfig option or a root file                |
-| `docs/handbook/decisions.md`     | proposing a tool, a domain, a directory listing or a codec change              |
-| `docs/handbook/audits.md`        | starting an audit: six have run, and their findings and non-findings are there |
-| `docs/game-rules-provenance.md`  | touching a validator rule: each one cites its source                           |
+| File                             | Read it before                                                                   |
+| -------------------------------- | -------------------------------------------------------------------------------- |
+| `docs/handbook/debts.md`         | calling something a bug: it may be a known, deliberate compromise                |
+| `docs/handbook/releasing.md`     | touching a workflow, a pin, a credential or `_meta.json`                         |
+| `docs/handbook/data-pipeline.md` | touching `update-data.yml`, `scripts/import*` or the French names                |
+| `docs/handbook/runtime.md`       | touching `/mcp`, `createServer`, a bound, or reading a CodSpeed report           |
+| `docs/handbook/conventions.md`   | adding a script, a field name, a tsconfig option or a root file                  |
+| `docs/handbook/decisions.md`     | proposing a tool, a domain, a directory listing or a codec change                |
+| `docs/handbook/audits.md`        | starting an audit: seven have run, and their findings and non-findings are there |
+| `docs/game-rules-provenance.md`  | touching a validator rule: each one cites its source                             |
 
 A new dated narrative (an incident, an audit, a measurement) goes in the handbook,
 not here. Add a line here only if it changes what someone must DO.
@@ -41,7 +41,7 @@ not here. Add a line here only if it changes what someone must DO.
 pnpm install                      # Node >= 22.18 (or 24), pnpm 12
 pnpm -r typecheck && pnpm -r test # must pass from a clean clone
 pnpm lint && pnpm fmt             # oxlint / oxfmt (CI runs fmt:check)
-pnpm test:coverage                # reference levels: see Coverage section
+pnpm test:coverage                # reference levels: docs/handbook/conventions.md
 pnpm bench                        # vitest bench in every package (see Performance)
 pnpm --filter @gw1-mcp/gw-worker smoke      # HTTP checks against real workerd
 pnpm --filter @gw1-mcp/gw-worker dev        # local worker
@@ -136,20 +136,28 @@ The codec must be perfectly **round-trip stable**: `encode(decode(code)) === cod
 
 ## Golden tests (non-negotiable)
 
-`packages/gw-template/test/fixtures/templates.json` contains real template codes with their expected decoded form:
+`packages/gw-template/test/fixtures/templates.json` contains real template codes with their expected decoded form. Ids, not names: the codec package has no data dependency. `roundtrip: true` additionally asserts string-exact re-encoding.
 
 ```json
-[
-  {
-    "code": "<REAL CODE FROM THE GAME>",
-    "expect": {
-      "primary": "Dervish",
-      "secondary": "Monk",
-      "attributes": { "Mysticism": 12, "Scythe Mastery": 12 },
-      "skills": ["...", "...", "...", "...", "...", "...", "...", "..."]
+{
+  "_comment": "...",
+  "fixtures": [
+    {
+      "name": "Critical Scythe Assassin (wiki example, modern format)",
+      "code": "OwpiMypMBg1cxcBAMBdmtIKAA",
+      "roundtrip": true,
+      "expect": {
+        "primary": 7,
+        "secondary": 10,
+        "attributes": [
+          { "attributeId": 35, "rank": 12 },
+          { "attributeId": 41, "rank": 12 }
+        ],
+        "skills": [1536, 1485, 1484, 0, 1043, 1639, 2187, 2]
+      }
     }
-  }
-]
+  ]
+}
 ```
 
 <!-- TODO(maintainer): 27 fixtures exist (all professions/campaigns covered, nine
@@ -178,7 +186,7 @@ Tool design rules:
 - Inputs and outputs are Zod schemas; every tool has a precise `description` written _for an LLM caller_ (state units, enums, exact expected names).
 - All failures are structured JSON (`{ error: { code, message, suggestions? } }`), never bare thrown strings.
 - Tools are pure/deterministic: same input → same output, no hidden state.
-- When a skill name is not found, always return the 3 closest matches (Levenshtein or similar) — LLMs make small spelling errors and must be able to self-correct in one round-trip.
+- When a skill name is not found, return up to 3 closest matches within a bounded edit distance (the list may be shorter, or empty when nothing is close) — LLMs make small spelling errors and must be able to self-correct in one round-trip.
 
 ## Tool error policy (isError)
 
@@ -220,6 +228,8 @@ this is the rule.
   drift apart.
 - No `server.close()` in the `/mcp` handler: the response body is lazy and closing
   empties it.
+- The rate limiter runs before anything reads the body, and a reply never grows
+  with the request: the transport's 400s go through `boundTransportError`.
 - JSON-RPC batches are refused. A middleware that reads the body gates on
   `isJsonRequest`, so it never acts on a request the transport will answer 415 to.
 - When adding a bound, ask what unit the attacker controls and whether anything
@@ -316,24 +326,27 @@ Deliberate compromises, each with its trigger. Full reasoning in
 8. Single-maintainer bus factor, mitigated by this file and the handbook.
 9. ~~CPU budget unmeasured in production~~ closed 2026-07-29 (7.66 ms mean of a
    10 ms cap; it is a mean, re-read it if a hot path gains work).
-10. `tools/list` costs a fixed ~19 400 characters of context in every
+10. `tools/list` costs a fixed ~19 600 characters of context in every
     conversation. Locked exactly by a test; see the handbook for each move.
 11. French names: two skills lose to an English homonym, five are ambiguous, and
     the table can lag one import behind after an npm-fallback run.
+12. `@buildwars/gw-templates@1.1.1` is patched at install time so paw-ned2 notes
+    keep every line. A bump of that library fails `pnpm install` on purpose:
+    re-check, then delete or re-cut the patch.
 
 Also owed, and not a code matter: a legal sign-off on redistributing skill
 descriptions (see `THIRD_PARTY_NOTICES.md`).
 
-## Current status (updated 2026-11-13)
+## Current status (updated 2026-11-26)
 
 Everything through distribution is done and live: codec, Reforged-current data,
 8 tools and 3 resources, the Worker on Cloudflare, the MCP Registry listing,
-automated releases, the C++ export plugin. Suite: 484 tests (107 / 133 / 161 / 83).
-No open advisory, no dependency override, every dependency and action on its
+automated releases, the C++ export plugin. Suite: 595 tests (111 / 163 / 211 / 110).
+No open advisory, no dependency override (one install-time patch, debt #12), every dependency and action on its
 latest major (pnpm 12, vitest 5).
 
-Six audits have run; the sixth (2026-11-13) is the first entry of
-`docs/handbook/audits.md`. The game logic has never yielded a defect to an audit.
+Seven audits have run; the seventh (2026-11-26, by Codex, then reviewed) is the
+first entry of `docs/handbook/audits.md`. The game logic has never yielded a defect to an audit.
 What has, every time: automation that fails silently, prose that drifts from the
 rule it describes, and bounds that count the wrong unit.
 

@@ -26,7 +26,7 @@ export function registerHeroesTools(registerTool: RegisterTool): void {
       description:
         "Look up a GW1 hero by name or by id (GWCA HeroID, matching the AccountExport plugin output). Returns profession, campaign and how the hero is unlocked. Remember: heroes can equip any skill unlocked at ACCOUNT level, but NO PvE-only skill at all — including Signet of Capture. validate_build with forHero=true reports each one as an error, not a warning. Use this for one known hero; to browse or filter the roster, use list_heroes instead.",
       annotations: READ_ONLY,
-      outputSchema: fullHeroSchema.shape,
+      outputSchema: fullHeroSchema,
       inputSchema: getHeroInputObject,
     },
     async ({ name, id }) => {
@@ -41,8 +41,7 @@ export function registerHeroesTools(registerTool: RegisterTool): void {
       if (name === undefined && id === undefined) {
         return jsonError("BAD_REQUEST", "Provide exactly one of name or id");
       }
-      const hero =
-        name !== undefined ? getHeroByName(name) : id !== undefined ? getHeroById(id) : undefined;
+      const hero = name !== undefined ? getHeroByName(name) : getHeroById(id!);
       if (!hero) {
         return jsonError("NOT_FOUND", `No hero matching ${JSON.stringify(name ?? id)}`, {
           suggestions: name !== undefined ? suggestHeroNames(name) : [],

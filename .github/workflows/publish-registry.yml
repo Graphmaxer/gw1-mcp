@@ -3,13 +3,23 @@ name: Publish to MCP Registry
 # Single source of truth for publishing server.json to the official MCP
 # Registry (registry.modelcontextprotocol.io) via GitHub OIDC — no secret.
 # Two entry points, one implementation:
-#   - workflow_dispatch: manual (re)publish, e.g. after a registry preview
-#     data reset, or to publish a release whose auto-run predates a fix
+#   - workflow_dispatch: manual (re)publish of an EXISTING release tag, e.g.
+#     after a registry preview data reset, or to publish a release whose
+#     auto-run predates a fix
 #   - workflow_call: the release run invokes this after creating a release
+# Both check out the tag and refuse a server.json whose version is not the
+# tag's, so neither can publish metadata from an arbitrary branch. Only the
+# release run also knows which commit Release Please tagged, so only it
+# compares the SHA.
 # The namespace io.github.Graphmaxer/* is case-sensitive and must match the
 # GitHub username exactly (see server.json "name").
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Existing release tag to publish, e.g. v1.2.3. Its server.json version must match."
+        type: string
+        required: true
   workflow_call:
     inputs:
       release_tag:
@@ -31,15 +41,26 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ inputs.release_tag && format('refs/tags/{0}', inputs.release_tag) || '' }}
+          ref: ${{ format('refs/tags/{0}', inputs.release_tag) }}
       - name: Verify registry metadata matches the release
-        if: ${{ inputs.release_tag != '' }}
         env:
+          EVENT_NAME: ${{ github.event_name }}
           RELEASE_SHA: ${{ inputs.release_sha }}
           RELEASE_TAG: ${{ inputs.release_tag }}
         shell: bash
         run: |
-          test "$(git rev-parse HEAD)" = "${RELEASE_SHA:?missing release SHA}"
+          : "${RELEASE_TAG:?missing release tag}"
+          # A manual run has no release_sha (the input exists on workflow_call
+          # only); the tag checkout and the version comparison still apply. The
+          # release run must have one: there, an empty SHA is a fault, not a
+          # reason to skip the comparison. (In a called workflow the event name
+          # is the caller's, so the release run reads `push` here.)
+          if [ "$EVENT_NAME" != "workflow_dispatch" ] || [ -n "$RELEASE_SHA" ]; then
+            if [ "$(git rev-parse HEAD)" != "${RELEASE_SHA:?missing release SHA}" ]; then
+              echo "::error::Tag ${RELEASE_TAG} does not point at the commit Release Please tagged."
+              exit 1
+            fi
+          fi
           if ! jq -e --arg version "${RELEASE_TAG#v}" '.version == $version' server.json >/dev/null; then
             echo "::error::server.json version differs from release ${RELEASE_TAG}."
             exit 1

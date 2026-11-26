@@ -220,8 +220,29 @@ describe("lookups", () => {
     // and it is not a profession anyone means to type.
     expect(suggestProfessionNames("Paragorn")[0]).toBe("Paragon");
     expect(suggestProfessionNames("necromancr")[0]).toBe("Necromancer");
-    expect(suggestProfessionNames("Bard")).not.toContain("none");
-    expect(suggestProfessionNames("Bard").length).toBeGreaterThan(0);
+    expect(suggestProfessionNames("Nonk")).toEqual(["Monk"]);
+  });
+
+  it("scales the typo budget to the query, so a short name is not close to everything", () => {
+    // An absolute cap of 5 put every 3-letter query within reach of every short
+    // name. All of these came back through the tools on 2026-11-26, each one a
+    // plausible-looking wrong answer; none of them is a typo of what it returned.
+    expect(suggestProfessionNames("Sin")).toEqual([]); // was Monk, Ranger, Mesmer
+    expect(suggestProfessionNames("Bard")).toEqual([]); // was Ranger, Warrior, Monk
+    expect(suggestProfessionNames("Guerrier")).toEqual([]); // French; was Warrior, Mesmer, Dervish
+    expect(suggestAttributeNames("Title")).toEqual([]); // was Curses, Tactics
+    // French for "signet": with the English noise gone, the French prefix pass
+    // gets to answer, and every answer is a signet. Was Steam, Swap, Shame.
+    expect(suggestSkillNames("sceau").every((name) => name.includes("Signet"))).toBe(true);
+    expect(suggestSkillNames("sceau")).toHaveLength(3);
+    expect(suggestHeroNames("Merc")).toEqual([]); // was M.O.X., Jora, Vekk
+    // A prefix is still an abbreviation, whatever its length...
+    expect(suggestAttributeNames("Axe")).toEqual(["Axe Mastery"]);
+    // ...a short typo keeps a budget of one...
+    expect(suggestHeroNames("Kos")).toEqual(["Koss"]);
+    expect(suggestProfessionNames("Monke")).toEqual(["Monk"]);
+    // ...and the right answer no longer shares the list with noise.
+    expect(suggestSkillNames("Fragilty")).toEqual(["Fragility"]); // was + Amity, Flail
   });
 
   it("suggests hero names for a typo, and nothing for a name that is not close", () => {

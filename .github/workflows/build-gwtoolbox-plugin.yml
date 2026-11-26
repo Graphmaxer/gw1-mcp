@@ -156,7 +156,7 @@ jobs:
   # only downloads the artifact the build produced and attaches it (GW1-04).
   release-upload:
     needs: build
-    if: ${{ inputs.release_tag }}
+    if: ${{ inputs.release_tag != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write

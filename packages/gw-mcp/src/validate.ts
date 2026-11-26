@@ -330,7 +330,7 @@ export function validateBuild(
     // here until 2026-08-01 and it rejected the NORMAL case: run against the very
     // template above, saved by a PvP character, it produced two errors telling the
     // player to use ids the game had deliberately not written. Every genuine PvP
-    // template carries PvE ids for all 156 split skills, and the client swaps by zone
+    // template carries PvE ids for every split skill, and the client swaps by zone
     // — "split versions for PvE and PvP ... update automatically when in each
     // respective zone" (wiki.guildwars.com/wiki/Skill).
   }
@@ -394,7 +394,10 @@ export function validateBuild(
         // (Sunspear, attribute id 102) is REFUSED outright — Load greyed, header "...".
         // No wiki sentence states this; observation settled it.
         code: "ATTRIBUTE_NOT_TEMPLATABLE",
-        message: `"${attribute.name}" is a ${attributeId === NO_ATTRIBUTE_ID ? "non-attribute" : "PvE title track"}; title ranks come from account progress and cannot be allocated in a skill template`,
+        message:
+          attributeId === NO_ATTRIBUTE_ID
+            ? `"${attribute.name}" is the label of skills that scale with nothing, not an attribute line; it cannot be allocated in a skill template`
+            : `"${attribute.name}" is a PvE title track; title ranks come from account progress and cannot be allocated in a skill template`,
       });
       continue;
     }
@@ -436,10 +439,11 @@ export function validateBuild(
   }
 
   // Skills whose attribute has no allocation: legal, but worth flagging.
+  // "No allocation" means absent, or listed at rank 0 only. An out-of-range rank
+  // or a repeated line is already an error above; calling the same attribute
+  // unallocated next to it would be a second, false statement.
   const allocatedAttributes = new Set(
-    budgeted
-      .filter(({ rank }) => isValidRank(rank) && rank > 0)
-      .map(({ attributeId }) => attributeId),
+    template.attributes.filter(({ rank }) => rank !== 0).map(({ attributeId }) => attributeId),
   );
   for (const { slot, skill } of resolved) {
     if (
@@ -447,6 +451,10 @@ export function validateBuild(
       !allocatedAttributes.has(skill.attributeId)
     ) {
       const attribute = getAttributeById(skill.attributeId);
+      // The primary attribute of the SECONDARY profession cannot be raised at all
+      // (PRIMARY_ATTRIBUTE_ON_SECONDARY above). The skill is legal there at rank
+      // 0, so advising points would walk a valid bar into an invalid one.
+      if (attribute?.isPrimary && attribute.professionId !== template.primary) continue;
       warnings.push({
         code: "UNALLOCATED_ATTRIBUTE",
         message: `Slot ${slot + 1}: "${skill.name}" scales with ${attribute?.name ?? "?"}, which has no points allocated`,
@@ -469,7 +477,8 @@ export function validateBuild(
     // self-correction loop turned a good bar into a worse one, which is more
     // harmful than staying silent.
     if (
-      allocatedAttributes.has(attributeId) &&
+      isValidRank(rank) &&
+      rank > 0 &&
       !attribute?.isPrimary &&
       !usedAttributeIds.has(attributeId)
     ) {

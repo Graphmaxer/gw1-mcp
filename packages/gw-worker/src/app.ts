@@ -5,6 +5,7 @@ import { createServer } from "@gw1-mcp/gw-mcp";
 import { recordRequest, toolCallRecorder } from "./analytics.js";
 import type { AppEnv } from "./env.js";
 import {
+  boundTransportError,
   checkContentType,
   checkOrigin,
   mcpBodyLimit,
@@ -60,8 +61,8 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
   for (const guard of [
     mcpCors,
     noStore,
-    mcpBodyLimit,
     rateLimit,
+    mcpBodyLimit,
     checkOrigin,
     checkContentType,
     refuseBatch,
@@ -84,7 +85,12 @@ export function createApp(faviconPng: ArrayBuffer | Uint8Array = new Uint8Array(
     // before anything is written. @hono/mcp owns that lifecycle in stateless
     // mode. The repo's own tests do catch this (3 failures in test/http.test.ts),
     // which is the guardrail; this comment is so nobody "fixes" it again.
-    const response = await transport.handleRequest(c);
+    let response;
+    try {
+      response = await transport.handleRequest(c);
+    } catch (error) {
+      return boundTransportError(c, error);
+    }
     // MCP requires an empty 202 acknowledgment. @hono/mcp sends JSON null.
     if (response?.status === 202) {
       const headers = new Headers(response.headers);

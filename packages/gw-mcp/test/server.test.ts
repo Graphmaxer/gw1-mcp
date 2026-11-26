@@ -278,7 +278,10 @@ describe("paw-ned2 team decoding", () => {
       arguments: { pwnd: `pwnd0001?download pawned2 >${"A".repeat(262000)}<` },
     });
     expect(res.isError).toBe(true);
-    expect(JSON.stringify(res)).toMatch(/too large|TOO_MANY_SLOTS/);
+    // The blob bound itself, not the slot cap behind it: with either pattern
+    // accepted, deleting this bound left the test green.
+    expect(JSON.stringify(res)).toMatch(/too large|too_big|8192/i);
+    expect(JSON.stringify(res)).not.toContain("TOO_MANY_SLOTS");
   });
 
   it("needs no per-slot length bound: the format caps a slot code at 63 characters", async () => {
@@ -367,6 +370,107 @@ describe("paw-ned2 team decoding", () => {
   );
 });
 
+describe("findings of the 2026-11-26 review, each reproduced through the tools first", () => {
+  const bar = (first: string) => [first, null, null, null, null, null, null, null];
+
+  it("does not advise raising another profession's primary attribute", async () => {
+    // Monk/Dervish with Pious Renewal: the skill scales with Mysticism, which a
+    // secondary Dervish cannot raise. The warning said it "has no points
+    // allocated", and following it produced PRIMARY_ATTRIBUTE_ON_SECONDARY — the
+    // self-correction loop walking a valid bar into an invalid one.
+    const client = await connectedClient();
+    await client.listTools();
+    const report = payload(
+      await client.callTool({
+        name: "validate_build",
+        arguments: {
+          primary: "Monk",
+          secondary: "Dervish",
+          attributes: [{ attribute: "Divine Favor", rank: 5 }],
+          skills: bar("Pious Renewal"),
+        },
+      }),
+    );
+    expect(report.valid).toBe(true);
+    expect(report.warnings).toEqual([]);
+    // The same skill on a Dervish primary still gets the advice, where it is true.
+    const dervish = payload(
+      await client.callTool({
+        name: "validate_build",
+        arguments: { primary: "Dervish", attributes: [], skills: bar("Pious Renewal") },
+      }),
+    );
+    expect(dervish.warnings.map((w: { code: string }) => w.code)).toEqual([
+      "UNALLOCATED_ATTRIBUTE",
+    ]);
+  });
+
+  it.each(["validate_build", "encode_template"])(
+    "%s rejects an undeclared key inside an attribute entry",
+    async (name) => {
+      // Inputs are strict so a misspelled argument is an error naming the key. One
+      // level down they were not: `{attribute, rank, extra}` was accepted and the
+      // extra key dropped in silence.
+      const client = await connectedClient();
+      await client.listTools();
+      const res = await client.callTool({
+        name,
+        arguments: {
+          primary: "Warrior",
+          attributes: [{ attribute: "Strength", rank: 1, rnak: 12 }],
+          skills: bar("Healing Signet"),
+        },
+      });
+      expect(res.isError).toBe(true);
+      expect(JSON.stringify(res)).toContain("rnak");
+    },
+  );
+
+  it("names the right reason when the no-attribute sentinel is allocated", async () => {
+    const client = await connectedClient();
+    await client.listTools();
+    const report = payload(
+      await client.callTool({
+        name: "validate_build",
+        arguments: {
+          primary: "Warrior",
+          attributes: [{ attribute: "No Attribute", rank: 0 }],
+          skills: bar("Healing Signet"),
+        },
+      }),
+    );
+    const issue = report.errors.find(
+      (e: { code: string }) => e.code === "ATTRIBUTE_NOT_TEMPLATABLE",
+    );
+    expect(issue.message).not.toMatch(/title/i);
+    expect(issue.message).toContain("No Attribute");
+  });
+
+  it("treats a paw-ned2 container with no slot as a failed call", async () => {
+    // Nothing usable was produced, which is what isError means in this server.
+    const client = await connectedClient();
+    await client.listTools();
+    const res = await client.callTool({
+      name: "decode_pawned_team",
+      arguments: { pwnd: "pwnd0001><" },
+    });
+    expect(res.isError).toBe(true);
+    expect(JSON.stringify(res)).toContain("INVALID_PWND");
+  });
+
+  it("hands the SDK a pre-built output schema for every tool", async () => {
+    // A raw shape is wrapped in z.object again on every createServer, i.e. on
+    // every /mcp request. get_hero was the one tool still passing `.shape`.
+    const registered = (server: unknown) =>
+      (server as { _registeredTools: Record<string, { outputSchema: unknown }> })._registeredTools;
+    const first = registered(createServer());
+    const second = registered(createServer());
+    for (const [name, tool] of Object.entries(first)) {
+      expect(second[name]?.outputSchema, name).toBe(tool.outputSchema);
+    }
+  });
+});
+
 describe("resources and error surfaces", () => {
   it("lists and reads all three resources", async () => {
     const client = await connectedClient();
@@ -406,7 +510,8 @@ describe("resources and error surfaces", () => {
   it("get_hero handles unknown names and list_heroes filters by campaign", async () => {
     const client = await connectedClient();
     const ko = await client.callTool({ name: "get_hero", arguments: { name: "Gandalf" } });
-    expect(JSON.stringify(ko.content)).toMatch(/[Nn]o hero|not found|Unknown/);
+    expect(ko.isError).toBe(true);
+    expect(payload(ko).error).toMatchObject({ code: "NOT_FOUND", suggestions: [] });
     // A near miss gets the name to retry with, like every other name lookup.
     const typo = payload(
       await client.callTool({ name: "get_hero", arguments: { name: "Master of Wispers" } }),
@@ -504,7 +609,7 @@ describe("remaining tool surfaces", () => {
     const res = await client.callTool({
       name: "encode_template",
       arguments: {
-        primary: "Bard",
+        primary: "Dervsh",
         attributes: [],
         skills: [
           "Avatar of Balthazar",
@@ -524,12 +629,10 @@ describe("remaining tool surfaces", () => {
     expect(issue).toBeDefined();
     // Audit L7: this error used to be bare here while the same typo in
     // search_skills got a hint, and encode_template is where it is likeliest.
-    // "Bard" is not a typo of any profession, so what matters is that real
-    // profession names come back — never "none", the no-secondary sentinel,
-    // which is short enough to win on distance and is not a profession.
-    expect(issue.suggestions.length).toBeGreaterThan(0);
-    expect(issue.suggestions).not.toContain("none");
-    expect(issue.suggestions).toContain("Monk");
+    // A real typo gets the one name it is a typo of. This test used "Bard" and
+    // accepted Monk for it: a name that is not close to anything now gets no
+    // suggestion rather than three unrelated professions (see repository.test.ts).
+    expect(issue.suggestions).toEqual(["Dervish"]);
   });
 
   it("suggests a real profession for a near-miss spelling", async () => {
@@ -756,7 +859,7 @@ describe("error branches (total failures and reports)", () => {
       arguments: { code: "!!!not-a-template!!!" },
     });
     expect(result.isError).toBe(true);
-    expect(payload(result).error.code).toBeDefined();
+    expect(payload(result).error.code).toBe("INVALID_CHARACTER");
   });
 
   it("validate_build returns a normal report (not isError) when names cannot resolve", async () => {
@@ -796,7 +899,7 @@ describe("error branches (total failures and reports)", () => {
     // policy: partial failures are content — the container parsed, one bar did not
     expect(result.isError ?? false).toBe(false);
     const body = payload(result);
-    expect(body.builds[0].error.code).toBeDefined();
+    expect(body.builds[0].error.code).toBe("TRUNCATED");
   });
 
   it("decode_pawned_team fails the whole call (INVALID_PWND) on a blob with no payload", async () => {

@@ -91,8 +91,10 @@ pnpm --filter @gw1-mcp/gw-worker deploy   # needs `wrangler login` once
 ```
 
 The server is stateless (a fresh McpServer per request over bundled data), so it
-fits the Workers model with zero configuration: no Durable Objects, no KV, no
-secrets. Free plan is plenty.
+fits the Workers model with almost no configuration: no Durable Objects, no KV,
+no secrets. `wrangler.jsonc` declares two bindings that are optional in code, a
+rate limiter and an Analytics Engine dataset (enable Analytics Engine on the
+account, or delete that binding, before the first deploy). Free plan is plenty.
 
 ## Connect it
 

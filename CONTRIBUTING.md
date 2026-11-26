@@ -73,7 +73,7 @@ over-specified lines in `knip.json` — ignores that were not needed, entry poin
 knip already derives from `package.json`, and an `ignoreBinaries` entry for a tool
 that was never installed.
 
-Two things to know when it next complains:
+Three things to know when it next complains:
 
 - knip 5 is not a fallback: it crashes on TypeScript 7.
 - Test files are entry points. Without that, everything they exercise looks unused.
@@ -177,13 +177,13 @@ dependency regression; none of the seven bumps touches that package at runtime.
 
 ## Where things live in `gw-worker`
 
-| file               | holds                                                                                                           |
-| ------------------ | --------------------------------------------------------------------------------------------------------------- |
-| `app.ts`           | `createApp`: assembly only. It registers everything below, in an order that matters                             |
-| `mcp-guards.ts`    | each guard on `/mcp` as a named middleware (CORS, no-store, body limit, rate limit, origin, batch refusal, 405) |
-| `site.ts`          | the static routes: discovery document, favicon, terms, privacy, well-known files                                |
-| `analytics.ts`     | the two Analytics Engine writes and the allow-lists that keep caller text out of them                           |
-| `rpc.ts`, `env.ts` | the JSON-RPC error envelope, the JSON content-type test, the binding types                                      |
+| file               | holds                                                                                                                             |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `app.ts`           | `createApp`: assembly only. It registers everything below, in an order that matters                                               |
+| `mcp-guards.ts`    | each guard on `/mcp` as a named middleware (CORS, no-store, body limit, rate limit, origin, content-type 415, batch refusal, 405) |
+| `site.ts`          | the static routes: discovery document, favicon, terms, privacy, well-known files                                                  |
+| `analytics.ts`     | the two Analytics Engine writes and the allow-lists that keep caller text out of them                                             |
+| `rpc.ts`, `env.ts` | the JSON-RPC error envelope, the JSON content-type test, the binding types                                                        |
 
 To add a tool: a new file in `gw-mcp/src/tools/`, its schemas in `schemas.ts`, its
 name in `tool-names.ts`, one line in `server.ts`. To add a guard: a named export in

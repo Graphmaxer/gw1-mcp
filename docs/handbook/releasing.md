@@ -181,7 +181,7 @@ key would have made that record claim a freshness the file does not have. So a
 `skillNamesFr.sourceVersion` older than the `skills` one means the last import ran
 without a French channel, not that anything failed, and the importer logs which of
 the two happened rather than leaving it to be inferred. Absence never DELETES the
-table: a fallback that dropped 1485 names would turn a transient Pages outage into
+table: a fallback that dropped the whole French table would turn a transient Pages outage into
 a data-loss PR on an auto-merging job. `repository.test.ts` asserts the table and
 `skills.json` name the same id set, which is what catches the drift that design
 permits.

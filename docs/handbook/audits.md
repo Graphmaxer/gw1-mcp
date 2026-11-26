@@ -4,6 +4,126 @@ Every audit this project has been through, what each found and what was delibera
 
 ## Status log (newest first)
 
+**2026-11-26: a SEVENTH audit, run by Codex and merged as one commit (PR #106),
+then reviewed the same day.** Recorded here because the commit says only "prevent
+regressions identified in the project audit" and the reasoning lived nowhere but
+the PR body. What it changed, and what the review made of it:
+
+- **The release jobs built from the wrong ref.** Both reusable workflows checked
+  out the SHA of the push that triggered release-please, which is not
+  necessarily the commit it tagged. They now check out the tag and compare it to
+  the `sha` output. `release_created` is also compared to `'true'`, since a
+  non-empty string is truthy in an `if:`.
+- **Withdrawing auto-merge ran AFTER the push and ended in `|| true`.** A
+  flagged weekly diff was pushed to the shared PR branch first and disarmed
+  second, with a failure of the disarm swallowed. It now runs before
+  `create-pull-request`, fails closed, and arming uses `--match-head-commit`.
+  Its shell is executed against a stub `gh` by a test that arrived as a second
+  harness (`node:test` under `.github/tests/`); the review below folded it into
+  vitest.
+- **paw-ned2 notes were truncated by the upstream parser.** Real, reproduced
+  against the unpatched tarball, fixed by an install-time patch. See debt #12.
+- **`@hono/mcp` acknowledges a notification with the body `null`.** The spec
+  asks for an empty 202; the handler now strips it. Confirmed under workerd.
+- **A rank-0 attribute counted as allocated**, so `UNALLOCATED_ATTRIBUTE` stayed
+  silent for a line listed at 0. Fixed. The same change made the warning fire
+  NEXT TO `RANK_OUT_OF_RANGE` and `DUPLICATE_ATTRIBUTE` ("no points allocated"
+  about a line the error had just described); the review corrected that and
+  locked both cases. Neither was reachable through a tool, whose schema already
+  holds ranks to integers 0-12.
+- **Descriptions caught up with the rule again**: `encode_template` and
+  `validate_build` now say they take French skill names (`tools/list` 19 409 ->
+  19 389, debt #10). The œ fold moved to the suggestion path only, where it
+  costs nothing on a lookup; the measurements behind NOT folding in
+  `normalizeName` are the 2026-08-31 entry below and still stand.
+- **The registry schema is vendored** (byte-identical to the cited upstream
+  file, re-checked) so the suite no longer fetches at test time.
+- **The privacy page was rewritten** shorter and blunter about the client name
+  reaching the public dashboard. Accurate against `analytics.ts`. It is the text
+  the directory submissions cite, so it is the maintainer's to re-read.
+
+What the review took back out: the import writer had grown staging directories,
+rollback and a lock directory against concurrent imports (69 -> 160 lines, plus
+tests). The outputs are tracked files and the two import commands run in sequence
+in one CI job, so `git checkout` already was the rollback. It is back to
+prepare-everything-then-write; the part worth keeping stayed, which is that a
+failed validation or an unreadable `_meta.json` now stops the run before the
+first write. Left in place, though more than the problem needed: a guard that
+accepts a mixed-case `Application/JSON`, rank checks for `NaN` and fractions,
+and an exact vitest pin with a test that the coverage peer matches.
+
+**The same day, the review widened into five parallel passes** (tool layer, HTTP
+surface, CI and import scripts, documentation, mutation testing), each finding
+reproduced by running something before it was accepted. The game rules held
+again. What moved, in the order it mattered:
+
+- **The body limit counted bytes and the transport's error reply grew per key.**
+  `@hono/mcp` answers a malformed message with the whole zod report as `data`,
+  and every unknown top-level key appears in it once per branch of the JSON-RPC
+  union: 62 000 keys in a 510 KiB body came back as 8.8 MB on workerd, for one
+  unit of quota. `boundTransportError` replaces any 400 over 1 KiB with the bare
+  parse error. The CPU half is NOT fixed and is recorded here instead: the same
+  body costs about 270 ms on local workerd (zod validation, not the echo), which
+  production's CPU cap ends before it finishes. Lowering the 512 KiB ceiling
+  would shrink it; the largest legitimate request (8192 pretty-printed unlocked
+  ids) is around 100 KiB, so there is room if it ever matters.
+- **The body was read before the rate limiter ran.** With no Content-Length,
+  hono's body limit buffers the stream itself, so a caller already over quota
+  still had 512 KiB read per request and a 413 cost no quota. The limiter never
+  needs the body; it goes first now.
+- **The weekly job's content gates ran only in the half it declares hostile.**
+  The plausibility checks (URLs, markup, instruction phrasing) live in the
+  import job, which executes the unpinned bundle. The privileged half checked
+  paths and description GROWTH, so a new skill, or a same-length rewrite, with
+  an instruction in it would have been applied and auto-merge armed (replayed
+  in a scratch clone). The gates now run again over the committed data in the
+  PR's own CI, which a patch cannot edit, and the apply step refuses a README
+  change beyond the skill count.
+- **A short query was within five edits of everything.** "Sin" suggested Monk,
+  Ranger and Mesmer; "Axe" suggested Curses. The cap is now a third of the
+  query's length, between 1 and 5. The decision this reverses: a non-typo such
+  as "Bard" used to get three real professions on purpose, and now gets none.
+- **`UNALLOCATED_ATTRIBUTE` advised an illegal move**: on a Monk/Dervish it
+  said Mysticism had no points, and adding them is `PRIMARY_ATTRIBUTE_ON_SECONDARY`.
+- **Strictness stopped one level down**: `{attribute, rank, rnak}` was accepted
+  and the stray key dropped. Both build tools now refuse it (debt #10, +206).
+- Smaller: an empty paw-ned2 container was a success with zero builds; the 403
+  was the one refusal outside the JSON-RPC envelope; `get_hero` rebuilt its
+  output schema on every request; a failed release-time job (DLL, Registry)
+  alerted nobody; a manual Registry publish checked nothing.
+- **Twenty claims in prose were false today**, among them the evidence in
+  THIRD_PARTY_NOTICES.md (the `<sic/>` and `<gray>` markup it cites left the
+  data on 2026-09-08), a fixture example in CLAUDE.md that was not the file's
+  shape, and a handbook line giving the opposite severity of a validator rule.
+
+**The mutation pass: 261 hand-made mutants, 98 real survivors.** 148 died, 15
+were equivalent, and 98 changed behaviour with every test green, at 97-100%
+line coverage. The worst: `search_skills` paging (`slice(offset, limit)`
+returned an empty page for any offset past the limit), id 0 read as "no filter"
+(Fast Casting and Core would return every skill), `adrenaline` and `sacrifice`
+swappable in `get_skill` and `decode_template`, `get_hero` by id keyed on array
+index, the provenance merge in `write.ts` reversible so `_meta.json` never
+updated, and every input bound movable by one. The "field for field" test of
+audit six sampled three skills, none with both adrenaline and a sacrifice. 66
+tests in `mutation-survivors.test.ts` (one file per package) kill every one of
+the 98, each re-run against its mutant. The assertions that could not fail for
+their stated reason were tightened in the same pass: `not.toBe(429)` and
+`not.toBe(403)` where 200 was meant (three of them passed on a 400, because
+the body was `{}`), `toBeDefined()` on an error code, and privacy-topic
+patterns loose enough to match a page that had dropped the topic.
+
+Seen and deliberately left: `search_skills` summaries carry energy, activation
+and recharge but not adrenaline, so 85 adrenaline skills read as free in a
+search (an output-contract change, for discussion); suggestions can spend two
+of three slots on "(PvP)" twins the validator refuses; nothing exercises a
+bumped `mcp-publisher` pin before a release does; the request body is decoded
+up to four times; and debt #1's "Build command `pnpm -r test`" disagrees with
+conventions.md and CLAUDE.md, which only the Cloudflare dashboard can settle.
+
+Checked rather than assumed, because the weekly job had been green and silent
+for eleven weeks: a live import from Pages on 2026-11-26 produced byte-identical
+data files. Upstream's bundle hash moved; nothing we ship did.
+
 **2026-11-13: a SIXTH audit, six parts run in parallel (CI/supply chain, runtime
 code, documentation drift, game rules and freshness, clean code, C++ plugin and
 test quality), plus the live server used as a client would.** The game logic held

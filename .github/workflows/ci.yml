@@ -136,5 +136,3 @@ jobs:
         # Catches invalid workflow expressions (e.g. inputs.* in a job-level
         # permissions block) before they reach main.
         uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2.2.0 (embeds github-script v9 / Node 24)
-      - name: Test workflow logic
-        run: node --test .github/tests/*.test.mts

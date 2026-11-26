@@ -69,3 +69,20 @@ jobs:
     with:
       release_tag: ${{ needs.release-please.outputs.tag_name }}
       release_sha: ${{ needs.release-please.outputs.release_sha }}
+
+  # Both jobs above run AFTER the tag and the GitHub release exist, so a failure
+  # leaves a published release that is missing its DLL or its Registry entry, and
+  # nothing else says so: v0.7.0 and v0.8.0 shipped without the DLL and it was
+  # found by accident. Same alarm as the two weekly workflows. A run that creates
+  # no release skips both jobs, which is not a failure and produces nothing.
+  notify:
+    needs: [release-please, attach-plugin-to-release, publish-registry]
+    if: failure()
+    # Granted at the call site: the callee cannot widen the caller's token, and
+    # this file's default is `contents: read`.
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/notify-failure.yml
+    with:
+      workflow: Release Please

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
+import { boundTransportError } from "../src/mcp-guards.js";
+
+const MCP_HEADERS = {
+  "Content-Type": "application/json",
+  Accept: "application/json, text/event-stream",
+};
+const PING = JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping" });
 
 const app = createApp();
 
@@ -78,7 +85,8 @@ describe("directory-readiness routes", () => {
   it("serves a privacy policy", async () => {
     const res = await createApp().request("/privacy");
     expect(res.status).toBe(200);
-    expect(await res.text()).toContain("privacy policy");
+    // A claim, not the title: the page must still say what is NOT recorded.
+    expect(await res.text()).toMatch(/does not record free-text tool arguments/);
   });
   it("serves the OpenAI apps challenge only when configured", async () => {
     const app = createApp();
@@ -128,7 +136,7 @@ describe("CORS and method handling on /mcp", () => {
         "Access-Control-Request-Method": "POST",
       },
     });
-    expect(res.status).toBeLessThan(300);
+    expect(res.status).toBe(204);
     expect(res.headers.get("access-control-allow-origin")).toBe("*");
     expect(res.headers.get("access-control-allow-methods")).toContain("POST");
   });
@@ -184,14 +192,22 @@ describe("CORS and method handling on /mcp", () => {
   });
 
   it("accepts the project's own loopback dev origin", async () => {
-    // `dev:node` serves on http://localhost:3000; rejecting it was a false
+    // `dev:node` serves on a loopback port (8787 by default); rejecting it was a false
     // negative against our own workflow.
     const res = await createApp().request("/mcp", {
       method: "POST",
-      headers: { "content-type": "application/json", Origin: "http://localhost:3000" },
-      body: "{}",
+      headers: { ...MCP_HEADERS, Origin: "http://localhost:3000" },
+      body: PING,
     });
-    expect(res.status).not.toBe(403);
+    // 200, not merely "not 403": with "{}" as the body this passed on a 400.
+    expect(res.status).toBe(200);
+  });
+});
+
+describe("boundTransportError only handles the transport's HTTP refusals", () => {
+  it("rethrows anything else, so a real fault is not turned into a 400", async () => {
+    const fault = new TypeError("not a refusal");
+    await expect(boundTransportError({} as never, fault)).rejects.toBe(fault);
   });
 });
 
@@ -271,6 +287,50 @@ describe("the endpoint answers with and without a trailing slash", () => {
         body: call,
       });
       expect(res.status).toBe(403);
+      // Same envelope as every other refusal on the endpoint, not a bare object.
+      expect(await res.json()).toEqual({
+        jsonrpc: "2.0",
+        id: null,
+        error: { code: -32000, message: "Forbidden origin" },
+      });
+    });
+
+    it(`answers a malformed JSON-RPC message on ${path} without echoing it back`, async () => {
+      // The body limit counts BYTES; the transport's validation error grows per
+      // KEY. It answers 400 with the whole zod report as `data`, and each unknown
+      // top-level key appears in it once per branch of the message union: 62 000
+      // keys in a 510 KiB body came back as 8.8 MB (measured on workerd,
+      // 2026-11-26). The reply must stay small whatever the request holds.
+      const keys = Array.from({ length: 2000 }, (_, i) => `"k${i}":0`).join(",");
+      const body = `{"jsonrpc":"2.0","id":1,"method":"ping",${keys}}`;
+      const res = await createApp().request(path, { method: "POST", headers, body });
+      expect(res.status).toBe(400);
+      const text = await res.text();
+      expect(text.length).toBeLessThan(300);
+      expect(JSON.parse(text)).toMatchObject({ jsonrpc: "2.0", id: null, error: { code: -32700 } });
+      expect(res.headers.get("cache-control")).toBe("no-store");
+    });
+
+    it(`passes the transport's other refusals through on ${path}`, async () => {
+      // Only a 400 can carry the echo; a 406 for a missing Accept is the
+      // transport's own answer and must arrive as it sent it.
+      const res = await createApp().request(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "text/plain" },
+        body: call,
+      });
+      expect(res.status).toBe(406);
+      expect(await res.text()).toContain("Not Acceptable");
+    });
+
+    it(`keeps the transport's own short refusals intact on ${path}`, async () => {
+      const res = await createApp().request(path, {
+        method: "POST",
+        headers: { ...headers, "Mcp-Protocol-Version": "1999-01-01" },
+        body: call,
+      });
+      expect(res.status).toBe(400);
+      expect(await res.text()).toContain("Unsupported protocol version");
     });
   }
 });
@@ -327,10 +387,13 @@ describe("privacy policy covers what the directory requires", () => {
   // missing or incomplete privacy policy is an immediate rejection. Retention
   // was the one absent: the counters were described without a duration.
   const topics: [string, RegExp][] = [
-    ["collection", /collect/i],
-    ["usage and storage", /stor|usage/i],
-    ["third-party sharing", /third[- ]part|Cloudflare/i],
-    ["retention", /retention|retain/i],
+    // Each pattern is the sentence that carries the claim. The loose forms
+    // (/collect/, /stor|usage/) matched almost any wording of the page,
+    // including one that had dropped the topic.
+    ["collection", /It collects request methods and requested\s+tool names/],
+    ["usage and storage", /usage counters in Analytics Engine/],
+    ["third-party sharing", /Cloudflare operates the service and may process operational metadata/],
+    ["retention", /retains each usage record for 90 days/],
     ["contact", /Contact:/],
   ];
   for (const [topic, pattern] of topics) {
@@ -405,10 +468,10 @@ describe("origin validation and logo", () => {
   it("accepts requests without an Origin header", async () => {
     const res = await createApp().request("/mcp", {
       method: "POST",
-      headers: { "content-type": "application/json" },
-      body: "{}",
+      headers: MCP_HEADERS,
+      body: PING,
     });
-    expect(res.status).not.toBe(403);
+    expect(res.status).toBe(200);
   });
   it("rejects a malformed Origin that a prefix check would have let through (GW1-12)", async () => {
     const res = await createApp().request("/mcp", {
@@ -420,10 +483,10 @@ describe("origin validation and logo", () => {
   it("accepts a well-formed https Origin", async () => {
     const res = await createApp().request("/mcp", {
       method: "POST",
-      headers: { Origin: "https://claude.ai", "content-type": "application/json" },
-      body: "{}",
+      headers: { ...MCP_HEADERS, Origin: "https://claude.ai" },
+      body: PING,
     });
-    expect(res.status).not.toBe(403);
+    expect(res.status).toBe(200);
   });
   it("serves the PNG logo at /logo.png", async () => {
     const res = await createApp(new Uint8Array([137, 80, 78, 71])).request("/logo.png");
@@ -775,7 +838,7 @@ describe("rate limiting", () => {
 
   it("fails open when the binding is absent (dev/tests)", async () => {
     const res = await post(createApp());
-    expect(res.status).not.toBe(429);
+    expect(res.status).toBe(200);
   });
 
   it("returns 429 with Retry-After when the limiter denies, keyed on the IP", async () => {
@@ -805,8 +868,7 @@ describe("rate limiting", () => {
       },
     };
     const res = await post(createApp(), env);
-    expect(res.status).not.toBe(429);
-    expect(res.status).not.toBe(500);
+    expect(res.status).toBe(200);
   });
 
   // Both spellings, both tests: the limit was registered on the bare path only,
@@ -833,10 +895,51 @@ describe("rate limiting", () => {
       expect(res.status).toBe(413);
     });
   }
+  it("refuses a throttled caller before reading its body, and counts an oversized one", async () => {
+    // The limiter never needs the body, so it goes first: with the body limit
+    // ahead of it, a caller already over quota still had 512 KiB buffered per
+    // request, and a 413 cost no quota at all.
+    let pulled = 0;
+    const stream = () =>
+      new ReadableStream<Uint8Array>({
+        pull(controller) {
+          pulled += 64 * 1024;
+          if (pulled > 600 * 1024) controller.close();
+          else controller.enqueue(new Uint8Array(64 * 1024).fill(120));
+        },
+      });
+    const request = (limiter: { limit: () => Promise<{ success: boolean }> }) =>
+      createApp().request(
+        "/mcp",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: stream(),
+          duplex: "half",
+        } as RequestInit,
+        { RATE_LIMITER: limiter },
+      );
+
+    const denied = await request({ limit: async () => ({ success: false }) });
+    expect(denied.status).toBe(429);
+    expect(pulled).toBeLessThanOrEqual(64 * 1024);
+
+    pulled = 0;
+    let calls = 0;
+    const oversized = await request({
+      limit: async () => {
+        calls++;
+        return { success: true };
+      },
+    });
+    expect(oversized.status).toBe(413);
+    expect(calls).toBe(1);
+  });
+
   it("passes through when the limiter allows", async () => {
     const env = { RATE_LIMITER: { limit: async () => ({ success: true }) } };
     const res = await post(createApp(), env);
-    expect(res.status).not.toBe(429);
+    expect(res.status).toBe(200);
   });
 
   // Audit N1: a batch was the only place where one HTTP request — one unit of the

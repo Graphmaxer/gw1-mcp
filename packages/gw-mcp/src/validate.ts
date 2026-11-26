@@ -68,9 +68,15 @@ export function validateBuild(
         .map((a) => [a.attributeId, a]),
     ).values(),
   ];
-  const spentPoints = budgeted.some(({ rank }) => !isValidRank(rank))
-    ? 0
-    : budgeted.reduce((total, { rank }) => total + (RANK_COST[rank] ?? 0), 0);
+  let spentPoints = 0;
+  for (const { rank } of budgeted) {
+    const cost = isValidRank(rank) ? RANK_COST[rank] : undefined;
+    if (cost === undefined) {
+      spentPoints = 0;
+      break;
+    }
+    spentPoints += cost;
+  }
   if (spentPoints > MAX_ATTRIBUTE_POINTS) {
     errors.push({
       // wiki.guildwars.com/wiki/Attribute_point: "The maximum is a total of 200 after

@@ -96,6 +96,20 @@ again. What moved, in the order it mattered:
   data on 2026-09-08), a fixture example in CLAUDE.md that was not the file's
   shape, and a handbook line giving the opposite severity of a validator rule.
 
+**The mutation pass: 261 hand-made mutants, 98 real survivors.** 148 died, 15
+were equivalent, and 98 changed behaviour with every test green, at 97-100%
+line coverage. The worst: `search_skills` paging (`slice(offset, limit)`
+returned an empty page for any offset past the limit), id 0 read as "no filter"
+(Fast Casting and Core would return every skill), `adrenaline` and `sacrifice`
+swappable in `get_skill` and `decode_template`, `get_hero` by id keyed on array
+index, the provenance merge in `write.ts` reversible so `_meta.json` never
+updated, and every input bound movable by one. The "field for field" test of
+audit six sampled three skills, none with both adrenaline and a sacrifice. 56
+tests in `mutation-survivors.test.ts` (one per package) kill 86 of the 98; the
+twelve left are listed in the PR. Two weak assertions were tightened; the rest
+of the "cannot fail" list (`not.toBe(429)` where 200 is meant, `toBeDefined()`
+on an error code) is still owed.
+
 Seen and deliberately left: `search_skills` summaries carry energy, activation
 and recharge but not adrenaline, so 85 adrenaline skills read as free in a
 search (an output-contract change, for discussion); suggestions can spend two

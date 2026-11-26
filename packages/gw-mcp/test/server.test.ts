@@ -278,7 +278,10 @@ describe("paw-ned2 team decoding", () => {
       arguments: { pwnd: `pwnd0001?download pawned2 >${"A".repeat(262000)}<` },
     });
     expect(res.isError).toBe(true);
-    expect(JSON.stringify(res)).toMatch(/too large|TOO_MANY_SLOTS/);
+    // The blob bound itself, not the slot cap behind it: with either pattern
+    // accepted, deleting this bound left the test green.
+    expect(JSON.stringify(res)).toMatch(/too large|too_big|8192/i);
+    expect(JSON.stringify(res)).not.toContain("TOO_MANY_SLOTS");
   });
 
   it("needs no per-slot length bound: the format caps a slot code at 63 characters", async () => {

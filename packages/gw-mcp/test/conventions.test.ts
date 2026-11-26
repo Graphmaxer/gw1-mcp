@@ -346,6 +346,7 @@ describe("upstream pins live in .github/pins.env, not in workflow YAML", () => {
 
   it("no workflow hardcodes a pin value", () => {
     const values = [...pins.matchAll(/^[A-Z0-9_]+=(\S+)$/gm)].map(([, v]) => v ?? "");
+    expect(values.length, "pins.env must still declare pins").toBeGreaterThan(0);
     for (const name of workflows) {
       const yaml = read(`../../../.github/workflows/${name}`);
       for (const value of values) {

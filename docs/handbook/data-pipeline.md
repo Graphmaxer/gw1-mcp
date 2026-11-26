@@ -12,7 +12,7 @@ since 2019; see Data maintenance.)
 
 - Imported by a script into `packages/gw-data/data/*.json` (skills, professions, attributes, heroes, campaigns).
 - The import script is committed and re-runnable; the generated JSON is committed too (the server must not fetch anything at runtime).
-- Repository layer exposes typed lookups: `getSkillById`, `getSkillByName` (exact + case/diacritics-insensitive, English names then French — see below), `searchSkills({ profession?, attribute?, elite?, campaign?, nameContains? })`, `getHero`, `listHeroes`, `getProfession`, `listAttributes(profession)`.
+- Repository layer exposes typed lookups: `getSkillById`, `getSkillByName` (exact + case/diacritics-insensitive, English names then French — see below), `searchSkills({ professionId?, attributeId?, campaignId?, elite?, nameContains?, includePvpVersions? })`, `getHeroById`/`getHeroByName`, `getProfessionById`/`getProfessionByName`, `getAttributeById`/`getAttributeByName`, `getCampaignById`/`getCampaignByName`, `getSkillType`, plus the raw arrays (`heroes`, `attributes`, …) and the `suggest*Names` helpers.
 - Skill names: canonical English names are the primary key. **FRENCH NAMES NOW
   RESOLVE (2026-08-31)** — this entry said the opposite until then, and the
   reversal is the trigger it wrote for itself firing, not a change of mind.
@@ -55,7 +55,8 @@ since 2019; see Data maintenance.)
   ACTIVELY MAINTAINED and tracks Guild Wars Reforged balance updates within
   days (verified: Feb 2026 Beguiling Haze 15->10; Reforged-added skills like
   Vow of Revolution id 3430 are present). The npm release may lag the repo
-  tip; the update workflow therefore imports from a git clone.
+  tip; the update workflow therefore imports upstream's published GitHub Pages
+  files (tip-fresh), falling back to the pinned npm package.
 - Old upstream build-wars/gw1-database (SQL dumps) is dead since 2019 and no
   longer used.
 - Attribute ids are OURS, and since 2026-09 no longer upstream's: 0-44 are
@@ -138,8 +139,8 @@ since 2019; see Data maintenance.)
   swallowed as "no record", so it printed `changed` and looked healthy. The
   lesson is the one this file already had from the audit's own false findings —
   check the harness before believing the harness — applied one step too late.
-  Three things now hold the line: the invocation is `pnpm exec` from the repo
-  root with `$GITHUB_WORKSPACE`-absolute paths, so cwd cannot matter; a missing
+  Three things now hold the line: the invocation is bare `node`
+  with `$GITHUB_WORKSPACE`-absolute paths, so cwd cannot matter; a missing
   AFTER file is a hard error naming the resolved path and the cwd, so a path bug
   can never masquerade as a data decision; and `provenance-cli.test.ts` runs the
   script as a SUBPROCESS from a foreign cwd and statically asserts the workflow

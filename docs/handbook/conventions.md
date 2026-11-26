@@ -45,8 +45,9 @@ The uniform-on-purpose rules: script archetype, naming, TypeScript config, lint 
   effect (gw-data repository Maps — required for Workers bundling); and
   gw-worker/src/index.ts exports `createApp()` because the Cloudflare
   Workers module contract demands a default export. Scripts whose logic is unit-tested
-  additionally export their pure functions (import-heroes.ts); import.ts
-  exports nothing because nothing tests it. (This replaced an earlier
+  additionally export their pure functions (import-heroes.ts; import.ts
+  exports only `resolveSourceArg`, its argv parsing — the rest of its flow is
+  validated by upstream schemas at run time). (This replaced an earlier
   two-archetype rule: the top-level form was symmetrized once we realized
   the generated files themselves prove such a refactor — byte-identical
   output before/after.)
@@ -121,7 +122,7 @@ figures — ~92 / ~93 / ~93 / 100 — had drifted low enough that a real
 regression would still have read as on-target, which is the opposite of what
 a reference is for): gw-template 99.3% statements (uncovered: internal-bug
 guards in bitstream/base64 unreachable from valid inputs), gw-data src 98.2%
-(scripts/import.ts intentionally untested — validated by upstream schemas at
+(scripts/import.ts main flow intentionally untested — validated by upstream schemas at
 run time and golden tests downstream; the scripts/ tree as a whole sits ~83%),
 gw-mcp 96.8% with validate.ts and build-io.ts at 100% lines and server.ts
 ~95%, gw-worker app.ts 99.0% (index/node/stdio are entry-point shims).
@@ -161,7 +162,8 @@ its presence as evidence that it does anything.
 
 Directories: `packages/` (four workspaces), `gwtoolbox-plugin/` (the C++ export
 plugin), `skills/`, `assets/`, `docs/`, `grafana/`, `types/`, `LICENSES/`,
-`.github/`, `.githooks/`.
+`patches/` (the one install-time dependency patch, debt #12), `.github/`,
+`.githooks/`, `.claude-plugin/`.
 
 ## Workflow: push straight to main
 
@@ -195,6 +197,6 @@ Everything derives from it:
   (png as Data) and the ambient declaration types/assets.d.ts. NO vitest
   config is needed: tests call createApp() with no favicon (or fake bytes), so
   the test path never imports a binary. Served at /favicon.ico, /favicon.png,
-  /logo.png; the full-res logo is never bundled (~2 MB bundle, ~2.5 KB
+  /logo.png; the full-res logo is never bundled (~2 MB bundle, ~1.7 KB
   favicon). Refresh by re-exporting favicon-32.png from icon-1024.png with any
   image tool. No SVG logo, no base64 module, no build script.

@@ -38,7 +38,7 @@ re-submitting to every directory rather than editing a URL.
 | ChatGPT Plugins              | ready to submit                          | kit, generated JSON, identity verification and icons all done. Demo recorded and assembled 2026-08-05 (web + Android, one 2 min 51 file). Remaining: host the video at a login-free URL and press submit                                                                                                                                                                                                                      |
 | Claude community marketplace | **submitted 2026-07-31, pending review** | validated locally (passed with the expected CLAUDE.md-at-root warning). On approval the plugin is pinned to a commit SHA in anthropics/claude-plugins-community, CI bumps the pin as commits land, and the public catalog syncs nightly, so installability lags approval                                                                                                                                                      |
 
-Eight listings, ONE audience question. Six of the eight are crawlers of the
+Eleven rows, ONE audience question. Most of them are crawlers of the
 registry entry — they cost nothing and prove nothing, and every one of them ranks
 by GitHub stars, of which there is 1. Reach is not gated on another directory; it
 is gated on the two maintainer-held items (ChatGPT submission, Claude marketplace
@@ -70,8 +70,8 @@ traffic was one uptime monitor and the honest answer was "we cannot tell".
    player's prose anyway — which is what an LLM already handles well from the notes.
    Reopen only if the plugin gains real quest/mission state, or an upstream dataset
    exposes unlock conditions structurally.
-3. Cloudflare Workers deployment + custom connector on claude.ai; then Anthropic connectors directory submission.
-4. ~~GWToolbox export plugin~~ — written in gwtoolbox-plugin/AccountExport; needs first Windows build, then consider upstreaming as a PR to GWToolbox's Completion window.
+3. ~~Cloudflare Workers deployment + custom connector on claude.ai~~; then Anthropic connectors directory submission.
+4. ~~GWToolbox export plugin~~ — written in gwtoolbox-plugin/AccountExport; built in CI and attached to each release; upstreaming as a PR to GWToolbox's Completion window remains.
 
 ## Attribute order in template codes (learned from wild codes)
 
@@ -118,6 +118,6 @@ Signet of Capture.
 Mesmer's own template (`OQBDAowjCXoyJEhyEaIA`) stores Fragility as id 19 and Empathy as
 26 — the PvE versions. The client normalises when writing, on a PvP character, under
 Reforged. So `PVE_VERSION_ON_PVP_BUILD` rejected the normal case for all 156 split
-skills and is deleted, and `PVP_VERSION_ON_PVE_BUILD` became a warning independent of
-`forPvp`. That template is now a fixture. Primary evidence outranked a 2009 comment and
+skills and is deleted, and `PVP_VERSION_ON_PVE_BUILD` was replaced by
+`PVP_VERSION_IN_TEMPLATE`, an error independent of `forPvp`. That template is now a fixture. Primary evidence outranked a 2009 comment and
 a second model that agreed with it.

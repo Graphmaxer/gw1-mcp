@@ -17,10 +17,6 @@
   // obvious. If one legitimately needs Node APIs, add the flag back deliberately.
   "compatibility_flags": [],
   "observability": { "enabled": true },
-  // Aggregate, anonymous usage counters (tool NAME only, never arguments).
-  // Requires Analytics Engine enabled on the account (dash: Storage &
-  // Databases > Analytics Engine). The binding is optional in code: local
-  // dev and tests run without it.
   // Per-IP rate limiting (GA "ratelimits" binding, wrangler >= 4.36): protects
   // CPU and Analytics Engine writes from abuse. Two documented choices:
   // (1) workers.dev requests still count against the daily quota even when
@@ -36,6 +32,12 @@
       "simple": { "limit": 100, "period": 60 },
     },
   ],
+  // Usage counters: request method, tool name, client software name
+  // (sanitised), and per tool call its outcome, error code, resolved
+  // entity/profession and boolean flags. Never free-text arguments; see
+  // /privacy. Requires Analytics Engine enabled on the account (dash: Storage &
+  // Databases > Analytics Engine). The binding is optional in code: local
+  // dev and tests run without it.
   "analytics_engine_datasets": [{ "binding": "MCP_ANALYTICS", "dataset": "gw1_mcp_usage" }],
   "rules": [{ "type": "Data", "globs": ["**/*.png"], "fallthrough": true }],
 }

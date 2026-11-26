@@ -41,7 +41,7 @@ not here. Add a line here only if it changes what someone must DO.
 pnpm install                      # Node >= 22.18 (or 24), pnpm 12
 pnpm -r typecheck && pnpm -r test # must pass from a clean clone
 pnpm lint && pnpm fmt             # oxlint / oxfmt (CI runs fmt:check)
-pnpm test:coverage                # reference levels: see Coverage section
+pnpm test:coverage                # reference levels: docs/handbook/conventions.md
 pnpm bench                        # vitest bench in every package (see Performance)
 pnpm --filter @gw1-mcp/gw-worker smoke      # HTTP checks against real workerd
 pnpm --filter @gw1-mcp/gw-worker dev        # local worker
@@ -136,20 +136,28 @@ The codec must be perfectly **round-trip stable**: `encode(decode(code)) === cod
 
 ## Golden tests (non-negotiable)
 
-`packages/gw-template/test/fixtures/templates.json` contains real template codes with their expected decoded form:
+`packages/gw-template/test/fixtures/templates.json` contains real template codes with their expected decoded form. Ids, not names: the codec package has no data dependency. `roundtrip: true` additionally asserts string-exact re-encoding.
 
 ```json
-[
-  {
-    "code": "<REAL CODE FROM THE GAME>",
-    "expect": {
-      "primary": "Dervish",
-      "secondary": "Monk",
-      "attributes": { "Mysticism": 12, "Scythe Mastery": 12 },
-      "skills": ["...", "...", "...", "...", "...", "...", "...", "..."]
+{
+  "_comment": "...",
+  "fixtures": [
+    {
+      "name": "Critical Scythe Assassin (wiki example, modern format)",
+      "code": "OwpiMypMBg1cxcBAMBdmtIKAA",
+      "roundtrip": true,
+      "expect": {
+        "primary": 7,
+        "secondary": 10,
+        "attributes": [
+          { "attributeId": 35, "rank": 12 },
+          { "attributeId": 41, "rank": 12 }
+        ],
+        "skills": [1536, 1485, 1484, 0, 1043, 1639, 2187, 2]
+      }
     }
-  }
-]
+  ]
+}
 ```
 
 <!-- TODO(maintainer): 27 fixtures exist (all professions/campaigns covered, nine
@@ -178,7 +186,7 @@ Tool design rules:
 - Inputs and outputs are Zod schemas; every tool has a precise `description` written _for an LLM caller_ (state units, enums, exact expected names).
 - All failures are structured JSON (`{ error: { code, message, suggestions? } }`), never bare thrown strings.
 - Tools are pure/deterministic: same input → same output, no hidden state.
-- When a skill name is not found, always return the 3 closest matches (Levenshtein or similar) — LLMs make small spelling errors and must be able to self-correct in one round-trip.
+- When a skill name is not found, return up to 3 closest matches within a bounded edit distance (the list may be shorter, or empty when nothing is close) — LLMs make small spelling errors and must be able to self-correct in one round-trip.
 
 ## Tool error policy (isError)
 

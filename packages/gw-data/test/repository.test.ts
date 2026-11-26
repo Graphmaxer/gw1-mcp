@@ -223,6 +223,20 @@ describe("lookups", () => {
     expect(suggestProfessionNames("Nonk")).toEqual(["Monk"]);
   });
 
+  it("keeps (PvP) twins out of suggestions unless the query asks for one", () => {
+    // A template never carries a PvP id (PVP_VERSION_IN_TEMPLATE), so a twin in
+    // the list is a suggestion the validator refuses, and it used to take one of
+    // three slots: "Mystic Regen" answered Mystic Regeneration, its (PvP) twin,
+    // and Mystic Sweep.
+    const plain = suggestSkillNames("Mystic Regen");
+    expect(plain[0]).toBe("Mystic Regeneration");
+    expect(plain.filter((name) => name.includes("(PvP)"))).toEqual([]);
+    expect(plain).toHaveLength(3);
+    // Asking for it still finds it: get_skill on a PvP version is a real lookup.
+    expect(suggestSkillNames("Mystic Regeneration (PvP")).toContain("Mystic Regeneration (PvP)");
+    expect(suggestSkillNames("mystic regeneraton pvp")).toContain("Mystic Regeneration (PvP)");
+  });
+
   it("scales the typo budget to the query, so a short name is not close to everything", () => {
     // An absolute cap of 5 put every 3-letter query within reach of every short
     // name. All of these came back through the tools on 2026-11-26, each one a

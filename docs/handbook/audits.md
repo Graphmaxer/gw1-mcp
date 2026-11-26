@@ -112,13 +112,26 @@ their stated reason were tightened in the same pass: `not.toBe(429)` and
 the body was `{}`), `toBeDefined()` on an error code, and privacy-topic
 patterns loose enough to match a page that had dropped the topic.
 
-Seen and deliberately left: `search_skills` summaries carry energy, activation
-and recharge but not adrenaline, so 85 adrenaline skills read as free in a
-search (an output-contract change, for discussion); suggestions can spend two
-of three slots on "(PvP)" twins the validator refuses; nothing exercises a
-bumped `mcp-publisher` pin before a release does; the request body is decoded
-up to four times; and debt #1's "Build command `pnpm -r test`" disagrees with
-conventions.md and CLAUDE.md, which only the Cloudflare dashboard can settle.
+What had been left for a decision was decided the same day, after the merge:
+
+- `search_skills` summaries carry `adrenaline` now. Without it 85 of the 101
+  adrenaline skills read as free in a search (debt #10, +44, no description).
+- "(PvP)" twins are out of suggestions unless the query names one: a template
+  never carries a PvP id, so the twin was a suggestion the validator refuses.
+- A bumped `mcp-publisher` pin is proven by the PR that bumps it. The install
+  step is a composite action shared by the release run and a new
+  `check-publisher-pin.yml`, so both execute the same lines.
+- The privacy page says what the first rewrite had dropped: why the counters
+  exist, that Cloudflare is the HOST (it said "operates the service", which is
+  the maintainer), that the records are not sold or passed on, and that a single
+  record cannot be deleted before it expires.
+- The 512 KiB body ceiling STAYS. The many-key body costs CPU, not egress, now
+  that the reply is bounded, and production's CPU cap ends it; halving the
+  ceiling would buy a factor of two and put the largest legitimate request
+  (about 100 KiB of pretty-printed unlocked ids) within sight of the limit.
+- Still open, and only the Cloudflare dashboard can settle it: debt #1 says the
+  build command is `pnpm -r test`, conventions.md and CLAUDE.md say
+  `pnpm -r typecheck && pnpm -r test`. The second is the one worth having.
 
 Checked rather than assumed, because the weekly job had been green and silent
 for eleven weeks: a live import from Pages on 2026-11-26 produced byte-identical

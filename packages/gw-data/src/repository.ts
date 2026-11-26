@@ -376,12 +376,20 @@ export function suggestSkillNames(name: string, count = 3): string[] {
   const exactFrench = frenchClaimantIndex().get(normalizeName(name.replace(/[œŒ]/g, "oe")));
   if (exactFrench !== undefined) return exactFrench.slice(0, count).map((s) => s.name);
 
-  const english = closest(englishSearchIndex(), name, count);
-  if (english.length > 0) return english.map((s) => s.name);
+  // A "(PvP)" twin is a suggestion the validator then refuses (a template only
+  // carries PvE ids), and it used to take a slot next to the skill it shadows.
+  // Kept only for a query that names it. Twins come in pairs, so asking the
+  // ranker for twice the count leaves enough after they are dropped.
+  const wantsPvp = /pvp/i.test(name);
+  const pick = (found: Skill[]) =>
+    (wantsPvp ? found : found.filter((s) => !s.isPvpVersion)).slice(0, count).map((s) => s.name);
+
+  const english = pick(closest(englishSearchIndex(), name, count * 2));
+  if (english.length > 0) return english;
   // The same index the exact-French check above already built: same cap, same
   // length-based early exit, so the residual cost of French here is one extra SCAN
   // and never a second index build.
-  return closest(frenchSearchIndex(), name, count).map((s) => s.name);
+  return pick(closest(frenchSearchIndex(), name, count * 2));
 }
 
 /**

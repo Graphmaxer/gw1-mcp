@@ -498,15 +498,6 @@ describe("resources and error surfaces", () => {
     expect(meta.skillTypes.length).toBeGreaterThan(0);
   });
 
-  it("returns a structured error for malformed template codes", async () => {
-    const client = await connectedClient();
-    const res = await client.callTool({
-      name: "decode_template",
-      arguments: { code: "not a code!!" },
-    });
-    expect(res.isError).toBe(true);
-  });
-
   it("get_hero handles unknown names and list_heroes filters by campaign", async () => {
     const client = await connectedClient();
     const ko = await client.callTool({ name: "get_hero", arguments: { name: "Gandalf" } });

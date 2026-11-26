@@ -95,7 +95,7 @@ the sentence is literally true — check it rather than trusting it when adding 
 Verified byte-identical at the time: `tools/list` was 18 577 characters, and strictness
 survives — an extra property in a structured result is still rejected. It went to 18 809
 when inputs became `.strict()` (see the third-audit entry in the debt register), and is
-**19 595 today, LOCKED by a test** — `conventions.test.ts` asserts the exact character
+**19 639 today, LOCKED by a test** — `conventions.test.ts` asserts the exact character
 count and fails on any movement in either direction.
 
 The lock exists because of how the number drifted. Between 18 809 and the audit of

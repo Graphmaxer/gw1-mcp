@@ -109,6 +109,7 @@ describe("search_skills pages, plumbs includePvpVersions and reports each field"
         attribute: getAttributeById(s.attributeId)!.name,
         campaign: getCampaignById(s.campaignId)!.name,
         energy: s.energy,
+        adrenaline: s.adrenaline,
         activation: s.activation,
         recharge: s.recharge,
       }));
@@ -116,6 +117,16 @@ describe("search_skills pages, plumbs includePvpVersions and reports each field"
     // The oracle can tell the fields apart: values differ within one record.
     expect(expected.some((s) => s.activation !== s.recharge && s.energy !== s.recharge)).toBe(true);
     expect(new Set(expected.map((s) => s.campaign)).size).toBeGreaterThan(1);
+  });
+
+  it("a search shows what an adrenaline skill costs, not a free skill", async () => {
+    // Elementalists have no adrenaline skill, so the record test above cannot
+    // tell this field from a constant 0. Eviscerate costs 8 strikes and no energy.
+    const client = await connectedClient();
+    const found = await call(client, "search_skills", { nameContains: "eviscerate" });
+    const eviscerate = getSkillByName("Eviscerate")!;
+    expect(eviscerate).toMatchObject({ energy: 0, adrenaline: 8 });
+    expect(found.skills[0]).toMatchObject({ name: "Eviscerate", energy: 0, adrenaline: 8 });
   });
 
   it("holds limit to 1-200", async () => {

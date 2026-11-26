@@ -436,10 +436,11 @@ export function validateBuild(
   }
 
   // Skills whose attribute has no allocation: legal, but worth flagging.
+  // "No allocation" means absent, or listed at rank 0 only. An out-of-range rank
+  // or a repeated line is already an error above; calling the same attribute
+  // unallocated next to it would be a second, false statement.
   const allocatedAttributes = new Set(
-    budgeted
-      .filter(({ rank }) => isValidRank(rank) && rank > 0)
-      .map(({ attributeId }) => attributeId),
+    template.attributes.filter(({ rank }) => rank !== 0).map(({ attributeId }) => attributeId),
   );
   for (const { slot, skill } of resolved) {
     if (
@@ -469,7 +470,8 @@ export function validateBuild(
     // self-correction loop turned a good bar into a worse one, which is more
     // harmful than staying silent.
     if (
-      allocatedAttributes.has(attributeId) &&
+      isValidRank(rank) &&
+      rank > 0 &&
       !attribute?.isPrimary &&
       !usedAttributeIds.has(attributeId)
     ) {

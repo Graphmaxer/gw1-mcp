@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
+import { boundTransportError } from "../src/mcp-guards.js";
 
 const app = createApp();
 
@@ -196,6 +197,13 @@ describe("CORS and method handling on /mcp", () => {
   });
 });
 
+describe("boundTransportError only handles the transport's HTTP refusals", () => {
+  it("rethrows anything else, so a real fault is not turned into a 400", async () => {
+    const fault = new TypeError("not a refusal");
+    await expect(boundTransportError({} as never, fault)).rejects.toBe(fault);
+  });
+});
+
 describe("the endpoint answers with and without a trailing slash", () => {
   // Hono routes "/mcp/" as a distinct path, so a client joining a trailing slash
   // used to get a plain 404 and fail outright — 21 times in 7 days of production
@@ -294,6 +302,18 @@ describe("the endpoint answers with and without a trailing slash", () => {
       expect(text.length).toBeLessThan(300);
       expect(JSON.parse(text)).toMatchObject({ jsonrpc: "2.0", id: null, error: { code: -32700 } });
       expect(res.headers.get("cache-control")).toBe("no-store");
+    });
+
+    it(`passes the transport's other refusals through on ${path}`, async () => {
+      // Only a 400 can carry the echo; a 406 for a missing Accept is the
+      // transport's own answer and must arrive as it sent it.
+      const res = await createApp().request(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "text/plain" },
+        body: call,
+      });
+      expect(res.status).toBe(406);
+      expect(await res.text()).toContain("Not Acceptable");
     });
 
     it(`keeps the transport's own short refusals intact on ${path}`, async () => {

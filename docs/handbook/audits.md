@@ -104,11 +104,13 @@ returned an empty page for any offset past the limit), id 0 read as "no filter"
 swappable in `get_skill` and `decode_template`, `get_hero` by id keyed on array
 index, the provenance merge in `write.ts` reversible so `_meta.json` never
 updated, and every input bound movable by one. The "field for field" test of
-audit six sampled three skills, none with both adrenaline and a sacrifice. 56
-tests in `mutation-survivors.test.ts` (one per package) kill 86 of the 98; the
-twelve left are listed in the PR. Two weak assertions were tightened; the rest
-of the "cannot fail" list (`not.toBe(429)` where 200 is meant, `toBeDefined()`
-on an error code) is still owed.
+audit six sampled three skills, none with both adrenaline and a sacrifice. 66
+tests in `mutation-survivors.test.ts` (one file per package) kill every one of
+the 98, each re-run against its mutant. The assertions that could not fail for
+their stated reason were tightened in the same pass: `not.toBe(429)` and
+`not.toBe(403)` where 200 was meant (three of them passed on a 400, because
+the body was `{}`), `toBeDefined()` on an error code, and privacy-topic
+patterns loose enough to match a page that had dropped the topic.
 
 Seen and deliberately left: `search_skills` summaries carry energy, activation
 and recharge but not adrenaline, so 85 adrenaline skills read as free in a

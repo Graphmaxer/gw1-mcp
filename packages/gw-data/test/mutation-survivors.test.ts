@@ -4,7 +4,7 @@
  * while reporting full line coverage. They assert exact values against the data
  * on purpose; a looser assertion is how each of these mutants survived.
  */
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -19,7 +19,12 @@ import {
   suggestProfessionNames,
   suggestSkillNames,
 } from "../src/index.js";
-import { canonicaliseUpstreamIds, transformSkills } from "../scripts/import/transform.ts";
+import { loadUpstream } from "../scripts/import/load.ts";
+import {
+  assertPlausibleDescription,
+  canonicaliseUpstreamIds,
+  transformSkills,
+} from "../scripts/import/transform.ts";
 import { writeImport } from "../scripts/import/write.ts";
 
 describe("searchSkills: id 0 is a filter value, not an absent filter", () => {
@@ -239,5 +244,65 @@ describe("transformAttributes maps each upstream field to its own output field",
       { id: 17, name: "Divine Favor", isPrimary: true, professionId: 3, max: 21 },
       { id: 18, name: "Healing Prayers", isPrimary: false, professionId: 3, max: 20 },
     ]);
+  });
+});
+
+describe("import guards that only an unusual input reaches", () => {
+  const lang = (en: string) => ({ en, de: en });
+
+  it("refuses a bare www. address and any markup outside the three known tags", () => {
+    expect(() => assertPlausibleDescription(1, "X", "Read more at www.example.org.")).toThrow(
+      /contains a URL/,
+    );
+    for (const tag of ["<b>", "<i>", "<a>", "<br>", "<img>", "<script>", "<gray >", "</sic>"]) {
+      expect(() => assertPlausibleDescription(1, "X", `Heal ${tag} for 5.`), tag).toThrow(
+        /unexpected tag/,
+      );
+    }
+    for (const tag of ["<gray>", "</gray>", "<sic/>"]) {
+      expect(() => assertPlausibleDescription(1, "X", `Heal ${tag} for 5.`), tag).not.toThrow();
+    }
+  });
+
+  it("leaves the empty-slot row alone, whose attribute is in no table", () => {
+    // Upstream gives skill 0 the attribute -1. Remapping it like a real skill
+    // throws "not in upstream's table" and stops every import.
+    const upstream = {
+      ATTRIBUTES: { 0: { prof: 5, pri: true, max: 21, name: lang("Fast Casting") } },
+      CAMPAIGNS: [],
+      PROFESSIONS: [],
+      SKILLTYPES: {},
+      skilldata: { 0: { id: 0, attribute: -1 }, 5: { id: 5, attribute: 0 } },
+      skilldesc: {},
+      version: "test",
+    } as unknown as Parameters<typeof canonicaliseUpstreamIds>[0];
+    const out = canonicaliseUpstreamIds(upstream).skilldata as Record<
+      string,
+      { attribute: number }
+    >;
+    expect(out["0"]!.attribute).toBe(-1);
+    expect(out["5"]!.attribute).toBe(0);
+  });
+
+  it("treats an unreadable _meta.json as a fault, not as a first run", () => {
+    // Only a MISSING file means "no record yet". Anything else swallowed as {}
+    // would rewrite the file with this run's keys alone and drop the others.
+    const dir = mkdtempSync(join(tmpdir(), "gw-write-"));
+    try {
+      mkdirSync(join(dir, "_meta.json"));
+      const data = { path: join(dir, "skills.json"), content: "[]\n", summary: 0 };
+      expect(() => writeImport(dir, [data], { skills: { sourceVersion: "new" } })).toThrow(
+        /EISDIR/,
+      );
+      // And it is found BEFORE anything is written: the write of _meta.json
+      // would fail on a directory too, but only after the data files were out.
+      expect(existsSync(data.path)).toBe(false);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("reads an empty source argument as the npm package, like no argument", async () => {
+    expect((await loadUpstream("")).version).toMatch(/^npm:/);
   });
 });

@@ -359,7 +359,7 @@ describe("the edges Codecov showed uncovered once each tool had its own file", (
     const { builds } = JSON.parse((result.content as { text: string }[])[0]!.text);
     expect(builds).toHaveLength(4);
     expect(builds[0].build).toBeUndefined();
-    expect(typeof builds[0].error.code).toBe("string");
+    expect(builds[0].error.code).toBe("INVALID_HEADER");
     expect(builds[0].label).toBe("Player");
     expect(builds.slice(1).every((b: { build?: unknown }) => b.build !== undefined)).toBe(true);
   });

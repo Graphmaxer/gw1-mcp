@@ -35,3 +35,11 @@ describe("codec edges", () => {
     expect(() => new BitWriter().write(0, Number.NaN)).toThrow(/Field width/);
   });
 });
+
+describe("base64 value guard", () => {
+  it("maps the two ends of the alphabet and refuses a value that is not 6 bits", () => {
+    expect(valuesToChars([0, 63])).toBe("A/");
+    expect(() => valuesToChars([64])).toThrow(/out of range: 64/);
+    expect(() => valuesToChars([-1])).toThrow(/out of range: -1/);
+  });
+});

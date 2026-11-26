@@ -5,6 +5,10 @@
  * on purpose; a looser assertion is how each of these mutants survived.
  */
 import {
+  attributes,
+  campaigns,
+  professions,
+  skillTypes,
   getAttributeById,
   getCampaignById,
   getProfessionById,
@@ -19,6 +23,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { describe, expect, it } from "vitest";
 import { resolveNamedBuild } from "../src/build-io.js";
 import { deriveEvent } from "../src/events.js";
+import { fullHero } from "../src/results.js";
 import { createServer } from "../src/server.js";
 import { validateBuild } from "../src/validate.js";
 
@@ -437,5 +442,41 @@ describe("tool events", () => {
       code: "MULTIPLE_ELITES",
       flags: ["unlockedSkillIds"],
     });
+  });
+});
+
+describe("resources carry the whole tables, not a sample of them", () => {
+  const read = async (uri: string) => {
+    const client = await connectedClient();
+    const { contents } = await client.readResource({ uri });
+    return JSON.parse((contents[0] as { text: string }).text);
+  };
+
+  it("gw1://heroes is every hero, in full", async () => {
+    expect(await read("gw1://heroes")).toEqual(heroes.map(fullHero));
+  });
+
+  it("gw1://meta is the four reference tables and the provenance record", async () => {
+    const meta = await read("gw1://meta");
+    expect(meta.attributes).toEqual(attributes);
+    expect(meta.professions).toEqual(professions);
+    expect(meta.campaigns).toEqual(campaigns);
+    expect(meta.skillTypes).toEqual(skillTypes);
+    expect(Object.keys(meta.provenance).sort()).toEqual(["heroes", "skillNamesFr", "skills"]);
+  });
+});
+
+describe("encode_template answers in exactly one of its three shapes", () => {
+  it("a build that does not resolve carries errors and nothing else", async () => {
+    // `valid` belongs to the validation shape. A resolution failure that grew it
+    // would read as a validator verdict on a build that was never validated.
+    const client = await connectedClient();
+    const res = await call(client, "encode_template", {
+      primary: "Warrior",
+      attributes: [],
+      skills: bar("Not A Real Skill Name"),
+    });
+    expect(Object.keys(res)).toEqual(["errors"]);
+    expect(res.errors.map((e: { code: string }) => e.code)).toEqual(["UNKNOWN_SKILL"]);
   });
 });

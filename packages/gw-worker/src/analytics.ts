@@ -49,7 +49,9 @@ function sanitizeClientName(name: unknown): string {
     .replace(/[^A-Za-z0-9._@-]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
-    .slice(0, 64);
+    .slice(0, 64)
+    // The cut can land right after a word, leaving the space that followed it.
+    .trimEnd();
   return cleaned.length > 0 ? cleaned : "_unnamed";
 }
 

@@ -510,7 +510,8 @@ describe("resources and error surfaces", () => {
   it("get_hero handles unknown names and list_heroes filters by campaign", async () => {
     const client = await connectedClient();
     const ko = await client.callTool({ name: "get_hero", arguments: { name: "Gandalf" } });
-    expect(JSON.stringify(ko.content)).toMatch(/[Nn]o hero|not found|Unknown/);
+    expect(ko.isError).toBe(true);
+    expect(payload(ko).error).toMatchObject({ code: "NOT_FOUND", suggestions: [] });
     // A near miss gets the name to retry with, like every other name lookup.
     const typo = payload(
       await client.callTool({ name: "get_hero", arguments: { name: "Master of Wispers" } }),
@@ -858,7 +859,7 @@ describe("error branches (total failures and reports)", () => {
       arguments: { code: "!!!not-a-template!!!" },
     });
     expect(result.isError).toBe(true);
-    expect(payload(result).error.code).toBeDefined();
+    expect(payload(result).error.code).toBe("INVALID_CHARACTER");
   });
 
   it("validate_build returns a normal report (not isError) when names cannot resolve", async () => {
@@ -898,7 +899,7 @@ describe("error branches (total failures and reports)", () => {
     // policy: partial failures are content — the container parsed, one bar did not
     expect(result.isError ?? false).toBe(false);
     const body = payload(result);
-    expect(body.builds[0].error.code).toBeDefined();
+    expect(body.builds[0].error.code).toBe("TRUNCATED");
   });
 
   it("decode_pawned_team fails the whole call (INVALID_PWND) on a blob with no payload", async () => {

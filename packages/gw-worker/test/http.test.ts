@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { boundTransportError } from "../src/mcp-guards.js";
 
+const MCP_HEADERS = {
+  "Content-Type": "application/json",
+  Accept: "application/json, text/event-stream",
+};
+const PING = JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping" });
+
 const app = createApp();
 
 /** POST a JSON-RPC message to /mcp and parse the SSE-framed response. */
@@ -130,7 +136,7 @@ describe("CORS and method handling on /mcp", () => {
         "Access-Control-Request-Method": "POST",
       },
     });
-    expect(res.status).toBeLessThan(300);
+    expect(res.status).toBe(204);
     expect(res.headers.get("access-control-allow-origin")).toBe("*");
     expect(res.headers.get("access-control-allow-methods")).toContain("POST");
   });
@@ -190,10 +196,11 @@ describe("CORS and method handling on /mcp", () => {
     // negative against our own workflow.
     const res = await createApp().request("/mcp", {
       method: "POST",
-      headers: { "content-type": "application/json", Origin: "http://localhost:3000" },
-      body: "{}",
+      headers: { ...MCP_HEADERS, Origin: "http://localhost:3000" },
+      body: PING,
     });
-    expect(res.status).not.toBe(403);
+    // 200, not merely "not 403": with "{}" as the body this passed on a 400.
+    expect(res.status).toBe(200);
   });
 });
 
@@ -380,10 +387,13 @@ describe("privacy policy covers what the directory requires", () => {
   // missing or incomplete privacy policy is an immediate rejection. Retention
   // was the one absent: the counters were described without a duration.
   const topics: [string, RegExp][] = [
-    ["collection", /collect/i],
-    ["usage and storage", /stor|usage/i],
-    ["third-party sharing", /third[- ]part|Cloudflare/i],
-    ["retention", /retention|retain/i],
+    // Each pattern is the sentence that carries the claim. The loose forms
+    // (/collect/, /stor|usage/) matched almost any wording of the page,
+    // including one that had dropped the topic.
+    ["collection", /It collects request methods and requested\s+tool names/],
+    ["usage and storage", /usage counters in Analytics Engine/],
+    ["third-party sharing", /Cloudflare operates the service and may process operational metadata/],
+    ["retention", /retains each usage record for 90 days/],
     ["contact", /Contact:/],
   ];
   for (const [topic, pattern] of topics) {
@@ -458,10 +468,10 @@ describe("origin validation and logo", () => {
   it("accepts requests without an Origin header", async () => {
     const res = await createApp().request("/mcp", {
       method: "POST",
-      headers: { "content-type": "application/json" },
-      body: "{}",
+      headers: MCP_HEADERS,
+      body: PING,
     });
-    expect(res.status).not.toBe(403);
+    expect(res.status).toBe(200);
   });
   it("rejects a malformed Origin that a prefix check would have let through (GW1-12)", async () => {
     const res = await createApp().request("/mcp", {
@@ -473,10 +483,10 @@ describe("origin validation and logo", () => {
   it("accepts a well-formed https Origin", async () => {
     const res = await createApp().request("/mcp", {
       method: "POST",
-      headers: { Origin: "https://claude.ai", "content-type": "application/json" },
-      body: "{}",
+      headers: { ...MCP_HEADERS, Origin: "https://claude.ai" },
+      body: PING,
     });
-    expect(res.status).not.toBe(403);
+    expect(res.status).toBe(200);
   });
   it("serves the PNG logo at /logo.png", async () => {
     const res = await createApp(new Uint8Array([137, 80, 78, 71])).request("/logo.png");
@@ -828,7 +838,7 @@ describe("rate limiting", () => {
 
   it("fails open when the binding is absent (dev/tests)", async () => {
     const res = await post(createApp());
-    expect(res.status).not.toBe(429);
+    expect(res.status).toBe(200);
   });
 
   it("returns 429 with Retry-After when the limiter denies, keyed on the IP", async () => {
@@ -858,8 +868,7 @@ describe("rate limiting", () => {
       },
     };
     const res = await post(createApp(), env);
-    expect(res.status).not.toBe(429);
-    expect(res.status).not.toBe(500);
+    expect(res.status).toBe(200);
   });
 
   // Both spellings, both tests: the limit was registered on the bare path only,
@@ -930,7 +939,7 @@ describe("rate limiting", () => {
   it("passes through when the limiter allows", async () => {
     const env = { RATE_LIMITER: { limit: async () => ({ success: true }) } };
     const res = await post(createApp(), env);
-    expect(res.status).not.toBe(429);
+    expect(res.status).toBe(200);
   });
 
   // Audit N1: a batch was the only place where one HTTP request — one unit of the

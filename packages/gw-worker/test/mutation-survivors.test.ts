@@ -180,3 +180,31 @@ describe("static routes", () => {
     expect(res.headers.get("Cache-Control")).toBe("public, max-age=3600");
   });
 });
+
+describe("small promises in public text", () => {
+  it("security.txt names both languages reports are read in", async () => {
+    const body = await (await createApp().request("/.well-known/security.txt")).text();
+    expect(body.split("\n")).toContain("Preferred-Languages: en, fr");
+  });
+
+  it("a client name cut at 64 characters does not end on the space it was cut at", async () => {
+    const points: { blobs?: string[] }[] = [];
+    const env = { MCP_ANALYTICS: { writeDataPoint: (p: (typeof points)[0]) => points.push(p) } };
+    const name = `${"a".repeat(63)} tail`;
+    await createApp().request(
+      "/mcp",
+      {
+        method: "POST",
+        headers: JSON_HEADERS,
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name } },
+        }),
+      },
+      env,
+    );
+    expect(points[0]?.blobs?.[1]).toBe("a".repeat(63));
+  });
+});

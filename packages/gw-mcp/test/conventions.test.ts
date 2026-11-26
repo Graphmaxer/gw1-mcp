@@ -325,6 +325,8 @@ describe("upstream pins live in .github/pins.env, not in workflow YAML", () => {
     "build-gwtoolbox-plugin.yml",
     "publish-registry.yml",
     "upstream-pin-bump.yml",
+    "check-publisher-pin.yml",
+    "../actions/install-mcp-publisher/action.yml",
   ] as const;
 
   it("parses as KEY=value and defines every pin the workflows consume", () => {
@@ -353,6 +355,16 @@ describe("upstream pins live in .github/pins.env, not in workflow YAML", () => {
         expect(yaml, `${name} must read ${value.slice(0, 12)}… from pins.env`).not.toContain(value);
       }
     }
+  });
+
+  it("a pin change also re-runs the publisher install the release uses", () => {
+    // Same reasoning as the plugin build below: a bumped pin must be proven by
+    // the PR that bumps it, and by the SAME step the release runs.
+    const check = read("../../../.github/workflows/check-publisher-pin.yml");
+    expect(check).toContain(".github/pins.env");
+    const step = "uses: ./.github/actions/install-mcp-publisher";
+    expect(check).toContain(step);
+    expect(read("../../../.github/workflows/publish-registry.yml")).toContain(step);
   });
 
   it("the plugin build rebuilds when a pin changes", () => {
@@ -400,7 +412,9 @@ describe("tools/list size is a locked, deliberate number (debt #10)", () => {
   // +206 the same day: the attribute entries of both build tools became strict
   // (`additionalProperties: false`, twice), `forHero` says "errors" where it said
   // "flagged", and `unlockedSkillIds` names which export list goes with which bar.
-  const TOOLS_LIST_CHARS = 19_595;
+  // +44 after that review: search_skills summaries gained `adrenaline`, with no
+  // description, because 85 adrenaline skills read as free without it.
+  const TOOLS_LIST_CHARS = 19_639;
 
   it("has not drifted, from our side or a dependency's", async () => {
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();

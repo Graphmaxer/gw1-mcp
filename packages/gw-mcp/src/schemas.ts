@@ -136,6 +136,11 @@ export const skillSummarySchema = z.object({
   attribute: z.string().nullable(),
   campaign: z.string().nullable(),
   energy: z.number(),
+  // Without it 85 of the 101 adrenaline skills read as free in a search: energy
+  // 0, and nothing saying the cost is paid in strikes.
+  // No description on purpose: the name says it, and every character here is
+  // paid in every conversation (debt #10).
+  adrenaline: z.number(),
   activation: z.number(),
   recharge: z.number(),
 });

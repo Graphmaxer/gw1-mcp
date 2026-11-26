@@ -82,6 +82,7 @@ export function registerSearchSkillsTool(registerTool: RegisterTool): void {
               attribute: getAttributeById(s.attributeId)?.name ?? null,
               campaign: getCampaignById(s.campaignId)?.name ?? null,
               energy: s.energy,
+              adrenaline: s.adrenaline,
               activation: s.activation,
               recharge: s.recharge,
             }) satisfies z.infer<typeof skillSummarySchema>,

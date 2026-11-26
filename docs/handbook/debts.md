@@ -112,7 +112,7 @@ The honest register: every KNOWN compromise, kept deliberately, with its trigger
    the margin improved rather than eroded. `limits.cpu_ms` stays unset
    deliberately: it has no effect under Free and a rejected value would fail a
    deploy.
-10. tools/list costs 19 595 characters (~4 900 tokens) of FIXED context
+10. tools/list costs 19 639 characters (~4 900 tokens) of FIXED context
     in every conversation, outputSchemas being ~40% of it (7 805 chars). That is
     a deliberate trade — the schemas carry real contracts locked by the golden
     fixtures — but it is paid by every session, including ones that call a
@@ -159,6 +159,10 @@ The honest register: every KNOWN compromise, kept deliberately, with its trigger
     where it said "flagged", and `unlockedSkillIds` says which export list goes
     with which bar — the README said so, and the README does not travel with
     the tool.
+    +44 the same day: `search_skills` summaries gained `adrenaline`. Without it
+    85 of the 101 adrenaline skills read as free in a search (energy 0, nothing
+    else). The field carries no description, deliberately: 44 characters instead
+    of 110.
     Trigger: if a client's
     context budget ever matters, check whether that client forwards
     outputSchema to the model at all before optimising further.

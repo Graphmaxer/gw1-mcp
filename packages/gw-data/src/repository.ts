@@ -328,9 +328,10 @@ export function suggestAttributeNames(name: string, count = 3): string[] {
 /**
  * English candidates for a name that did not resolve — including for a FRENCH one.
  *
- * The French pass runs only when the English pass finds nothing, and it always
- * answers with ENGLISH names, because those are what every tool accepts. It exists
- * for two cases the exact index deliberately refuses:
+ * Exact French aliases are checked before fuzzy matches. Fuzzy French matches
+ * are checked if fuzzy English matching finds nothing. Suggestions use English
+ * names so they can be reused in every tool. This handles cases the exact index
+ * deliberately refuses:
  *
  *  - an ambiguous French name: "Rafale" is indexed for BOTH Flurry and Gust, so it
  *    comes back as two candidates and the caller picks, instead of the server
@@ -352,7 +353,9 @@ export function suggestSkillNames(name: string, count = 3): string[] {
   // ["Gale", "Recall", "Impale"] for a query whose real meaning — Flurry or Gust —
   // was sitting in the French table. Wrong-but-plausible is the failure mode this
   // whole path exists to avoid, so exact evidence goes first.
-  const exactFrench = frenchClaimantIndex().get(normalizeName(name));
+  // Upstream spells œ as oe. Fold it here so a French alias with a ligature
+  // also gets an exact suggestion, without adding work to regular lookups.
+  const exactFrench = frenchClaimantIndex().get(normalizeName(name.replace(/[œŒ]/g, "oe")));
   if (exactFrench !== undefined) return exactFrench.slice(0, count).map((s) => s.name);
 
   const english = closest(englishSearchIndex(), name, count);

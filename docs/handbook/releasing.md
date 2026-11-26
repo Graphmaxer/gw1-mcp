@@ -11,7 +11,10 @@ release-please maintains a release PR → merging it creates the tag, the
 GitHub release and the CHANGELOG entry → the SAME release-please run then
 publishes the new version to the MCP Registry via OIDC (gated on its
 release_created output — GITHUB_TOKEN-created events cannot trigger other
-workflows, so an on-release workflow would never fire).
+workflows, so an on-release workflow would never fire). Both release jobs
+check out the release tag and verify it against the SHA from Release Please.
+Overlapping pushes cannot change the source used to build the DLL or publish
+the Registry metadata.
 
 Commit-type discipline matters mechanically, not just stylistically:
 `type(scope): description` is the ENTIRE grammar release-please's parser
@@ -34,8 +37,9 @@ both weekly jobs. No build, publish or alerting logic is duplicated across
 workflows. Nothing
 manual beyond merging the PR. Same GITHUB_TOKEN rule hits the weekly data
 PR (update-data.yml): CI never auto-starts on it —
-UNLESS the gw1-mcp-bot GitHub App credentials exist (AUTOMATION_APP_ID +
-AUTOMATION_APP_PRIVATE_KEY secrets; ephemeral ~1h installation tokens are
+UNLESS the gw1-mcp-bot GitHub App credentials exist (the
+`AUTOMATION_APP_CLIENT_ID` repository variable and the
+`AUTOMATION_APP_PRIVATE_KEY` secret; ephemeral ~1h installation tokens are
 minted per run via actions/create-github-app-token — no long-lived PAT
 anywhere since 2026-07-15,
 Contents RW + Pull requests RW): then the PR is authored by a real
@@ -63,6 +67,11 @@ the pinned version. A pnpm bump therefore touches package.json AND pnpm-lock.yam
 — run a plain `pnpm install` once after editing `packageManager`, or
 `--frozen-lockfile` refuses with FROZEN_LOCKFILE_WITH_OUTDATED_LOCKFILE. CI also runs
 actionlint, so invalid workflow expressions fail a PR check.
+
+The Registry test uses the pinned publisher's copy of the dated schema declared
+in `server.json`. When changing that declaration, replace the test fixture from
+the corresponding release of the Registry repository and update its source
+in THIRD_PARTY_NOTICES.md.
 
 pnpm (since 11; the repo is on 12 as of 2026-11-13) defaults `minimumReleaseAge` to 1440 minutes (1 day) — introduced
 platform-wide after the 2025 "Shai-Hulud" npm worm wave — and refuses to

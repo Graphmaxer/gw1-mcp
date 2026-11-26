@@ -379,25 +379,27 @@ describe("README skill count is generated, not hand-kept", () => {
   });
 
   it("rewrites every mention and reports how many", () => {
-    writeFileSync(tmp, "looks up the 1484 real skills\nand 1484 skills elsewhere\n");
-    expect(syncReadmeSkillCount(tmp, 1485)).toBe(2);
-    expect(readFileSync(tmp, "utf8")).toBe(
-      "looks up the 1485 real skills\nand 1485 skills elsewhere\n",
-    );
+    const before = "looks up the 1484 real skills\nand 1484 skills elsewhere\n";
+    writeFileSync(tmp, before);
+    expect(syncReadmeSkillCount(tmp, 1485)).toEqual({
+      path: tmp,
+      content: "looks up the 1485 real skills\nand 1485 skills elsewhere\n",
+      summary: "2 skill-count mention(s) -> 1485",
+    });
+    expect(readFileSync(tmp, "utf8")).toBe(before);
   });
 
   it("touches nothing when the count already matches", () => {
     const text = "the 1485 real skills\n";
     writeFileSync(tmp, text);
-    expect(syncReadmeSkillCount(tmp, 1485)).toBe(0);
+    expect(syncReadmeSkillCount(tmp, 1485)).toBeUndefined();
     expect(readFileSync(tmp, "utf8")).toBe(text);
   });
 
   it("leaves other numbers alone", () => {
     // Narrow by design: it must not reflow a sentence or touch 8 tools, 31 heroes.
     writeFileSync(tmp, "8 tools, 31 heroes, 3 resources, 1484 skills, port 8787\n");
-    expect(syncReadmeSkillCount(tmp, 1485)).toBe(1);
-    expect(readFileSync(tmp, "utf8")).toBe(
+    expect(syncReadmeSkillCount(tmp, 1485)?.content).toBe(
       "8 tools, 31 heroes, 3 resources, 1485 skills, port 8787\n",
     );
   });

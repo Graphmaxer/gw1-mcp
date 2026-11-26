@@ -81,8 +81,12 @@ describe("GWCA HeroID enum parsing", () => {
 });
 
 describe("heroes.json generation", () => {
-  it("enum snapshot + curated overlay reproduces data/heroes.json exactly", () => {
-    expect(generateHeroes(header, overlay as Record<string, HeroMeta>)).toEqual(heroes);
+  it("includes a newly listed hero once its metadata is curated", () => {
+    const nextHeader = header.replace(/\bCount\b/, "FutureHero, Count");
+    const metadata = { professionId: 1, campaignId: 3, unlock: "Unlocked in the fixture." };
+    const generated = generateHeroes(nextHeader, { ...overlay, FutureHero: metadata });
+    expect(generated).toContainEqual({ id: 40, name: "Future Hero", ...metadata });
+    expect(renderHeroNamesHeader(generated)).toContain('"Future Hero", // 40');
   });
   it("fails loudly, listing identifiers, when the overlay lacks a hero", () => {
     const partial = { ...(overlay as Record<string, HeroMeta>) };

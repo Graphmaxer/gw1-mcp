@@ -118,12 +118,10 @@ export function pwndSlotLabel(
   templatename: string | undefined,
   description: string,
 ): { label: string; notes: string | null } {
-  const fromName = (templatename ?? "").trim();
-  const lines = description.split("\n");
-  if (fromName) {
-    return { label: fromName, notes: lines.join("\n").trim() || null };
+  if (templatename !== undefined) {
+    return { label: templatename.trim(), notes: description.trim() || null };
   }
-  const [fromDescription = "", ...rest] = lines;
+  const [fromDescription = "", ...rest] = description.split("\n");
   return { label: fromDescription, notes: rest.join("\n").trim() || null };
 }
 

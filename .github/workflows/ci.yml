@@ -121,8 +121,7 @@ jobs:
           fail_ci_if_error: false
       - name: Upload test results to Codecov (Test Analytics)
         # !cancelled(): failed test runs must still upload — that IS the point
-        # (failed-test annotations in PR comments, flaky detection). Our only
-        # network-dependent test (registry-schema) is the one worth watching.
+        # (failed-test annotations in PR comments, flaky detection).
         # Same token guard as above.
         if: ${{ !cancelled() && env.HAS_CODECOV == 'true' }}
         env:
@@ -137,3 +136,5 @@ jobs:
         # Catches invalid workflow expressions (e.g. inputs.* in a job-level
         # permissions block) before they reach main.
         uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2.2.0 (embeds github-script v9 / Node 24)
+      - name: Test workflow logic
+        run: node --test .github/tests/*.test.mts

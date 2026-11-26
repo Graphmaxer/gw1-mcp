@@ -3,6 +3,7 @@
   "ignorePatterns": [
     "packages/gw-data/data/**",
     "packages/gw-template/test/fixtures/**",
+    "packages/gw-mcp/test/fixtures/registry-server-2025-12-11.schema.json",
     "pnpm-lock.yaml",
     ".release-please-manifest.json",
     ".claude-plugin/plugin.json",

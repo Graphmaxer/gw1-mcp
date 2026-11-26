@@ -120,6 +120,34 @@ describe("attribute point budget", () => {
     expect(codes).not.toContain("ATTRIBUTE_POINTS_EXCEEDED");
     expect(report.errors.map((e) => e.message).join(" ")).not.toContain("Infinity");
   });
+
+  it.each([1.5, NaN, "length"])("rejects %s as a base attribute rank", (rank) => {
+    const report = validateBuild({
+      primary: 1,
+      secondary: 0,
+      attributes: [{ attributeId: 21, rank: rank as number }],
+      skills: [1, 0, 0, 0, 0, 0, 0, 0],
+    });
+    expect(report.valid).toBe(false);
+    expect(report.errors.map((issue) => issue.code)).toEqual(["RANK_OUT_OF_RANGE"]);
+  });
+
+  it.each([
+    [0, ["UNALLOCATED_ATTRIBUTE"]],
+    [1, []],
+  ])(
+    "warns about a scaling attribute only when it has no allocation (rank %s)",
+    (rank, warnings) => {
+      const report = validateBuild({
+        primary: 1,
+        secondary: 0,
+        attributes: [{ attributeId: 21, rank }],
+        skills: [1, 0, 0, 0, 0, 0, 0, 0],
+      });
+      expect(report.valid).toBe(true);
+      expect(report.warnings.map((issue) => issue.code)).toEqual(warnings);
+    },
+  );
 });
 
 // Table-driven coverage of every remaining validator rule. Base bar: Dervish

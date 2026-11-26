@@ -1,7 +1,8 @@
 # Usage analytics queries (Workers Analytics Engine)
 
-Saved queries for the `gw1_mcp_usage` dataset (written by the worker's
-`MCP_ANALYTICS` binding — tool NAME only, never arguments; see `/privacy`).
+Saved queries for the `gw1_mcp_usage` dataset. The Worker's `MCP_ANALYTICS`
+binding records request labels, caller-supplied client names on initialization,
+and tool outcomes. [Privacy policy](https://gw1-mcp.graphmaxer.workers.dev/privacy)
 
 **Where to run them:** the Cloudflare dash SQL editor (Storage & Databases →
 Analytics Engine), or the SQL API:
@@ -22,20 +23,24 @@ curl -s "https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/analytics_en
 2. **Retention is 90 days**, not configurable. For longer history, snapshot
    aggregates elsewhere before they age out.
 
-Schema reminder: `blob1` = label (`tool:<name>` for tools/call,
-`rpc:<method>` for everything else), `double1` = 1, `index1` = label.
+For request counters, `blob1` holds `tool:<name>` for a tool request and
+`rpc:<method>` for another protocol request. `double1` is 1 and `index1`
+repeats the label. Request counters describe attempts, including requests the
+transport may reject. Use `event:tool_call` rows to measure executions and
+their outcomes.
 
-## Calls per tool, last 7 days
+## Requests per tool, last 7 days
 
 ```sql
 SELECT blob1 AS label, SUM(_sample_interval) AS calls
 FROM gw1_mcp_usage
 WHERE timestamp > NOW() - INTERVAL '7' DAY
+  AND blob1 LIKE 'tool:%'
 GROUP BY label
 ORDER BY calls DESC
 ```
 
-## Daily time series per tool, last 30 days
+## Daily requests per tool, last 30 days
 
 ```sql
 SELECT toStartOfInterval(timestamp, INTERVAL '1' DAY) AS day,
@@ -55,6 +60,7 @@ SELECT if(blob1 LIKE 'tool:%', 'tool calls', 'protocol') AS kind,
        SUM(_sample_interval) AS calls
 FROM gw1_mcp_usage
 WHERE timestamp > NOW() - INTERVAL '7' DAY
+  AND (blob1 LIKE 'tool:%' OR blob1 LIKE 'rpc:%')
 GROUP BY kind
 ```
 
@@ -65,6 +71,7 @@ SELECT toStartOfInterval(timestamp, INTERVAL '1' HOUR) AS hour,
        SUM(_sample_interval) AS calls
 FROM gw1_mcp_usage
 WHERE timestamp > NOW() - INTERVAL '2' DAY
+  AND (blob1 LIKE 'tool:%' OR blob1 LIKE 'rpc:%')
 GROUP BY hour
 ORDER BY hour
 ```

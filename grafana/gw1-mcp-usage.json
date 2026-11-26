@@ -1,7 +1,7 @@
 {
   "uid": "gw1-mcp-usage",
   "title": "gw1-mcp — public usage",
-  "description": "Live, anonymous usage of the gw1-mcp MCP server. Only the invoked tool's NAME is ever recorded — never arguments, never identities (see the worker's /privacy page). This dashboard is code: grafana/gw1-mcp-usage.json in the repository.",
+  "description": "Live usage of the gw1-mcp MCP server, including request counts, tool outcomes, and caller-supplied client names. See the service's /privacy page.",
   "tags": [
     "gw1-mcp",
     "public"
@@ -30,14 +30,14 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "## gw1-mcp — what the server actually does, live\nAnonymous per-tool call counts from the [gw1-mcp](https://github.com/Graphmaxer/gw1-mcp) MCP server (Guild Wars 1 build compiler for LLMs). **Tool names only — never arguments, never identities** ([privacy](https://gw1-mcp.graphmaxer.workers.dev/privacy)). Data: Cloudflare Workers Analytics Engine, 90-day retention, sampled (totals use `SUM(_sample_interval)`). This dashboard is versioned code — [see the JSON](https://github.com/Graphmaxer/gw1-mcp/blob/main/grafana/gw1-mcp-usage.json)."
+        "content": "## gw1-mcp usage\nRequest counts, tool outcomes, and caller-supplied client names from [gw1-mcp](https://github.com/Graphmaxer/gw1-mcp). Cloudflare Workers Analytics Engine retains records for 90 days. Totals are estimated from sampled records. [Privacy policy](https://gw1-mcp.graphmaxer.workers.dev/privacy) · [Dashboard source](https://github.com/Graphmaxer/gw1-mcp/blob/main/grafana/gw1-mcp-usage.json)"
       }
     },
     {
       "id": 11,
       "type": "stat",
       "title": "Tool calls (selected range)",
-      "description": "Actual work requested by assistants.",
+      "description": "Recorded tool requests, including attempts rejected before execution.",
       "gridPos": {
         "x": 0,
         "y": 3,
@@ -177,7 +177,7 @@
       "id": 13,
       "type": "stat",
       "title": "Tool calls (last 24h)",
-      "description": "Fixed 24h window, independent of the time picker.",
+      "description": "Recorded tool requests in the last 24 hours, independent of the time picker.",
       "gridPos": {
         "x": 12,
         "y": 3,
@@ -247,7 +247,7 @@
       "id": 14,
       "type": "stat",
       "title": "Protocol overhead share",
-      "description": "initialize / resource reads vs tool work.",
+      "description": "Share of recorded requests for protocol operations such as initialization, discovery, and resource reads.",
       "gridPos": {
         "x": 18,
         "y": 3,
@@ -274,7 +274,7 @@
             "method": "POST",
             "body_type": "raw",
             "body_content_type": "text/plain",
-            "data": "SELECT round(100 * SUM(if(blob1 NOT LIKE 'tool:%', _sample_interval, 0)) / SUM(_sample_interval), 1) AS pct FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000)"
+            "data": "SELECT round(100 * SUM(if(blob1 LIKE 'rpc:%', _sample_interval, 0)) / SUM(_sample_interval), 1) AS pct FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000) AND (blob1 LIKE 'rpc:%' OR blob1 LIKE 'tool:%')"
           },
           "root_selector": "data",
           "columns": [
@@ -391,7 +391,7 @@
       "id": 4,
       "type": "timeseries",
       "title": "Hourly pulse",
-      "description": "All RPC traffic per hour — spikes are launch or discovery moments.",
+      "description": "Recorded RPC requests per hour.",
       "gridPos": {
         "x": 12,
         "y": 8,
@@ -418,7 +418,7 @@
             "method": "POST",
             "body_type": "raw",
             "body_content_type": "text/plain",
-            "data": "SELECT toStartOfInterval(timestamp, INTERVAL '1' HOUR) AS t, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000) GROUP BY t ORDER BY t"
+            "data": "SELECT toStartOfInterval(timestamp, INTERVAL '1' HOUR) AS t, SUM(_sample_interval) AS calls FROM gw1_mcp_usage WHERE timestamp > toDateTime(${__timeFrom} / 1000) AND timestamp < toDateTime(${__timeTo} / 1000) AND (blob1 LIKE 'rpc:%' OR blob1 LIKE 'tool:%') GROUP BY t ORDER BY t"
           },
           "root_selector": "data",
           "columns": [

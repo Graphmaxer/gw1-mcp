@@ -14,7 +14,6 @@
  *
  * The generated JSON is committed: the MCP server never fetches at runtime.
  */
-import { mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { loadUpstream } from "./import/load.ts";
@@ -27,7 +26,7 @@ import {
   transformSkills,
   transformSkillTypes,
 } from "./import/transform.ts";
-import { mergeProvenance, syncReadmeSkillCount, writeData } from "./import/write.ts";
+import { dataFile, writeImport } from "./import/write.ts";
 
 /**
  * `pnpm run import:data -- <url>` forwards the literal "--" token into this
@@ -52,24 +51,24 @@ async function main(): Promise<void> {
   );
 
   const outDir = join(dirname(fileURLToPath(import.meta.url)), "..", "data");
-  mkdirSync(outDir, { recursive: true });
-
   const campaigns = transformCampaigns(upstream.CAMPAIGNS);
   const professions = transformProfessions(upstream.PROFESSIONS);
   const attributes = transformAttributes(upstream.ATTRIBUTES);
   const skillTypes = transformSkillTypes(upstream.SKILLTYPES);
   const skills = transformSkills(upstream);
 
-  writeData(outDir, "campaigns.json", campaigns, campaigns.length);
-  writeData(outDir, "professions.json", professions, professions.length);
-  writeData(outDir, "attributes.json", attributes, attributes.length);
-  writeData(outDir, "skill-types.json", skillTypes, skillTypes.length);
-  writeData(
-    outDir,
-    "skills.json",
-    skills,
-    `${skills.length} (${skills.filter((s) => s.isPvpVersion).length} PvP versions)`,
-  );
+  const files = [
+    dataFile(join(outDir, "campaigns.json"), campaigns, campaigns.length),
+    dataFile(join(outDir, "professions.json"), professions, professions.length),
+    dataFile(join(outDir, "attributes.json"), attributes, attributes.length),
+    dataFile(join(outDir, "skill-types.json"), skillTypes, skillTypes.length),
+    dataFile(
+      join(outDir, "skills.json"),
+      skills,
+      `${skills.length} (${skills.filter((s) => s.isPvpVersion).length} PvP versions)`,
+    ),
+  ];
+  const importedAt = new Date().toISOString().slice(0, 10);
   // French names, when the channel serves them (npm 2.0.0 does not — see the
   // skilldescFr doc in load.ts). Absence deliberately LEAVES the committed file
   // alone instead of writing an empty one: the weekly job falls back to npm on a
@@ -77,22 +76,51 @@ async function main(): Promise<void> {
   // transient upstream hiccup into a data-loss PR. Logged either way, because a
   // green run that silently changed channel is the exact failure this repo has
   // had twice.
-  if (upstream.skilldescFr === undefined) {
+  const french =
+    upstream.skilldescFr === undefined
+      ? undefined
+      : transformFrenchNames(upstream.skilldescFr, skills);
+  const skillNamesFr = {
+    source:
+      "https://github.com/build-wars/gw-skilldata (json/skilldesc-fr.json — French NAMES only; no French descriptions are shipped)",
+    sourceVersion: upstream.version,
+    importedAt,
+    freshness:
+      "Its OWN key because availability is independent of the skills pipeline: only the Pages and clone channels serve French (npm 2.0.0 exports English and German only), so an npm-fallback run refreshes skills.json and leaves this table untouched. A sourceVersion older than the skills entry means the last import ran without a French channel, not that anything failed.",
+  };
+  if (french) {
+    files.push(
+      dataFile(
+        join(outDir, "skill-names-fr.json"),
+        french.names,
+        `${Object.keys(french.names).length} French names ` +
+          `(${french.identical.length} identical to English, ` +
+          `${french.shadowed.length} shadowed by an English name, ` +
+          `${french.ambiguous.length} ambiguous — the last two resolve to English / to nothing)`,
+      ),
+    );
+  }
+
+  const skillsProvenance = {
+    source: "https://github.com/build-wars/gw-skilldata (npm: @buildwars/gw-skilldata)",
+    sourceVersion: upstream.version,
+    importedAt,
+    freshness:
+      "Upstream is actively maintained and tracks Guild Wars Reforged balance updates (stat changes and newly added skills). Data is only as fresh as the installed package version; run the update workflow or `pnpm update @buildwars/gw-skilldata` to refresh. Recent balance notes: https://wiki.guildwars.com/wiki/Game_updates",
+  };
+  writeImport(
+    outDir,
+    files,
+    french ? { skillNamesFr, skills: skillsProvenance } : { skills: skillsProvenance },
+    { path: join(outDir, "..", "..", "..", "README.md"), count: skills.length },
+  );
+
+  if (!french) {
     console.log(
       "skill-names-fr.json: NOT REFRESHED — this source serves no French " +
         "(npm <= 2.0.0 exports English and German only); committed names left as they are",
     );
   } else {
-    const french = transformFrenchNames(upstream.skilldescFr, skills);
-    writeData(
-      outDir,
-      "skill-names-fr.json",
-      french.names,
-      `${Object.keys(french.names).length} French names ` +
-        `(${french.identical.length} identical to English, ` +
-        `${french.shadowed.length} shadowed by an English name, ` +
-        `${french.ambiguous.length} ambiguous — the last two resolve to English / to nothing)`,
-    );
     // Printed, not merely counted: these are the entries whose LOOKUP behaviour is
     // surprising, and the weekly PR auto-merges, so the run log is where a reviewer
     // gets to see a new one appear.
@@ -106,31 +134,7 @@ async function main(): Promise<void> {
         `  ambiguous: French name ${JSON.stringify(normalized)} claimed by ${ids.join(", ")}`,
       );
     }
-    mergeProvenance(outDir, "skillNamesFr", {
-      source:
-        "https://github.com/build-wars/gw-skilldata (json/skilldesc-fr.json — French NAMES only; no French descriptions are shipped)",
-      sourceVersion: upstream.version,
-      importedAt: new Date().toISOString().slice(0, 10),
-      freshness:
-        "Its OWN key because availability is independent of the skills pipeline: only the Pages and clone channels serve French (npm 2.0.0 exports English and German only), so an npm-fallback run refreshes skills.json and leaves this table untouched. A sourceVersion older than the skills entry means the last import ran without a French channel, not that anything failed.",
-    });
   }
-
-  // README advertises the count and repository.test.ts asserts it exactly, so the
-  // generator owns it — otherwise an upstream count change reds the weekly job
-  // until a human edits prose (which is what happened on 2026-08-10).
-  const readmePath = join(outDir, "..", "..", "..", "README.md");
-  const rewritten = syncReadmeSkillCount(readmePath, skills.length);
-  if (rewritten > 0)
-    console.log(`README.md: ${rewritten} skill-count mention(s) -> ${skills.length}`);
-
-  mergeProvenance(outDir, "skills", {
-    source: "https://github.com/build-wars/gw-skilldata (npm: @buildwars/gw-skilldata)",
-    sourceVersion: upstream.version,
-    importedAt: new Date().toISOString().slice(0, 10),
-    freshness:
-      "Upstream is actively maintained and tracks Guild Wars Reforged balance updates (stat changes and newly added skills). Data is only as fresh as the installed package version; run the update workflow or `pnpm update @buildwars/gw-skilldata` to refresh. Recent balance notes: https://wiki.guildwars.com/wiki/Game_updates",
-  });
 }
 
 const isDirectRun = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;

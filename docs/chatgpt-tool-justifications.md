@@ -16,11 +16,11 @@ Verified in the source, not asserted:
 2. **Nothing is written.** No file writes, no key-value store, no database, no account,
    no session. The server is stateless; the only `.set()` in the tool code is a local
    `Map` inside the validator.
-3. **The one write that does exist is telemetry, not domain state.** The Worker records
-   an anonymous counter per call to Cloudflare Analytics Engine — a tool name, an
-   outcome, and entities resolved from our own data, never caller input. It is disclosed
-   at `/privacy`. Mention this proactively: a reviewer inspecting the bindings will see
-   `MCP_ANALYTICS`, and it is better explained than discovered.
+3. **The Worker records usage counters in Cloudflare Analytics Engine.** Request
+   counters describe methods and tool names. Tool outcomes include resolved game
+   entities and which optional flags the caller set. Initialization counters include
+   the caller-supplied client software name, which can appear in the public dashboard.
+   See the service's [privacy policy](https://gw1-mcp.graphmaxer.workers.dev/privacy).
 
 ---
 
@@ -135,15 +135,11 @@ rejected by name rather than forwarded.
 
 ## If the form asks for one overall statement
 
-> All eight tools are pure, read-only computations over a Guild Wars 1 dataset compiled
-> into the deployment at build time. The service is stateless: no accounts, no sessions,
-> no stored user data, and no runtime network calls from any tool — the dataset is a
-> static import and the template codec is implemented in this repository. Nothing any
-> tool returns can act on the user's game; `encode_template` produces a string the user
-> copies themselves, and it refuses to emit codes the game would reject or silently
-> alter. The only write in the system is an anonymous per-call counter to Cloudflare
-> Analytics Engine (tool name, outcome, and entity names resolved from our own data —
-> never caller arguments), disclosed at /privacy.
+> All eight tools are read-only computations over a Guild Wars 1 dataset bundled
+> with the deployment. The service handles requests without accounts or sessions.
+> `encode_template` produces a code the user copies into the game. The Worker writes
+> usage counters to Cloudflare Analytics Engine for request types, tool outcomes, and
+> caller-supplied client names. See the service's [privacy policy](https://gw1-mcp.graphmaxer.workers.dev/privacy).
 
 ---
 
@@ -180,5 +176,5 @@ characters each. If the cap is tighter still, the first sentence of each stands 
 | list_heroes        | Destructive | An enumeration. No state to affect.                                                                                                                             |
 
 If a field allows one extra sentence anywhere, spend it on the analytics disclosure:
-"The only write in the system is an anonymous per-call counter (tool name, outcome, and
-entity names resolved from our own data — never caller arguments), disclosed at /privacy."
+"The Worker writes usage counters for request types, tool outcomes, and caller-supplied
+client names. Details are available at /privacy."

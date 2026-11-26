@@ -78,7 +78,7 @@ describe("directory-readiness routes", () => {
   it("serves a privacy policy", async () => {
     const res = await createApp().request("/privacy");
     expect(res.status).toBe(200);
-    expect(await res.text()).toContain("does not collect");
+    expect(await res.text()).toContain("privacy policy");
   });
   it("serves the OpenAI apps challenge only when configured", async () => {
     const app = createApp();
@@ -213,20 +213,55 @@ describe("the endpoint answers with and without a trailing slash", () => {
       expect((await res.text()).length).toBeGreaterThan(100);
     });
 
+    it(`acknowledges an initialized notification without a body on ${path}`, async () => {
+      const res = await createApp().request(path, {
+        method: "POST",
+        headers: { ...headers, "Mcp-Protocol-Version": "2025-11-25" },
+        body: JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }),
+      });
+      expect(res.status).toBe(202);
+      expect(res.body).toBeNull();
+      expect(res.headers.get("content-type")).toBeNull();
+      expect(res.headers.get("cache-control")).toBe("no-store");
+    });
+
+    it(`accepts a case-insensitive JSON media type on ${path}`, async () => {
+      const res = await createApp().request(path, {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "Application/JSON; charset=UTF-8" },
+        body: call,
+      });
+      expect(res.status).toBe(200);
+      expect(await res.text()).toContain('"tools"');
+    });
+
     it(`applies the hardening headers on ${path}`, async () => {
       const res = await createApp().request(path, { method: "POST", headers, body: call });
       expect(res.headers.get("x-content-type-options")).toBe("nosniff");
       expect(res.headers.get("cache-control")).toBe("no-store");
     });
 
-    it(`still 405s GET and answers preflight on ${path}`, async () => {
+    it(`advertises the same allowed methods on ${path}`, async () => {
       const app = createApp();
-      expect((await app.request(path, { method: "GET" })).status).toBe(405);
+      for (const method of ["GET", "HEAD", "DELETE", "PUT", "PATCH"]) {
+        const res = await app.request(path, { method });
+        expect(res.status, method).toBe(405);
+        expect(res.headers.get("allow"), method).toBe("POST, OPTIONS");
+      }
+    });
+
+    it(`answers browser preflight on ${path}`, async () => {
+      const app = createApp();
       const pre = await app.request(path, {
         method: "OPTIONS",
         headers: { Origin: "https://inspector.example", "Access-Control-Request-Method": "POST" },
       });
+      expect(pre.status).toBe(204);
       expect(pre.headers.get("access-control-allow-origin")).toBe("*");
+      expect(pre.headers.get("access-control-allow-methods")?.split(",")).toEqual([
+        "POST",
+        "OPTIONS",
+      ]);
     });
 
     it(`still rejects a non-loopback http origin on ${path}`, async () => {
@@ -330,12 +365,13 @@ describe("security.txt reproducibility", () => {
     expect(body).not.toMatch(/never its arguments/);
     expect(body).not.toMatch(/a tool name and a timestamp/);
     // And it must still say what it does not do.
-    expect(body).toMatch(/never IP/i);
+    expect(body).toMatch(/does not write IP\s+addresses to Analytics Engine/i);
     // The client name is caller-controlled, so an unqualified "no personal data
     // is collected" would be a claim the server cannot enforce. Say who supplies
     // it instead of asserting the absolute.
-    expect(body).not.toMatch(/no personal data is collected/i);
+    expect(body).not.toMatch(/(?:no personal data is collected|share any personal data)/i);
     expect(body).toMatch(/supplied by the caller/i);
+    expect(body).toMatch(/public usage dashboard/i);
   });
 
   it("fails while there is still time to bump Expires, not after it lapses", async () => {

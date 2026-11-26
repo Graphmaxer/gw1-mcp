@@ -24,6 +24,10 @@ const RANK_COST = [0, 1, 3, 6, 10, 15, 21, 28, 37, 48, 61, 77, 97] as const;
 /** Max attribute points at level 20 including the two +15 point quests. */
 const MAX_ATTRIBUTE_POINTS = 200;
 
+function isValidRank(rank: number): boolean {
+  return Number.isInteger(rank) && rank >= 0 && rank < RANK_COST.length;
+}
+
 /**
  * Validates a build against Guild Wars 1 rules.
  * Errors mean the template cannot legally exist; warnings mean it is
@@ -45,8 +49,7 @@ export function validateBuild(
   // + 30 from quests). The in-game panel physically prevents exceeding it,
   // so a build over budget cannot exist. Ranks 13-15 fit in the template's
   // 4-bit field but not in-game: the per-attribute check below reports them
-  // as RANK_OUT_OF_RANGE, so here they cost 0 and the budget error is
-  // suppressed — never sum to Infinity, never double-flag the same cause.
+  // as RANK_OUT_OF_RANGE, so skip the budget check if any rank is invalid.
   // Only templatable attributes consume the budget. Title tracks and the
   // no-attribute sentinel (ids > MAX_TEMPLATE_ATTRIBUTE_ID) come from account
   // progress, so a title track at rank 9 used to add 48 phantom points and made
@@ -65,9 +68,10 @@ export function validateBuild(
         .map((a) => [a.attributeId, a]),
     ).values(),
   ];
-  const hasOutOfRangeRank = budgeted.some(({ rank }) => RANK_COST[rank] === undefined);
-  const spentPoints = budgeted.reduce((total, { rank }) => total + (RANK_COST[rank] ?? 0), 0);
-  if (!hasOutOfRangeRank && spentPoints > MAX_ATTRIBUTE_POINTS) {
+  const spentPoints = budgeted.some(({ rank }) => !isValidRank(rank))
+    ? 0
+    : budgeted.reduce((total, { rank }) => total + (RANK_COST[rank] ?? 0), 0);
+  if (spentPoints > MAX_ATTRIBUTE_POINTS) {
     errors.push({
       // wiki.guildwars.com/wiki/Attribute_point: "The maximum is a total of 200 after
       // reaching level 20 and completing both of the quests that reward 15 attribute
@@ -389,14 +393,14 @@ export function validateBuild(
       continue;
     }
 
-    if (rank < 0 || rank > 12) {
+    if (!isValidRank(rank)) {
       errors.push({
         // wiki.guildwars.com/wiki/Skills_and_Attributes_Panel: "Unmodified attribute
         // ranks cannot be raised above twelve or lowered below zero." Verified in game
         // 2026-08-01: a template with rank 15 is refused outright, so the bound holds at
         // the loader and not only in the panel.
         code: "RANK_OUT_OF_RANGE",
-        message: `"${attribute.name}" rank ${rank} out of range (base ranks are 0-12)`,
+        message: `"${attribute.name}" rank ${rank} out of range (base ranks are integers from 0 to 12)`,
       });
     }
 
@@ -426,8 +430,16 @@ export function validateBuild(
   }
 
   // Skills whose attribute has no allocation: legal, but worth flagging.
+  const allocatedAttributes = new Set(
+    budgeted
+      .filter(({ rank }) => isValidRank(rank) && rank > 0)
+      .map(({ attributeId }) => attributeId),
+  );
   for (const { slot, skill } of resolved) {
-    if (skill.attributeId <= MAX_TEMPLATE_ATTRIBUTE_ID && !seenAttributes.has(skill.attributeId)) {
+    if (
+      skill.attributeId <= MAX_TEMPLATE_ATTRIBUTE_ID &&
+      !allocatedAttributes.has(skill.attributeId)
+    ) {
       const attribute = getAttributeById(skill.attributeId);
       warnings.push({
         code: "UNALLOCATED_ATTRIBUTE",
@@ -450,7 +462,11 @@ export function validateBuild(
     // model pull points out of the single best place it had put them — the
     // self-correction loop turned a good bar into a worse one, which is more
     // harmful than staying silent.
-    if (rank > 0 && !attribute?.isPrimary && !usedAttributeIds.has(attributeId)) {
+    if (
+      allocatedAttributes.has(attributeId) &&
+      !attribute?.isPrimary &&
+      !usedAttributeIds.has(attributeId)
+    ) {
       warnings.push({
         code: "UNUSED_ATTRIBUTE",
         message: `"${attribute?.name ?? attributeId}" is at rank ${rank} (${RANK_COST[rank] ?? 0} points) but no skill on this bar scales with it`,

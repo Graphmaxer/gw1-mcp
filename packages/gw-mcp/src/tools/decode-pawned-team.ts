@@ -25,6 +25,11 @@ export function registerDecodePawnedTeamTool(registerTool: RegisterTool): void {
       } catch (error) {
         return jsonError("INVALID_PWND", error instanceof Error ? error.message : String(error));
       }
+      // An empty container produced nothing usable, which is a failed call here,
+      // not a successful decode of zero builds.
+      if (entries.length === 0) {
+        return jsonError("INVALID_PWND", "The blob holds no build slot between '>' and '<'.");
+      }
       if (entries.length > MAX_PWND_SLOTS) {
         return jsonError(
           "TOO_MANY_SLOTS",

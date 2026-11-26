@@ -27,7 +27,9 @@ const namedBuildSchema = {
     .describe('Secondary profession, e.g. "Monk". Omit or "None" for none.'),
   attributes: z
     .array(
-      z.object({
+      // Strict like the object around it: `{attribute, rank, rnak}` used to be
+      // accepted with the misspelled key dropped in silence.
+      z.strictObject({
         attribute: z.string().max(64).describe('Exact attribute name, e.g. "Mysticism"'),
         rank: z.number().int().min(0).max(12).describe("Base rank 0-12 (before runes)"),
       }),
@@ -343,12 +345,17 @@ const listHeroesInput = {
     ),
 };
 
-const encodeInput = {
+/**
+ * The input of both build tools, declared once. They take the same build and the
+ * same options by design (encode_template runs validate_build's rules), and two
+ * character-identical literals were one edit away from saying different things.
+ */
+const buildInput = {
   ...namedBuildSchema,
   forHero: z
     .boolean()
     .default(false)
-    .describe("Set true if this bar is for a hero (PvE-only skills are flagged)"),
+    .describe("Set true if this bar is for a hero (PvE-only skills are errors)"),
   forPvp: z
     .boolean()
     .default(false)
@@ -360,28 +367,7 @@ const encodeInput = {
     .max(8192)
     .optional()
     .describe(
-      "Optional: unlocked skill ids from a GWToolbox account export (/exportaccount). Skills outside this list are flagged as warnings.",
-    ),
-};
-
-const validateInput = {
-  ...namedBuildSchema,
-  forHero: z
-    .boolean()
-    .default(false)
-    .describe("Set true if this bar is for a hero (PvE-only skills are flagged)"),
-  forPvp: z
-    .boolean()
-    .default(false)
-    .describe(
-      "Set true for a PvP character's bar: PvE-only skills become errors. Never use '(PvP)' skill versions, even here: templates always carry the PvE id.",
-    ),
-  unlockedSkillIds: z
-    .array(z.number().int().min(0).max(65535))
-    .max(8192)
-    .optional()
-    .describe(
-      "Optional: unlocked skill ids from a GWToolbox account export (/exportaccount). Skills outside this list are flagged as warnings.",
+      "Optional: unlocked skill ids from a GWToolbox account export (/exportaccount): learnedCharacterSkills for a player bar, unlockedAccountSkills for a hero. Skills outside this list are flagged as warnings.",
     ),
 };
 
@@ -445,5 +431,5 @@ export const listHeroesInputObject = z.object(listHeroesInput).strict();
 export const searchSkillsInputObject = z.object(searchSkillsInput).strict();
 export const decodeTemplateInputObject = z.object(decodeTemplateInput).strict();
 export const decodePwndInputObject = z.object(decodePwndInput).strict();
-export const encodeInputObject = z.object(encodeInput).strict();
-export const validateInputObject = z.object(validateInput).strict();
+export const encodeInputObject = z.object(buildInput).strict();
+export const validateInputObject = z.object(buildInput).strict();

@@ -72,7 +72,7 @@ async function main(): Promise<void> {
   // French names, when the channel serves them (npm 2.0.0 does not — see the
   // skilldescFr doc in load.ts). Absence deliberately LEAVES the committed file
   // alone instead of writing an empty one: the weekly job falls back to npm on a
-  // Pages outage, and a fallback that deleted 1485 French names would turn a
+  // Pages outage, and a fallback that deleted every French name would turn a
   // transient upstream hiccup into a data-loss PR. Logged either way, because a
   // green run that silently changed channel is the exact failure this repo has
   // had twice.

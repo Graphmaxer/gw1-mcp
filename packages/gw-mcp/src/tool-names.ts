@@ -1,6 +1,6 @@
 /**
  * THE single source of truth for tool names. Everything derives from here:
- * server.ts registrations are compiler-checked against this union (each
+ * the registrations in tools/*.ts are compiler-checked against this union (each
  * literal carries `satisfies ToolName`), and the worker's analytics label
  * whitelist imports this array directly — nothing to sync, nothing to drift.
  */

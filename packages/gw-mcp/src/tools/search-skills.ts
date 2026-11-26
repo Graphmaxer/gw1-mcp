@@ -43,12 +43,10 @@ export function registerSearchSkillsTool(registerTool: RegisterTool): void {
     }) => {
       const filters: Parameters<typeof searchSkills>[0] = { includePvpVersions };
       if (professionName !== undefined) {
-        if (/^none$/i.test(professionName)) filters.professionId = 0;
-        else {
-          const profession = getProfessionByName(professionName);
-          if (!profession) return unknownProfession(professionName);
-          filters.professionId = profession.id;
-        }
+        // "None" needs no special case: it is profession 0 in the data.
+        const profession = getProfessionByName(professionName);
+        if (!profession) return unknownProfession(professionName);
+        filters.professionId = profession.id;
       }
       if (attributeName !== undefined) {
         const attribute = getAttributeByName(attributeName);

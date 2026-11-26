@@ -39,9 +39,9 @@ The honest register: every KNOWN compromise, kept deliberately, with its trigger
    code regression — and I proposed exhausted build minutes, which was also wrong.
    When a Workers Build fails, read the Cloudflare log FIRST; the repository cannot
    tell you anything about a dash-side credential.
-2. The C++ plugin compiled clean on the first CI run (/W4 /WX, zero
-   warnings — 2026-07-11) but has never been loaded in-game. Trigger:
-   the maintainer runs /exportaccount with the artifact DLL.
+2. ~~The C++ plugin compiled clean on the first CI run (/W4 /WX, zero
+   warnings — 2026-07-11) but had never been loaded in-game.~~ CLOSED
+   2026-07-16: loaded, and /exportaccount run on a real account.
 3. Codec questions, updated 2026-07-16 with two codes copied from a live
    client: trailing padding is SETTLED — the client pads to an
    EVEN number of chars (8/8 live samples; even-minimal codes come out
@@ -92,7 +92,7 @@ The honest register: every KNOWN compromise, kept deliberately, with its trigger
    analytics, or wanting to share the URL deliberately → add a Cloudflare
    WAF rate-limiting rule or a bearer check in app.ts.
 7. Early-adopter stack: TypeScript 7.0.x and vitest 5 are young majors and
-   oxfmt is pre-1.0 (0.78.x, formatting may shift between minors);
+   oxfmt is pre-1.0 (0.x, formatting may shift between minors);
    pin-and-wait is the policy if a toolchain regression appears.
 8. Single-maintainer bus factor — mitigated by this file being the actual
    source of truth (kept aligned by the doc-audit habit).
@@ -112,7 +112,7 @@ The honest register: every KNOWN compromise, kept deliberately, with its trigger
    the margin improved rather than eroded. `limits.cpu_ms` stays unset
    deliberately: it has no effect under Free and a rejected value would fail a
    deploy.
-10. tools/list costs 19 389 characters (~4 850 tokens) of FIXED context
+10. tools/list costs 19 595 characters (~4 900 tokens) of FIXED context
     in every conversation, outputSchemas being ~40% of it (7 805 chars). That is
     a deliberate trade — the schemas carry real contracts locked by the golden
     fixtures — but it is paid by every session, including ones that call a
@@ -153,6 +153,12 @@ The honest register: every KNOWN compromise, kept deliberately, with its trigger
     through the same lookup). Locked by a test now.
     The `encode_template` and `validate_build` tool and parameter descriptions now
     explicitly advertise French skill names too, reducing the total by 20 characters.
+    +206 on 2026-11-26, all three ours: the attribute entries of the two build
+    tools became strict like the objects around them (a misspelled key inside an
+    entry was dropped in silence), `forHero` says PvE-only skills are "errors"
+    where it said "flagged", and `unlockedSkillIds` says which export list goes
+    with which bar — the README said so, and the README does not travel with
+    the tool.
     Trigger: if a client's
     context budget ever matters, check whether that client forwards
     outputSchema to the model at all before optimising further.
